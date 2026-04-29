@@ -10,16 +10,33 @@ function colorFor(pct: number): string {
   return "bg-rose-500";
 }
 
+// スマホ向けに短縮ラベル
+const EAA_LABELS_SHORT: Record<EAAKey, string> = {
+  histidine: "His",
+  isoleucine: "Ile",
+  leucine: "Leu",
+  lysine: "Lys",
+  methionine_cysteine: "Met+Cys",
+  phenylalanine_tyrosine: "Phe+Tyr",
+  threonine: "Thr",
+  tryptophan: "Trp",
+  valine: "Val",
+};
+
 export function AminoAcidBars({ sufficiencyPct }: Props) {
   return (
     <div className="space-y-3">
       {EAA_KEYS.map((k) => {
         const pct = sufficiencyPct[k];
-        const width = Math.min(pct, 150); // 視覚的な上限
+        const width = Math.min(pct, 150);
         return (
-          <div key={k} className="grid grid-cols-[160px_1fr_60px] items-center gap-3">
-            <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              {EAA_LABELS_JA[k]}
+          <div
+            key={k}
+            className="grid grid-cols-[80px_1fr_48px] sm:grid-cols-[160px_1fr_60px] items-center gap-2 sm:gap-3"
+          >
+            <div className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+              <span className="sm:hidden">{EAA_LABELS_SHORT[k]}</span>
+              <span className="hidden sm:inline">{EAA_LABELS_JA[k]}</span>
             </div>
             <div className="relative h-3 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
               <div
@@ -32,7 +49,7 @@ export function AminoAcidBars({ sufficiencyPct }: Props) {
                 aria-label="100%基準線"
               />
             </div>
-            <div className="text-right text-sm tabular-nums text-slate-600 dark:text-slate-400">
+            <div className="text-right text-xs sm:text-sm tabular-nums text-slate-600 dark:text-slate-400">
               {pct}%
             </div>
           </div>

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UploadZone } from "@/components/UploadZone";
 import { ResultPanel } from "@/components/ResultPanel";
+import { BodyWeightInput } from "@/components/BodyWeightInput";
 import type { AnalysisResult } from "@/lib/eaa-calculator";
 
 type State =
@@ -11,15 +12,42 @@ type State =
   | { kind: "error"; message: string }
   | { kind: "result"; result: AnalysisResult };
 
+const DEFAULT_WEIGHT = 60;
+const STORAGE_KEY = "eaa-scorer:body-weight-kg";
+
 export default function Home() {
   const [state, setState] = useState<State>({ kind: "idle" });
   const [file, setFile] = useState<File | null>(null);
+  const [bodyWeightKg, setBodyWeightKg] = useState<number>(DEFAULT_WEIGHT);
+
+  // localStorage から復元
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const v = Number(saved);
+        if (Number.isFinite(v) && v >= 20 && v <= 250) setBodyWeightKg(v);
+      }
+    } catch {
+      // localStorage が使えない環境（プライベートブラウジング等）は無視
+    }
+  }, []);
+
+  function updateWeight(kg: number) {
+    setBodyWeightKg(kg);
+    try {
+      localStorage.setItem(STORAGE_KEY, String(kg));
+    } catch {
+      // 同上
+    }
+  }
 
   async function analyze() {
     if (!file) return;
     setState({ kind: "loading" });
     const fd = new FormData();
     fd.append("photo", file);
+    fd.append("body_weight_kg", String(bodyWeightKg));
     try {
       const res = await fetch("/api/analyze", { method: "POST", body: fd });
       const json = await res.json();
@@ -39,24 +67,27 @@ export default function Home() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
-      <header className="mb-10 text-center">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
+    <main className="mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-12">
+      <header className="mb-6 sm:mb-10 text-center">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
           EAAスコア
         </h1>
-        <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
+        <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
           食事の写真から、必須アミノ酸（EAA）バランスを信号機で判定します。
         </p>
       </header>
 
       {state.kind !== "result" && (
-        <UploadZone
-          onSelect={(f) => {
-            setFile(f);
-            setState({ kind: "idle" });
-          }}
-          disabled={state.kind === "loading"}
-        />
+        <div className="space-y-4">
+          <BodyWeightInput bodyWeightKg={bodyWeightKg} onChange={updateWeight} />
+          <UploadZone
+            onSelect={(f) => {
+              setFile(f);
+              setState({ kind: "idle" });
+            }}
+            disabled={state.kind === "loading"}
+          />
+        </div>
       )}
 
       {state.kind === "idle" && file && (

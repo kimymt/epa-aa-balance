@@ -71,8 +71,8 @@ export function ResultPanel({ result }: { result: AnalysisResult }) {
         </ul>
       </div>
 
-      <div className="text-xs text-slate-500 dark:text-slate-500">
-        体重{result.bodyWeightKg}kgを基準として計算しています。基準値はWHO/FAO/UNU 2007。
+      <div className="text-xs text-slate-500 dark:text-slate-500 leading-relaxed">
+        体重{result.bodyWeightKg}kgを基準として、必要量の目安を計算しています。基準値はWHO/FAO/UNU 2007（mg/kg体重/日）。
       </div>
     </div>
   );

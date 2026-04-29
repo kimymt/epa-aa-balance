@@ -22,14 +22,14 @@ export function TrafficLight({ light }: { light: Light }) {
   return (
     <div className="flex flex-col items-center gap-3">
       <div
-        className={`h-32 w-32 rounded-full shadow-2xl ${COLORS[light]} transition-all`}
+        className={`h-24 w-24 sm:h-32 sm:w-32 rounded-full shadow-2xl ${COLORS[light]} transition-all`}
         aria-label={LABELS[light]}
       />
       <div className="text-center">
-        <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+        <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">
           {LABELS[light]}
         </div>
-        <div className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        <div className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
           {SUBTITLES[light]}
         </div>
       </div>
