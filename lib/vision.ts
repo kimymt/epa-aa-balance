@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 export interface VisionFood {
   name: string;
@@ -16,22 +16,39 @@ export class VisionError extends Error {
 }
 
 const PROMPT = `あなたは栄養士のアシスタントです。食事写真から食材と推定グラム数を抽出します。
-出力は厳密にJSON配列のみ。前後にテキストや markdown を含めないでください。
 
-ルール:
-- 食材名は日本語で、できるだけ標準的な名前（例: "鶏むね肉", "白米", "卵"）を使う
-- grams は整数（推定が難しい場合は標準的な1人前の量）
+【最重要ルール】曖昧な総称ではなく**必ず具体名**にコミットしてください。
+- ❌ 禁止: 「焼き魚」「煮魚」「魚料理」「肉料理」「炒め物」「スープ」「漬物」「サラダ」
+- ✅ 必須: 「サバ」「サンマ」「サケ」「アジ」「鶏むね肉」「豚ロース肉」「牛肉」「味噌汁」「たくあん」「ポテトサラダ」など、食材レベルの具体名
+
+写真から特定が難しいときも、最も可能性の高い具体食材を1つ選んでコミットしてください。
+
+【他のルール】
+- 食材名は日本語の標準的な名前で
+- grams は整数で、推定が難しい場合は標準的な1人前の量
 - 食事と関係ない物体（皿、箸、テーブル等）は無視
-- 食材が認識できない場合は空配列 [] を返す
+- 写真に食事が写っていない場合は空配列 [] を返す
 
-出力例:
-[{"name":"鶏むね肉","grams":150},{"name":"白米","grams":200},{"name":"ブロッコリー","grams":80}]
+【出力例】
+焼き魚定食の場合: [{"name":"サバ","grams":100},{"name":"白米","grams":150},{"name":"味噌汁","grams":180},{"name":"たくあん","grams":20}]
 
-この食事の写真から見える食材と推定グラム数をJSON配列で返してください。`;
+この食事の写真から見える食材と推定グラム数を、上記ルールに従ってJSON配列で返してください。`;
 
 const TIMEOUT_MS = 25_000;
 // Gemini 2.5 Flash: free-tier, vision-capable, fast
 const MODEL = "gemini-2.5-flash";
+
+const RESPONSE_SCHEMA = {
+  type: Type.ARRAY,
+  items: {
+    type: Type.OBJECT,
+    properties: {
+      name: { type: Type.STRING, description: "具体的な食材名（日本語）" },
+      grams: { type: Type.INTEGER, description: "推定グラム数" },
+    },
+    required: ["name", "grams"],
+  },
+};
 
 export async function analyzePhoto(
   imageBytes: ArrayBuffer,
@@ -67,18 +84,16 @@ export async function analyzePhoto(
           role: "user",
           parts: [
             { text: PROMPT },
-            {
-              inlineData: {
-                mimeType,
-                data: base64,
-              },
-            },
+            { inlineData: { mimeType, data: base64 } },
           ],
         },
       ],
       config: {
-        // 軽くJSONを安定させる
-        temperature: 0.2,
+        // 命名揺れを最小化するため温度0
+        temperature: 0,
+        // 構造化出力でJSON形式を強制
+        responseMimeType: "application/json",
+        responseSchema: RESPONSE_SCHEMA,
         abortSignal: controller.signal,
       },
     });
@@ -99,11 +114,9 @@ export async function analyzePhoto(
   }
   clearTimeout(timeout);
 
-  const cleaned = stripCodeFence(text.trim());
-
   let parsed: unknown;
   try {
-    parsed = JSON.parse(cleaned);
+    parsed = JSON.parse(text.trim());
   } catch {
     throw new VisionError(
       `Vision returned non-JSON: ${text.slice(0, 200)}`,
@@ -135,10 +148,4 @@ export async function analyzePhoto(
   }
 
   return foods;
-}
-
-function stripCodeFence(text: string): string {
-  const fence = /^```(?:json)?\s*([\s\S]*?)\s*```$/m;
-  const m = text.match(fence);
-  return m ? m[1].trim() : text.trim();
 }

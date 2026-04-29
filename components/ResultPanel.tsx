@@ -54,7 +54,13 @@ export function ResultPanel({ result }: { result: AnalysisResult }) {
         <ul className="space-y-1 text-sm text-slate-600 dark:text-slate-400">
           {result.matched.map((m, i) => (
             <li key={i}>
-              ✓ {m.query} → {m.matched}（{m.grams}g、タンパク質{m.protein_g.toFixed(1)}g）
+              {m.isFallback ? "≈" : "✓"} {m.query} → {m.matched}（{m.grams}g、タンパク質
+              {m.protein_g.toFixed(1)}g）
+              {m.isFallback && (
+                <span className="ml-1 text-amber-600 dark:text-amber-400">
+                  （カテゴリ平均値で推定）
+                </span>
+              )}
             </li>
           ))}
           {result.unmatched.map((u, i) => (

@@ -9,47 +9,83 @@ export interface FoodEntry {
   eaa: Record<EAAKey, number>;
 }
 
-interface FoodsFile {
-  foods: FoodEntry[];
+export interface CategoryFallback {
+  category: string;
+  matchers: string[];
+  protein_g: number;
+  eaa: Record<EAAKey, number>;
 }
 
-let cache: FoodEntry[] | null = null;
+export interface LookupResult {
+  entry: FoodEntry;
+  /** カテゴリfallbackがヒットした場合 true（具体食材ではなくカテゴリ平均値） */
+  isFallback: boolean;
+}
 
-function loadFoods(): FoodEntry[] {
+interface FoodsFile {
+  foods: FoodEntry[];
+  category_fallbacks?: CategoryFallback[];
+}
+
+let cache: FoodsFile | null = null;
+
+function loadFoods(): FoodsFile {
   if (cache) return cache;
   const file = path.join(process.cwd(), "data", "foods.json");
   const raw = readFileSync(file, "utf8");
-  const parsed: FoodsFile = JSON.parse(raw);
-  cache = parsed.foods;
+  cache = JSON.parse(raw) as FoodsFile;
   return cache;
 }
 
 /**
- * 食材名から food entry を検索する。
+ * 食材名から食品エントリを検索する。
  *
  * 優先順位:
  *   1. 完全一致（name または aliases）
- *   2. クエリが name または alias を部分文字列として含む（あるいは含まれる）
+ *   2. 双方向の部分文字列一致（クエリ ↔ name/alias）
+ *   3. category_fallbacks から matchers の双方向部分文字列一致でカテゴリ平均値を返す
+ *      （isFallback: true）
  *
- * 見つからなければ null を返す。
+ * いずれにもヒットしなければ null。
  */
-export function lookupFood(query: string): FoodEntry | null {
-  const foods = loadFoods();
+export function lookupFood(query: string): LookupResult | null {
+  const data = loadFoods();
   const q = query.trim().toLowerCase();
   if (!q) return null;
 
   // 1. exact match
-  for (const f of foods) {
-    if (f.name.toLowerCase() === q) return f;
-    if (f.aliases.some((a) => a.toLowerCase() === q)) return f;
+  for (const f of data.foods) {
+    if (f.name.toLowerCase() === q) return { entry: f, isFallback: false };
+    if (f.aliases.some((a) => a.toLowerCase() === q))
+      return { entry: f, isFallback: false };
   }
 
   // 2. substring match (両方向)
-  for (const f of foods) {
+  for (const f of data.foods) {
     const candidates = [f.name, ...f.aliases];
     for (const c of candidates) {
       const lower = c.toLowerCase();
-      if (lower.includes(q) || q.includes(lower)) return f;
+      if (lower.includes(q) || q.includes(lower)) {
+        return { entry: f, isFallback: false };
+      }
+    }
+  }
+
+  // 3. category fallback
+  for (const fb of data.category_fallbacks ?? []) {
+    for (const matcher of fb.matchers) {
+      const lower = matcher.toLowerCase();
+      if (lower.includes(q) || q.includes(lower)) {
+        return {
+          entry: {
+            name: fb.category,
+            aliases: fb.matchers,
+            protein_g: fb.protein_g,
+            eaa: fb.eaa,
+          },
+          isFallback: true,
+        };
+      }
     }
   }
 
@@ -57,5 +93,5 @@ export function lookupFood(query: string): FoodEntry | null {
 }
 
 export function listAllFoods(): FoodEntry[] {
-  return loadFoods();
+  return loadFoods().foods;
 }

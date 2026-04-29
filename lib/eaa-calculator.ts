@@ -9,6 +9,8 @@ export interface MatchedFood {
   grams: number;
   protein_g: number;
   eaaContribution: Record<EAAKey, number>;
+  /** カテゴリfallback（平均値での推定）が使われた場合 true */
+  isFallback: boolean;
 }
 
 export interface UnmatchedFood {
@@ -31,9 +33,8 @@ const COVERAGE_THRESHOLD = 0.5;
 /**
  * Vision APIの結果（食材リスト）からEAA摂取量を計算し、信号機スコアを返す。
  *
- * 注意: 一致しなかった食材は推定タンパク質量を計算できないため、coverage 計算では
- *       「マッチした食材のタンパク質量 / マッチ＋未マッチ食材を含む推定総タンパク質量」
- *       を使う。未マッチのタンパク質はサンプルDBの平均値（~10g/100g）で粗く見積もる。
+ * カバレッジ計算: 「マッチした食材のタンパク質量 / 全食材を粗く見積もったタンパク質量」
+ * 未マッチ食材は平均的な食材として 10g/100g で粗く見積もる。
  */
 export function calculate(foods: VisionFood[], bodyWeightKg: number): AnalysisResult {
   const matched: MatchedFood[] = [];
@@ -44,16 +45,16 @@ export function calculate(foods: VisionFood[], bodyWeightKg: number): AnalysisRe
 
   let matchedProtein = 0;
   let estimatedTotalProtein = 0;
-  // 未マッチ食材のタンパク質含有量の粗い推定（平均的な食材として10g/100g）
   const FALLBACK_PROTEIN_PER_100G = 10;
 
   for (const f of foods) {
-    const entry = lookupFood(f.name);
-    if (!entry) {
+    const result = lookupFood(f.name);
+    if (!result) {
       unmatched.push({ query: f.name, grams: f.grams });
       estimatedTotalProtein += (FALLBACK_PROTEIN_PER_100G * f.grams) / 100;
       continue;
     }
+    const { entry, isFallback } = result;
     const factor = f.grams / 100;
     const eaaContribution = {} as Record<EAAKey, number>;
     for (const k of EAA_KEYS) {
@@ -70,6 +71,7 @@ export function calculate(foods: VisionFood[], bodyWeightKg: number): AnalysisRe
       grams: f.grams,
       protein_g: protein,
       eaaContribution,
+      isFallback,
     });
   }
 
