@@ -2,7 +2,7 @@
 
 食事の写真から必須アミノ酸（EAA）バランスを信号機で判定するWebアプリ。
 
-- 写真をアップロード → Claude Vision で食材と推定グラム数を抽出
+- 写真をアップロード → Google Gemini 2.5 Flash で食材と推定グラム数を抽出（無料枠で動く）
 - 食品成分DB（サンプル）からアミノ酸プロファイルを取得
 - WHO/FAO/UNU 2007 のEAA基準と照らし合わせて充足率を計算
 - 信号機（青/黄/赤）でひと目で判定
@@ -31,7 +31,7 @@ app/
   page.tsx                  # アップロードUI（client）
   api/analyze/route.ts      # メインパイプライン
 lib/
-  vision.ts                 # Claude Vision呼び出し
+  vision.ts                 # Gemini Vision呼び出し
   food-db.ts                # data/foods.json ルックアップ
   eaa-calculator.ts         # 食材合計→EAA摂取量→充足率
   scoring.ts                # 信号機判定（純関数）
@@ -57,6 +57,6 @@ components/
 
 1. このリポジトリをGitHubに push
 2. https://vercel.com/new からImport
-3. 環境変数 `ANTHROPIC_API_KEY` を設定
-4. **Vercel Pro推奨**: Hobby tierのデフォルト10秒タイムアウトでは Claude Vision の応答が間に合わない。`app/api/analyze/route.ts` で `maxDuration: 45` を指定している
+3. 環境変数 `GEMINI_API_KEY` を設定（https://aistudio.google.com/apikey から無料取得）
+4. **Vercel Pro推奨**: Hobby tierのデフォルト10秒タイムアウトでは Gemini の応答が間に合わない場合がある。`app/api/analyze/route.ts` で `maxDuration: 45` を指定している
 5. Deploy

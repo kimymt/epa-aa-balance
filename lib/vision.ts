@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI } from "@google/genai";
 
 export interface VisionFood {
   name: string;
@@ -15,7 +15,7 @@ export class VisionError extends Error {
   }
 }
 
-const SYSTEM_PROMPT = `あなたは栄養士のアシスタントです。食事写真から食材と推定グラム数を抽出します。
+const PROMPT = `あなたは栄養士のアシスタントです。食事写真から食材と推定グラム数を抽出します。
 出力は厳密にJSON配列のみ。前後にテキストや markdown を含めないでください。
 
 ルール:
@@ -25,20 +25,22 @@ const SYSTEM_PROMPT = `あなたは栄養士のアシスタントです。食事
 - 食材が認識できない場合は空配列 [] を返す
 
 出力例:
-[{"name":"鶏むね肉","grams":150},{"name":"白米","grams":200},{"name":"ブロッコリー","grams":80}]`;
+[{"name":"鶏むね肉","grams":150},{"name":"白米","grams":200},{"name":"ブロッコリー","grams":80}]
 
-const USER_PROMPT = "この食事の写真から見える食材と推定グラム数をJSON配列で返してください。";
+この食事の写真から見える食材と推定グラム数をJSON配列で返してください。`;
 
 const TIMEOUT_MS = 25_000;
+// Gemini 2.5 Flash: free-tier, vision-capable, fast
+const MODEL = "gemini-2.5-flash";
 
 export async function analyzePhoto(
   imageBytes: ArrayBuffer,
   mimeType: string,
 ): Promise<VisionFood[]> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new VisionError(
-      "ANTHROPIC_API_KEY not set",
+      "GEMINI_API_KEY not set",
       "サーバー設定エラー: APIキーが設定されていません。",
     );
   }
@@ -50,38 +52,37 @@ export async function analyzePhoto(
     );
   }
 
-  const client = new Anthropic({ apiKey });
+  const ai = new GoogleGenAI({ apiKey });
   const base64 = Buffer.from(imageBytes).toString("base64");
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-  let response;
+  let text: string;
   try {
-    response = await client.messages.create(
-      {
-        model: "claude-sonnet-4-5",
-        max_tokens: 1024,
-        system: SYSTEM_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image",
-                source: {
-                  type: "base64",
-                  media_type: mimeType as "image/jpeg" | "image/png" | "image/webp",
-                  data: base64,
-                },
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: PROMPT },
+            {
+              inlineData: {
+                mimeType,
+                data: base64,
               },
-              { type: "text", text: USER_PROMPT },
-            ],
-          },
-        ],
+            },
+          ],
+        },
+      ],
+      config: {
+        // 軽くJSONを安定させる
+        temperature: 0.2,
+        abortSignal: controller.signal,
       },
-      { signal: controller.signal },
-    );
+    });
+    text = response.text ?? "";
   } catch (err) {
     clearTimeout(timeout);
     const e = err as Error & { name?: string };
@@ -98,15 +99,7 @@ export async function analyzePhoto(
   }
   clearTimeout(timeout);
 
-  // テキストブロックを連結
-  const text = response.content
-    .filter((b): b is Anthropic.TextBlock => b.type === "text")
-    .map((b) => b.text)
-    .join("")
-    .trim();
-
-  // 余分なmarkdownブロックを除去
-  const cleaned = stripCodeFence(text);
+  const cleaned = stripCodeFence(text.trim());
 
   let parsed: unknown;
   try {
