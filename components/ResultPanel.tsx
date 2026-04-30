@@ -1,54 +1,37 @@
 import { TrafficLight } from "./TrafficLight";
-import { AminoAcidBars } from "./AminoAcidBar";
-import { EAA_LABELS_JA } from "@/lib/standards";
-import type { AnalysisResult } from "@/lib/eaa-calculator";
+import { ProteinSourceBar } from "./ProteinSourceBar";
+import { CATEGORY_LABELS_JA } from "@/lib/standards";
+import type { AnalysisResult } from "@/lib/analyzer";
 
 export function ResultPanel({ result }: { result: AnalysisResult }) {
-  const redDeficient = result.deficient.filter((d) => d.pct < 80);
-  const yellowDeficient = result.deficient.filter((d) => d.pct >= 80 && d.pct < 100);
-
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
-      {result.insufficientCoverage ? (
+      {result.insufficientData ? (
         <div className="rounded-xl border border-amber-300 bg-amber-50 p-6 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-          食材データまたはタンパク質量が不足しているため、正確なスコアを算出できませんでした。
+          食材データまたはタンパク質量が不足しているため、正確な判定ができませんでした。
         </div>
       ) : (
-        <TrafficLight light={result.light} limitingScore={result.limitingScore} />
+        <TrafficLight
+          light={result.light}
+          fishProteinPct={result.fishProteinPct}
+        />
       )}
 
-      {!result.insufficientCoverage && (
-        <>
-          {redDeficient.length > 0 && (
-            <div className="rounded-lg bg-rose-50 p-4 dark:bg-rose-950/30">
-              {redDeficient.map((d) => (
-                <p key={d.key} className="text-sm text-rose-900 dark:text-rose-200">
-                  {EAA_LABELS_JA[d.key]}が基準パターンを大きく下回っています（スコア{d.pct}%）。
-                </p>
-              ))}
-            </div>
-          )}
-          {redDeficient.length === 0 && yellowDeficient.length > 0 && (
-            <div className="rounded-lg bg-amber-50 p-4 dark:bg-amber-950/30">
-              {yellowDeficient.map((d) => (
-                <p key={d.key} className="text-sm text-amber-900 dark:text-amber-200">
-                  {EAA_LABELS_JA[d.key]}が基準パターンよりやや少なめです（スコア{d.pct}%）。
-                </p>
-              ))}
-            </div>
-          )}
-
-          <div>
-            <h3 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
-              EAA別のスコア（基準パターン比）
-            </h3>
-            <AminoAcidBars scorePct={result.scorePct} />
-            <p className="mt-3 text-xs text-slate-500 dark:text-slate-500 leading-relaxed">
-              タンパク質1gあたりの各EAA含有量を、WHO/FAO/UNU 2007のアミノ酸スコア基準パターンと比較しています。
-              100% = 基準通り。最も低いEAA（制限アミノ酸）でタンパク質の質が決まります。
-            </p>
-          </div>
-        </>
+      {!result.insufficientData && (
+        <div>
+          <h3 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
+            タンパク質の内訳
+          </h3>
+          <ProteinSourceBar
+            proteinByCategory={result.proteinByCategory}
+            totalProteinG={result.totalProteinG}
+          />
+          <p className="mt-3 text-xs text-slate-500 dark:text-slate-500 leading-relaxed">
+            EPA/AA比のプロキシとして「魚タンパク質 / 総タンパク質」の割合を判定しています。
+            EPAは主に魚由来、AA（アラキドン酸）は主に肉・卵・乳由来。
+            魚タンパク質の割合が高いほど、EPA/AAバランスが良好と推定されます。
+          </p>
+        </div>
       )}
 
       <div>
@@ -58,8 +41,11 @@ export function ResultPanel({ result }: { result: AnalysisResult }) {
         <ul className="space-y-1 text-sm text-slate-600 dark:text-slate-400">
           {result.matched.map((m, i) => (
             <li key={i}>
-              {m.isFallback ? "≈" : "✓"} {m.query} → {m.matched}（{m.grams}g、タンパク質
-              {m.protein_g.toFixed(1)}g）
+              {m.isFallback ? "≈" : "✓"} {m.query} → {m.matched}
+              <span className="ml-1 text-xs text-slate-400 dark:text-slate-600">
+                [{CATEGORY_LABELS_JA[m.category]}]
+              </span>
+              （{m.grams}g、タンパク質{m.protein_g.toFixed(1)}g）
               {m.isFallback && (
                 <span className="ml-1 text-amber-600 dark:text-amber-400">
                   （カテゴリ平均値で推定）
@@ -73,9 +59,6 @@ export function ResultPanel({ result }: { result: AnalysisResult }) {
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-xs text-slate-500 dark:text-slate-500">
-          食事全体のタンパク質量: 約 {result.totalProteinG.toFixed(1)} g
-        </p>
       </div>
     </div>
   );

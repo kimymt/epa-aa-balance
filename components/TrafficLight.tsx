@@ -1,15 +1,15 @@
 import type { TrafficLight as Light } from "@/lib/scoring";
 
 const LABELS: Record<Light, string> = {
-  green: "EAAバランス良好",
-  yellow: "やや不足",
-  red: "EAA不足",
+  green: "魚タンパク中心",
+  yellow: "やや魚少なめ",
+  red: "魚不足",
 };
 
 const SUBTITLES: Record<Light, string> = {
-  green: "全EAAが基準パターンを満たしています",
-  yellow: "一部のEAAが基準の80-99%です",
-  red: "1種以上のEAAが基準の80%未満です",
+  green: "魚タンパク質が50%以上を占めています",
+  yellow: "魚タンパク質は25〜50%です",
+  red: "魚タンパク質が25%未満です",
 };
 
 const COLORS: Record<Light, string> = {
@@ -20,20 +20,26 @@ const COLORS: Record<Light, string> = {
 
 interface Props {
   light: Light;
-  /** 制限アミノ酸スコア（最低スコア）。これがアミノ酸スコアの代表値 */
-  limitingScore: number;
+  fishProteinPct: number;
 }
 
-export function TrafficLight({ light, limitingScore }: Props) {
+export function TrafficLight({ light, fishProteinPct }: Props) {
+  const display = Math.round(fishProteinPct);
   return (
     <div className="flex flex-col items-center gap-3">
       <div
-        className={`relative h-24 w-24 sm:h-32 sm:w-32 rounded-full shadow-2xl ${COLORS[light]} transition-all flex items-center justify-center`}
+        className={`relative h-28 w-28 sm:h-36 sm:w-36 rounded-full shadow-2xl ${COLORS[light]} transition-all flex items-center justify-center`}
         aria-label={LABELS[light]}
       >
-        <span className="text-2xl sm:text-3xl font-bold text-white tabular-nums">
-          {limitingScore}
-        </span>
+        <div className="text-center">
+          <div className="text-3xl sm:text-4xl font-bold text-white tabular-nums leading-none">
+            {display}
+            <span className="text-lg sm:text-xl">%</span>
+          </div>
+          <div className="mt-1 text-[10px] sm:text-xs text-white/90">
+            魚タンパク
+          </div>
+        </div>
       </div>
       <div className="text-center">
         <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">
@@ -41,9 +47,6 @@ export function TrafficLight({ light, limitingScore }: Props) {
         </div>
         <div className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
           {SUBTITLES[light]}
-        </div>
-        <div className="mt-2 text-xs text-slate-500 dark:text-slate-500">
-          アミノ酸スコア: {limitingScore}
         </div>
       </div>
     </div>

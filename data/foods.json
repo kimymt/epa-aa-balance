@@ -1,903 +1,386 @@
 {
-  "_note": "EAA values are mg per 100g of edible portion. protein_g is total protein per 100g. Values are approximate, sourced from Japanese MEXT food composition tables (2020 edition) and USDA FoodData Central. Replace this file with the full MEXT CSV-derived dataset when available.",
+  "_note": "protein_g is total protein per 100g of edible portion. category classifies the food for fish-protein-ratio scoring (EPA/AA proxy). Sources: Japanese MEXT food composition tables (2020 ed.) and USDA FoodData Central.",
+  "_categories": {
+    "fish": "魚介類（EPA源、numerator）",
+    "meat": "獣鳥肉類（AA寄与）",
+    "egg_dairy": "卵・乳製品（AA寄与）",
+    "plant_protein": "植物性タンパク（豆類等）",
+    "other": "野菜・穀類・果物等（タンパク質寄与少）"
+  },
   "foods": [
     {
       "name": "鶏むね肉（皮なし）",
       "aliases": ["鶏むね", "鶏胸肉", "鶏肉", "チキン", "chicken breast"],
       "protein_g": 23.3,
-      "eaa": {
-        "histidine": 1700,
-        "isoleucine": 1100,
-        "leucine": 1900,
-        "lysine": 2100,
-        "methionine_cysteine": 1000,
-        "phenylalanine_tyrosine": 1900,
-        "threonine": 1100,
-        "tryptophan": 280,
-        "valine": 1200
-      }
+      "category": "meat"
     },
     {
       "name": "鶏もも肉（皮なし）",
       "aliases": ["鶏もも", "鶏腿肉", "もも肉"],
       "protein_g": 19.0,
-      "eaa": {
-        "histidine": 700,
-        "isoleucine": 920,
-        "leucine": 1500,
-        "lysine": 1700,
-        "methionine_cysteine": 760,
-        "phenylalanine_tyrosine": 1500,
-        "threonine": 870,
-        "tryptophan": 220,
-        "valine": 990
-      }
-    },
-    {
-      "name": "牛肉（赤身）",
-      "aliases": ["牛", "牛肉", "ビーフ", "beef", "ステーキ", "和牛"],
-      "protein_g": 21.3,
-      "eaa": {
-        "histidine": 850,
-        "isoleucine": 1000,
-        "leucine": 1700,
-        "lysine": 1800,
-        "methionine_cysteine": 850,
-        "phenylalanine_tyrosine": 1700,
-        "threonine": 950,
-        "tryptophan": 240,
-        "valine": 1100
-      }
-    },
-    {
-      "name": "豚ロース肉",
-      "aliases": ["豚", "豚肉", "ポーク", "pork", "豚ロース", "ロース"],
-      "protein_g": 19.3,
-      "eaa": {
-        "histidine": 900,
-        "isoleucine": 980,
-        "leucine": 1600,
-        "lysine": 1800,
-        "methionine_cysteine": 800,
-        "phenylalanine_tyrosine": 1600,
-        "threonine": 950,
-        "tryptophan": 260,
-        "valine": 1100
-      }
-    },
-    {
-      "name": "豚バラ肉",
-      "aliases": ["豚バラ", "バラ肉", "ベーコン用"],
-      "protein_g": 14.4,
-      "eaa": {
-        "histidine": 600,
-        "isoleucine": 700,
-        "leucine": 1200,
-        "lysine": 1300,
-        "methionine_cysteine": 580,
-        "phenylalanine_tyrosine": 1200,
-        "threonine": 700,
-        "tryptophan": 190,
-        "valine": 800
-      }
-    },
-    {
-      "name": "鶏卵（生）",
-      "aliases": ["卵", "たまご", "玉子", "卵焼き", "目玉焼き", "オムレツ", "egg"],
-      "protein_g": 12.2,
-      "eaa": {
-        "histidine": 320,
-        "isoleucine": 670,
-        "leucine": 1100,
-        "lysine": 870,
-        "methionine_cysteine": 700,
-        "phenylalanine_tyrosine": 1200,
-        "threonine": 620,
-        "tryptophan": 180,
-        "valine": 820
-      }
-    },
-    {
-      "name": "サーモン",
-      "aliases": ["鮭", "シャケ", "salmon", "焼き鮭", "刺身（サーモン）"],
-      "protein_g": 22.3,
-      "eaa": {
-        "histidine": 660,
-        "isoleucine": 1000,
-        "leucine": 1700,
-        "lysine": 2000,
-        "methionine_cysteine": 880,
-        "phenylalanine_tyrosine": 1700,
-        "threonine": 1000,
-        "tryptophan": 250,
-        "valine": 1100
-      }
-    },
-    {
-      "name": "マグロ（赤身）",
-      "aliases": ["まぐろ", "鮪", "ツナ", "tuna", "刺身（マグロ）"],
-      "protein_g": 26.4,
-      "eaa": {
-        "histidine": 2700,
-        "isoleucine": 1200,
-        "leucine": 2100,
-        "lysine": 2400,
-        "methionine_cysteine": 1100,
-        "phenylalanine_tyrosine": 2200,
-        "threonine": 1200,
-        "tryptophan": 290,
-        "valine": 1400
-      }
-    },
-    {
-      "name": "サバ",
-      "aliases": ["鯖", "さば", "塩サバ", "焼きサバ"],
-      "protein_g": 20.7,
-      "eaa": {
-        "histidine": 990,
-        "isoleucine": 950,
-        "leucine": 1600,
-        "lysine": 1900,
-        "methionine_cysteine": 870,
-        "phenylalanine_tyrosine": 1600,
-        "threonine": 940,
-        "tryptophan": 240,
-        "valine": 1100
-      }
-    },
-    {
-      "name": "アジ",
-      "aliases": ["鯵", "あじ", "干物", "アジの開き"],
-      "protein_g": 19.7,
-      "eaa": {
-        "histidine": 870,
-        "isoleucine": 920,
-        "leucine": 1500,
-        "lysine": 1800,
-        "methionine_cysteine": 820,
-        "phenylalanine_tyrosine": 1500,
-        "threonine": 900,
-        "tryptophan": 230,
-        "valine": 1000
-      }
-    },
-    {
-      "name": "エビ",
-      "aliases": ["海老", "えび", "shrimp", "車海老", "甘エビ"],
-      "protein_g": 19.6,
-      "eaa": {
-        "histidine": 380,
-        "isoleucine": 850,
-        "leucine": 1500,
-        "lysine": 1600,
-        "methionine_cysteine": 720,
-        "phenylalanine_tyrosine": 1500,
-        "threonine": 750,
-        "tryptophan": 220,
-        "valine": 870
-      }
-    },
-    {
-      "name": "イカ",
-      "aliases": ["烏賊", "いか", "squid", "するめ"],
-      "protein_g": 17.9,
-      "eaa": {
-        "histidine": 380,
-        "isoleucine": 800,
-        "leucine": 1400,
-        "lysine": 1400,
-        "methionine_cysteine": 660,
-        "phenylalanine_tyrosine": 1300,
-        "threonine": 800,
-        "tryptophan": 190,
-        "valine": 800
-      }
-    },
-    {
-      "name": "白米（炊飯後）",
-      "aliases": ["ご飯", "ごはん", "米", "白飯", "ライス", "rice"],
-      "protein_g": 2.5,
-      "eaa": {
-        "histidine": 60,
-        "isoleucine": 100,
-        "leucine": 210,
-        "lysine": 90,
-        "methionine_cysteine": 110,
-        "phenylalanine_tyrosine": 220,
-        "threonine": 90,
-        "tryptophan": 35,
-        "valine": 150
-      }
-    },
-    {
-      "name": "玄米（炊飯後）",
-      "aliases": ["玄米ご飯", "brown rice"],
-      "protein_g": 2.8,
-      "eaa": {
-        "histidine": 70,
-        "isoleucine": 110,
-        "leucine": 230,
-        "lysine": 110,
-        "methionine_cysteine": 120,
-        "phenylalanine_tyrosine": 240,
-        "threonine": 110,
-        "tryptophan": 40,
-        "valine": 170
-      }
-    },
-    {
-      "name": "食パン",
-      "aliases": ["パン", "トースト", "bread", "ロールパン"],
-      "protein_g": 8.9,
-      "eaa": {
-        "histidine": 200,
-        "isoleucine": 350,
-        "leucine": 670,
-        "lysine": 200,
-        "methionine_cysteine": 350,
-        "phenylalanine_tyrosine": 750,
-        "threonine": 280,
-        "tryptophan": 110,
-        "valine": 410
-      }
-    },
-    {
-      "name": "うどん（ゆで）",
-      "aliases": ["udon", "かけうどん", "ざるうどん"],
-      "protein_g": 2.6,
-      "eaa": {
-        "histidine": 60,
-        "isoleucine": 100,
-        "leucine": 200,
-        "lysine": 60,
-        "methionine_cysteine": 110,
-        "phenylalanine_tyrosine": 230,
-        "threonine": 80,
-        "tryptophan": 30,
-        "valine": 120
-      }
-    },
-    {
-      "name": "そば（ゆで）",
-      "aliases": ["蕎麦", "soba", "ざるそば", "かけそば"],
-      "protein_g": 4.8,
-      "eaa": {
-        "histidine": 130,
-        "isoleucine": 190,
-        "leucine": 320,
-        "lysine": 270,
-        "methionine_cysteine": 180,
-        "phenylalanine_tyrosine": 360,
-        "threonine": 200,
-        "tryptophan": 80,
-        "valine": 270
-      }
-    },
-    {
-      "name": "中華麺（ラーメン）",
-      "aliases": ["ラーメン", "中華そば", "ramen", "つけ麺"],
-      "protein_g": 4.9,
-      "eaa": {
-        "histidine": 110,
-        "isoleucine": 190,
-        "leucine": 360,
-        "lysine": 110,
-        "methionine_cysteine": 200,
-        "phenylalanine_tyrosine": 410,
-        "threonine": 160,
-        "tryptophan": 60,
-        "valine": 220
-      }
-    },
-    {
-      "name": "豆腐（木綿）",
-      "aliases": ["豆腐", "とうふ", "tofu", "絹豆腐", "冷奴"],
-      "protein_g": 7.0,
-      "eaa": {
-        "histidine": 200,
-        "isoleucine": 350,
-        "leucine": 580,
-        "lysine": 470,
-        "methionine_cysteine": 200,
-        "phenylalanine_tyrosine": 670,
-        "threonine": 290,
-        "tryptophan": 110,
-        "valine": 370
-      }
-    },
-    {
-      "name": "納豆",
-      "aliases": ["なっとう", "natto"],
-      "protein_g": 16.5,
-      "eaa": {
-        "histidine": 480,
-        "isoleucine": 870,
-        "leucine": 1300,
-        "lysine": 1100,
-        "methionine_cysteine": 470,
-        "phenylalanine_tyrosine": 1500,
-        "threonine": 670,
-        "tryptophan": 240,
-        "valine": 870
-      }
-    },
-    {
-      "name": "枝豆",
-      "aliases": ["えだまめ", "edamame"],
-      "protein_g": 11.7,
-      "eaa": {
-        "histidine": 340,
-        "isoleucine": 580,
-        "leucine": 920,
-        "lysine": 760,
-        "methionine_cysteine": 320,
-        "phenylalanine_tyrosine": 1000,
-        "threonine": 470,
-        "tryptophan": 160,
-        "valine": 600
-      }
-    },
-    {
-      "name": "牛乳",
-      "aliases": ["ミルク", "milk"],
-      "protein_g": 3.3,
-      "eaa": {
-        "histidine": 90,
-        "isoleucine": 200,
-        "leucine": 320,
-        "lysine": 260,
-        "methionine_cysteine": 110,
-        "phenylalanine_tyrosine": 320,
-        "threonine": 150,
-        "tryptophan": 50,
-        "valine": 220
-      }
-    },
-    {
-      "name": "ヨーグルト",
-      "aliases": ["yogurt", "ヨーグルト（プレーン）"],
-      "protein_g": 3.6,
-      "eaa": {
-        "histidine": 100,
-        "isoleucine": 220,
-        "leucine": 350,
-        "lysine": 280,
-        "methionine_cysteine": 120,
-        "phenylalanine_tyrosine": 350,
-        "threonine": 160,
-        "tryptophan": 50,
-        "valine": 240
-      }
-    },
-    {
-      "name": "チーズ（プロセス）",
-      "aliases": ["チーズ", "cheese", "カマンベール", "モッツァレラ"],
-      "protein_g": 22.7,
-      "eaa": {
-        "histidine": 870,
-        "isoleucine": 1300,
-        "leucine": 2300,
-        "lysine": 1900,
-        "methionine_cysteine": 770,
-        "phenylalanine_tyrosine": 2500,
-        "threonine": 990,
-        "tryptophan": 320,
-        "valine": 1600
-      }
-    },
-    {
-      "name": "ブロッコリー",
-      "aliases": ["broccoli"],
-      "protein_g": 4.3,
-      "eaa": {
-        "histidine": 95,
-        "isoleucine": 150,
-        "leucine": 230,
-        "lysine": 250,
-        "methionine_cysteine": 110,
-        "phenylalanine_tyrosine": 290,
-        "threonine": 160,
-        "tryptophan": 60,
-        "valine": 220
-      }
-    },
-    {
-      "name": "ほうれん草",
-      "aliases": ["ホウレンソウ", "spinach", "おひたし"],
-      "protein_g": 2.2,
-      "eaa": {
-        "histidine": 50,
-        "isoleucine": 90,
-        "leucine": 170,
-        "lysine": 120,
-        "methionine_cysteine": 70,
-        "phenylalanine_tyrosine": 200,
-        "threonine": 100,
-        "tryptophan": 40,
-        "valine": 120
-      }
-    },
-    {
-      "name": "キャベツ",
-      "aliases": ["cabbage", "千切りキャベツ"],
-      "protein_g": 1.3,
-      "eaa": {
-        "histidine": 25,
-        "isoleucine": 45,
-        "leucine": 60,
-        "lysine": 60,
-        "methionine_cysteine": 25,
-        "phenylalanine_tyrosine": 75,
-        "threonine": 50,
-        "tryptophan": 15,
-        "valine": 60
-      }
-    },
-    {
-      "name": "トマト",
-      "aliases": ["tomato", "プチトマト"],
-      "protein_g": 0.7,
-      "eaa": {
-        "histidine": 15,
-        "isoleucine": 20,
-        "leucine": 30,
-        "lysine": 30,
-        "methionine_cysteine": 15,
-        "phenylalanine_tyrosine": 45,
-        "threonine": 25,
-        "tryptophan": 8,
-        "valine": 25
-      }
-    },
-    {
-      "name": "じゃがいも",
-      "aliases": ["ジャガイモ", "馬鈴薯", "potato", "ポテト", "フライドポテト"],
-      "protein_g": 1.6,
-      "eaa": {
-        "histidine": 35,
-        "isoleucine": 65,
-        "leucine": 95,
-        "lysine": 100,
-        "methionine_cysteine": 40,
-        "phenylalanine_tyrosine": 120,
-        "threonine": 60,
-        "tryptophan": 25,
-        "valine": 90
-      }
-    },
-    {
-      "name": "アボカド",
-      "aliases": ["avocado"],
-      "protein_g": 2.1,
-      "eaa": {
-        "histidine": 50,
-        "isoleucine": 80,
-        "leucine": 140,
-        "lysine": 130,
-        "methionine_cysteine": 60,
-        "phenylalanine_tyrosine": 160,
-        "threonine": 80,
-        "tryptophan": 25,
-        "valine": 110
-      }
-    },
-    {
-      "name": "アーモンド",
-      "aliases": ["almond", "ナッツ", "ミックスナッツ"],
-      "protein_g": 19.6,
-      "eaa": {
-        "histidine": 540,
-        "isoleucine": 750,
-        "leucine": 1500,
-        "lysine": 580,
-        "methionine_cysteine": 530,
-        "phenylalanine_tyrosine": 1700,
-        "threonine": 590,
-        "tryptophan": 200,
-        "valine": 850
-      }
-    },
-    {
-      "name": "ホエイプロテイン",
-      "aliases": ["プロテイン", "whey", "ホエイ", "プロテインシェイク"],
-      "protein_g": 75.0,
-      "eaa": {
-        "histidine": 1400,
-        "isoleucine": 4500,
-        "leucine": 7500,
-        "lysine": 6800,
-        "methionine_cysteine": 3700,
-        "phenylalanine_tyrosine": 4800,
-        "threonine": 5100,
-        "tryptophan": 1300,
-        "valine": 4200
-      }
-    },
-    {
-      "name": "味噌汁",
-      "aliases": ["みそ汁", "miso soup", "おみそ汁"],
-      "protein_g": 1.3,
-      "eaa": {
-        "histidine": 35,
-        "isoleucine": 65,
-        "leucine": 110,
-        "lysine": 80,
-        "methionine_cysteine": 40,
-        "phenylalanine_tyrosine": 130,
-        "threonine": 55,
-        "tryptophan": 20,
-        "valine": 75
-      }
-    },
-    {
-      "name": "味噌",
-      "aliases": ["みそ", "miso"],
-      "protein_g": 12.5,
-      "eaa": {
-        "histidine": 350,
-        "isoleucine": 600,
-        "leucine": 1000,
-        "lysine": 720,
-        "methionine_cysteine": 360,
-        "phenylalanine_tyrosine": 1100,
-        "threonine": 500,
-        "tryptophan": 170,
-        "valine": 700
-      }
-    },
-    {
-      "name": "大根",
-      "aliases": ["だいこん", "ダイコン", "大根おろし", "おろし大根", "刺身のつま"],
-      "protein_g": 0.5,
-      "eaa": {
-        "histidine": 10,
-        "isoleucine": 18,
-        "leucine": 25,
-        "lysine": 30,
-        "methionine_cysteine": 10,
-        "phenylalanine_tyrosine": 30,
-        "threonine": 20,
-        "tryptophan": 7,
-        "valine": 25
-      }
-    },
-    {
-      "name": "ごぼう",
-      "aliases": ["牛蒡", "ゴボウ", "きんぴらごぼう", "きんぴら"],
-      "protein_g": 1.8,
-      "eaa": {
-        "histidine": 30,
-        "isoleucine": 60,
-        "leucine": 90,
-        "lysine": 100,
-        "methionine_cysteine": 35,
-        "phenylalanine_tyrosine": 100,
-        "threonine": 70,
-        "tryptophan": 25,
-        "valine": 75
-      }
-    },
-    {
-      "name": "たくあん",
-      "aliases": ["沢庵", "タクアン", "漬物", "つけもの", "お新香", "お漬物"],
-      "protein_g": 0.6,
-      "eaa": {
-        "histidine": 12,
-        "isoleucine": 22,
-        "leucine": 30,
-        "lysine": 30,
-        "methionine_cysteine": 12,
-        "phenylalanine_tyrosine": 35,
-        "threonine": 25,
-        "tryptophan": 8,
-        "valine": 30
-      }
-    },
-    {
-      "name": "梅干し",
-      "aliases": ["うめぼし", "梅"],
-      "protein_g": 0.9,
-      "eaa": {
-        "histidine": 18,
-        "isoleucine": 35,
-        "leucine": 50,
-        "lysine": 45,
-        "methionine_cysteine": 18,
-        "phenylalanine_tyrosine": 55,
-        "threonine": 40,
-        "tryptophan": 12,
-        "valine": 45
-      }
+      "category": "meat"
     },
     {
       "name": "鶏ささみ",
       "aliases": ["ささみ", "ササミ", "笹身"],
       "protein_g": 23.9,
-      "eaa": {
-        "histidine": 1500,
-        "isoleucine": 1200,
-        "leucine": 2000,
-        "lysine": 2200,
-        "methionine_cysteine": 1100,
-        "phenylalanine_tyrosine": 2000,
-        "threonine": 1100,
-        "tryptophan": 290,
-        "valine": 1300
-      }
+      "category": "meat"
     },
     {
-      "name": "豚ひき肉",
-      "aliases": ["豚挽肉", "ひき肉（豚）", "ハンバーグ", "つくね", "メンチカツ"],
-      "protein_g": 17.7,
-      "eaa": {
-        "histidine": 770,
-        "isoleucine": 870,
-        "leucine": 1500,
-        "lysine": 1600,
-        "methionine_cysteine": 720,
-        "phenylalanine_tyrosine": 1500,
-        "threonine": 850,
-        "tryptophan": 230,
-        "valine": 1000
-      }
+      "name": "牛肉（赤身）",
+      "aliases": ["牛", "牛肉", "ビーフ", "beef", "ステーキ", "和牛"],
+      "protein_g": 21.3,
+      "category": "meat"
     },
     {
       "name": "牛ひき肉",
       "aliases": ["牛挽肉", "ひき肉（牛）", "ミンチ"],
       "protein_g": 17.1,
-      "eaa": {
-        "histidine": 700,
-        "isoleucine": 820,
-        "leucine": 1400,
-        "lysine": 1500,
-        "methionine_cysteine": 700,
-        "phenylalanine_tyrosine": 1400,
-        "threonine": 800,
-        "tryptophan": 210,
-        "valine": 950
-      }
+      "category": "meat"
+    },
+    {
+      "name": "豚ロース肉",
+      "aliases": ["豚", "豚肉", "ポーク", "pork", "豚ロース", "ロース"],
+      "protein_g": 19.3,
+      "category": "meat"
+    },
+    {
+      "name": "豚バラ肉",
+      "aliases": ["豚バラ", "バラ肉", "ベーコン用"],
+      "protein_g": 14.4,
+      "category": "meat"
+    },
+    {
+      "name": "豚ひき肉",
+      "aliases": ["豚挽肉", "ひき肉（豚）", "ハンバーグ", "つくね", "メンチカツ"],
+      "protein_g": 17.7,
+      "category": "meat"
     },
     {
       "name": "ベーコン",
       "aliases": ["bacon"],
       "protein_g": 12.9,
-      "eaa": {
-        "histidine": 530,
-        "isoleucine": 640,
-        "leucine": 1000,
-        "lysine": 1100,
-        "methionine_cysteine": 500,
-        "phenylalanine_tyrosine": 1000,
-        "threonine": 600,
-        "tryptophan": 160,
-        "valine": 700
-      }
+      "category": "meat"
     },
     {
       "name": "ウインナー",
       "aliases": ["ウィンナー", "ソーセージ", "sausage", "フランクフルト"],
       "protein_g": 13.2,
-      "eaa": {
-        "histidine": 540,
-        "isoleucine": 660,
-        "leucine": 1100,
-        "lysine": 1100,
-        "methionine_cysteine": 510,
-        "phenylalanine_tyrosine": 1100,
-        "threonine": 620,
-        "tryptophan": 170,
-        "valine": 730
-      }
+      "category": "meat"
     },
     {
-      "name": "玉ねぎ",
-      "aliases": ["タマネギ", "たまねぎ", "玉葱", "onion"],
-      "protein_g": 1.0,
-      "eaa": {
-        "histidine": 20,
-        "isoleucine": 30,
-        "leucine": 35,
-        "lysine": 50,
-        "methionine_cysteine": 15,
-        "phenylalanine_tyrosine": 50,
-        "threonine": 30,
-        "tryptophan": 10,
-        "valine": 35
-      }
+      "name": "サバ",
+      "aliases": ["鯖", "さば", "塩サバ", "焼きサバ", "サバの塩焼き", "サバの味噌煮"],
+      "protein_g": 20.7,
+      "category": "fish"
     },
     {
-      "name": "にんじん",
-      "aliases": ["人参", "ニンジン", "carrot"],
-      "protein_g": 0.7,
-      "eaa": {
-        "histidine": 15,
-        "isoleucine": 25,
-        "leucine": 35,
-        "lysine": 30,
-        "methionine_cysteine": 12,
-        "phenylalanine_tyrosine": 40,
-        "threonine": 25,
-        "tryptophan": 8,
-        "valine": 35
-      }
+      "name": "サンマ",
+      "aliases": ["秋刀魚", "さんま", "サンマの塩焼き"],
+      "protein_g": 18.1,
+      "category": "fish"
     },
     {
-      "name": "きゅうり",
-      "aliases": ["キュウリ", "胡瓜", "cucumber"],
-      "protein_g": 1.0,
-      "eaa": {
-        "histidine": 20,
-        "isoleucine": 30,
-        "leucine": 50,
-        "lysine": 45,
-        "methionine_cysteine": 15,
-        "phenylalanine_tyrosine": 50,
-        "threonine": 30,
-        "tryptophan": 10,
-        "valine": 40
-      }
+      "name": "サーモン",
+      "aliases": ["鮭", "シャケ", "salmon", "焼き鮭", "刺身（サーモン）", "鮭の塩焼き"],
+      "protein_g": 22.3,
+      "category": "fish"
     },
     {
-      "name": "なす",
-      "aliases": ["茄子", "ナス", "eggplant"],
-      "protein_g": 1.1,
-      "eaa": {
-        "histidine": 25,
-        "isoleucine": 40,
-        "leucine": 60,
-        "lysine": 55,
-        "methionine_cysteine": 18,
-        "phenylalanine_tyrosine": 65,
-        "threonine": 40,
-        "tryptophan": 12,
-        "valine": 50
-      }
+      "name": "ブリ",
+      "aliases": ["鰤", "ぶり", "ハマチ", "はまち", "ブリの照り焼き"],
+      "protein_g": 21.4,
+      "category": "fish"
+    },
+    {
+      "name": "アジ",
+      "aliases": ["鯵", "あじ", "干物", "アジの開き", "アジの塩焼き"],
+      "protein_g": 19.7,
+      "category": "fish"
+    },
+    {
+      "name": "イワシ",
+      "aliases": ["鰯", "いわし", "イワシの蒲焼"],
+      "protein_g": 19.2,
+      "category": "fish"
+    },
+    {
+      "name": "マグロ（赤身）",
+      "aliases": ["まぐろ", "鮪", "刺身（マグロ）", "マグロの刺身"],
+      "protein_g": 26.4,
+      "category": "fish"
+    },
+    {
+      "name": "ツナ缶",
+      "aliases": ["シーチキン", "ツナ", "tuna can", "ツナマヨ"],
+      "protein_g": 17.7,
+      "category": "fish"
+    },
+    {
+      "name": "タラ",
+      "aliases": ["鱈", "たら", "タラちり", "タラのムニエル"],
+      "protein_g": 17.6,
+      "category": "fish"
+    },
+    {
+      "name": "しらす",
+      "aliases": ["シラス", "白子干し", "しらす干し", "釜揚げしらす"],
+      "protein_g": 24.5,
+      "category": "fish"
+    },
+    {
+      "name": "エビ",
+      "aliases": ["海老", "えび", "shrimp", "車海老", "甘エビ", "エビの天ぷら"],
+      "protein_g": 19.6,
+      "category": "fish"
+    },
+    {
+      "name": "イカ",
+      "aliases": ["烏賊", "いか", "squid", "するめ", "イカの刺身"],
+      "protein_g": 17.9,
+      "category": "fish"
+    },
+    {
+      "name": "タコ",
+      "aliases": ["蛸", "たこ", "octopus", "タコの刺身"],
+      "protein_g": 16.4,
+      "category": "fish"
+    },
+    {
+      "name": "ちくわ",
+      "aliases": ["竹輪", "練り物", "かまぼこ", "蒲鉾", "はんぺん", "魚肉ソーセージ"],
+      "protein_g": 12.2,
+      "category": "fish"
+    },
+    {
+      "name": "鶏卵（生）",
+      "aliases": ["卵", "たまご", "玉子", "卵焼き", "目玉焼き", "オムレツ", "egg", "ゆで卵", "温泉卵"],
+      "protein_g": 12.2,
+      "category": "egg_dairy"
+    },
+    {
+      "name": "牛乳",
+      "aliases": ["ミルク", "milk"],
+      "protein_g": 3.3,
+      "category": "egg_dairy"
+    },
+    {
+      "name": "ヨーグルト",
+      "aliases": ["yogurt", "ヨーグルト（プレーン）"],
+      "protein_g": 3.6,
+      "category": "egg_dairy"
+    },
+    {
+      "name": "チーズ（プロセス）",
+      "aliases": ["チーズ", "cheese", "カマンベール", "モッツァレラ"],
+      "protein_g": 22.7,
+      "category": "egg_dairy"
+    },
+    {
+      "name": "豆腐（木綿）",
+      "aliases": ["豆腐", "とうふ", "tofu", "絹豆腐", "冷奴", "湯豆腐"],
+      "protein_g": 7.0,
+      "category": "plant_protein"
+    },
+    {
+      "name": "納豆",
+      "aliases": ["なっとう", "natto"],
+      "protein_g": 16.5,
+      "category": "plant_protein"
+    },
+    {
+      "name": "枝豆",
+      "aliases": ["えだまめ", "edamame"],
+      "protein_g": 11.7,
+      "category": "plant_protein"
+    },
+    {
+      "name": "味噌",
+      "aliases": ["みそ", "miso"],
+      "protein_g": 12.5,
+      "category": "plant_protein"
+    },
+    {
+      "name": "味噌汁",
+      "aliases": ["みそ汁", "miso soup", "おみそ汁"],
+      "protein_g": 1.3,
+      "category": "plant_protein"
     },
     {
       "name": "豆腐の味噌汁",
       "aliases": ["豆腐入り味噌汁"],
       "protein_g": 2.5,
-      "eaa": {
-        "histidine": 70,
-        "isoleucine": 130,
-        "leucine": 220,
-        "lysine": 170,
-        "methionine_cysteine": 75,
-        "phenylalanine_tyrosine": 250,
-        "threonine": 110,
-        "tryptophan": 40,
-        "valine": 140
-      }
+      "category": "plant_protein"
+    },
+    {
+      "name": "ホエイプロテイン",
+      "aliases": ["プロテイン", "whey", "ホエイ", "プロテインシェイク"],
+      "protein_g": 75.0,
+      "category": "egg_dairy"
+    },
+    {
+      "name": "白米（炊飯後）",
+      "aliases": ["ご飯", "ごはん", "米", "白飯", "ライス", "rice"],
+      "protein_g": 2.5,
+      "category": "other"
+    },
+    {
+      "name": "玄米（炊飯後）",
+      "aliases": ["玄米ご飯", "brown rice"],
+      "protein_g": 2.8,
+      "category": "other"
+    },
+    {
+      "name": "食パン",
+      "aliases": ["パン", "トースト", "bread", "ロールパン"],
+      "protein_g": 8.9,
+      "category": "other"
+    },
+    {
+      "name": "うどん（ゆで）",
+      "aliases": ["udon", "かけうどん", "ざるうどん"],
+      "protein_g": 2.6,
+      "category": "other"
+    },
+    {
+      "name": "そば（ゆで）",
+      "aliases": ["蕎麦", "soba", "ざるそば", "かけそば"],
+      "protein_g": 4.8,
+      "category": "other"
+    },
+    {
+      "name": "中華麺（ラーメン）",
+      "aliases": ["ラーメン", "中華そば", "ramen", "つけ麺"],
+      "protein_g": 4.9,
+      "category": "other"
+    },
+    {
+      "name": "ブロッコリー",
+      "aliases": ["broccoli"],
+      "protein_g": 4.3,
+      "category": "other"
+    },
+    {
+      "name": "ほうれん草",
+      "aliases": ["ホウレンソウ", "spinach", "おひたし", "ほうれん草のおひたし", "ほうれん草のごま和え"],
+      "protein_g": 2.2,
+      "category": "other"
+    },
+    {
+      "name": "キャベツ",
+      "aliases": ["cabbage", "千切りキャベツ"],
+      "protein_g": 1.3,
+      "category": "other"
+    },
+    {
+      "name": "トマト",
+      "aliases": ["tomato", "プチトマト"],
+      "protein_g": 0.7,
+      "category": "other"
+    },
+    {
+      "name": "じゃがいも",
+      "aliases": ["ジャガイモ", "馬鈴薯", "potato", "ポテト", "フライドポテト", "ポテトサラダ"],
+      "protein_g": 1.6,
+      "category": "other"
+    },
+    {
+      "name": "アボカド",
+      "aliases": ["avocado"],
+      "protein_g": 2.1,
+      "category": "other"
+    },
+    {
+      "name": "玉ねぎ",
+      "aliases": ["タマネギ", "たまねぎ", "玉葱", "onion"],
+      "protein_g": 1.0,
+      "category": "other"
+    },
+    {
+      "name": "にんじん",
+      "aliases": ["人参", "ニンジン", "carrot"],
+      "protein_g": 0.7,
+      "category": "other"
+    },
+    {
+      "name": "きゅうり",
+      "aliases": ["キュウリ", "胡瓜", "cucumber"],
+      "protein_g": 1.0,
+      "category": "other"
+    },
+    {
+      "name": "なす",
+      "aliases": ["茄子", "ナス", "eggplant"],
+      "protein_g": 1.1,
+      "category": "other"
     },
     {
       "name": "わかめ",
       "aliases": ["ワカメ", "若布", "海藻"],
       "protein_g": 1.9,
-      "eaa": {
-        "histidine": 25,
-        "isoleucine": 100,
-        "leucine": 160,
-        "lysine": 115,
-        "methionine_cysteine": 50,
-        "phenylalanine_tyrosine": 160,
-        "threonine": 100,
-        "tryptophan": 30,
-        "valine": 120
-      }
+      "category": "other"
     },
     {
-      "name": "ツナ缶",
-      "aliases": ["シーチキン", "ツナ", "tuna can"],
-      "protein_g": 17.7,
-      "eaa": {
-        "histidine": 1800,
-        "isoleucine": 800,
-        "leucine": 1400,
-        "lysine": 1600,
-        "methionine_cysteine": 730,
-        "phenylalanine_tyrosine": 1500,
-        "threonine": 800,
-        "tryptophan": 200,
-        "valine": 920
-      }
+      "name": "大根",
+      "aliases": ["だいこん", "ダイコン", "大根おろし", "おろし大根", "刺身のつま"],
+      "protein_g": 0.5,
+      "category": "other"
     },
     {
-      "name": "ちくわ",
-      "aliases": ["竹輪", "練り物", "かまぼこ", "蒲鉾", "はんぺん"],
-      "protein_g": 12.2,
-      "eaa": {
-        "histidine": 280,
-        "isoleucine": 600,
-        "leucine": 1000,
-        "lysine": 1100,
-        "methionine_cysteine": 510,
-        "phenylalanine_tyrosine": 980,
-        "threonine": 580,
-        "tryptophan": 140,
-        "valine": 670
-      }
+      "name": "ごぼう",
+      "aliases": ["牛蒡", "ゴボウ", "きんぴらごぼう", "きんぴら"],
+      "protein_g": 1.8,
+      "category": "other"
+    },
+    {
+      "name": "たくあん",
+      "aliases": ["沢庵", "タクアン", "漬物", "つけもの", "お新香", "お漬物"],
+      "protein_g": 0.6,
+      "category": "other"
+    },
+    {
+      "name": "梅干し",
+      "aliases": ["うめぼし", "梅"],
+      "protein_g": 0.9,
+      "category": "other"
+    },
+    {
+      "name": "アーモンド",
+      "aliases": ["almond", "ナッツ", "ミックスナッツ"],
+      "protein_g": 19.6,
+      "category": "other"
     }
   ],
   "category_fallbacks": [
     {
-      "category": "焼き魚（具体名不明）",
-      "matchers": ["焼き魚", "煮魚", "魚料理", "刺身"],
+      "category_name": "焼き魚（具体名不明）",
+      "matchers": ["焼き魚", "煮魚", "魚料理", "刺身", "魚"],
       "protein_g": 21.0,
-      "eaa": {
-        "histidine": 1000,
-        "isoleucine": 1000,
-        "leucine": 1700,
-        "lysine": 2000,
-        "methionine_cysteine": 900,
-        "phenylalanine_tyrosine": 1700,
-        "threonine": 1000,
-        "tryptophan": 250,
-        "valine": 1100
-      }
+      "category": "fish"
     },
     {
-      "category": "肉料理（具体名不明）",
-      "matchers": ["肉料理", "肉炒め", "焼肉", "焼き肉", "肉のソテー"],
+      "category_name": "肉料理（具体名不明）",
+      "matchers": ["肉料理", "肉炒め", "焼肉", "焼き肉", "肉のソテー", "肉"],
       "protein_g": 19.0,
-      "eaa": {
-        "histidine": 800,
-        "isoleucine": 950,
-        "leucine": 1600,
-        "lysine": 1700,
-        "methionine_cysteine": 800,
-        "phenylalanine_tyrosine": 1600,
-        "threonine": 900,
-        "tryptophan": 230,
-        "valine": 1050
-      }
+      "category": "meat"
     },
     {
-      "category": "野菜炒め・煮物（具体名不明）",
-      "matchers": ["野菜炒め", "煮物", "和え物", "おひたし", "サラダ"],
+      "category_name": "野菜炒め・煮物（具体名不明）",
+      "matchers": ["野菜炒め", "煮物", "和え物", "おひたし", "サラダ", "野菜"],
       "protein_g": 2.5,
-      "eaa": {
-        "histidine": 55,
-        "isoleucine": 100,
-        "leucine": 160,
-        "lysine": 130,
-        "methionine_cysteine": 60,
-        "phenylalanine_tyrosine": 180,
-        "threonine": 100,
-        "tryptophan": 35,
-        "valine": 130
-      }
+      "category": "other"
     },
     {
-      "category": "汁物（具体名不明）",
+      "category_name": "汁物（具体名不明）",
       "matchers": ["スープ", "汁物", "コンソメ"],
       "protein_g": 1.5,
-      "eaa": {
-        "histidine": 40,
-        "isoleucine": 70,
-        "leucine": 120,
-        "lysine": 95,
-        "methionine_cysteine": 45,
-        "phenylalanine_tyrosine": 140,
-        "threonine": 65,
-        "tryptophan": 22,
-        "valine": 85
-      }
+      "category": "other"
     },
     {
-      "category": "麺類（具体名不明）",
+      "category_name": "麺類（具体名不明）",
       "matchers": ["麺類", "麺", "パスタ", "スパゲッティ", "焼きそば"],
       "protein_g": 4.5,
-      "eaa": {
-        "histidine": 100,
-        "isoleucine": 170,
-        "leucine": 320,
-        "lysine": 100,
-        "methionine_cysteine": 180,
-        "phenylalanine_tyrosine": 370,
-        "threonine": 150,
-        "tryptophan": 50,
-        "valine": 200
-      }
+      "category": "other"
     }
   ]
 }

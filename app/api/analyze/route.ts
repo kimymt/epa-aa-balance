@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { analyzePhoto, VisionError } from "@/lib/vision";
-import { calculate } from "@/lib/eaa-calculator";
+import { analyze } from "@/lib/analyzer";
 
 export const runtime = "nodejs";
 export const maxDuration = 45;
@@ -76,6 +76,6 @@ export async function POST(req: Request) {
     );
   }
 
-  const result = calculate(foods);
+  const result = analyze(foods);
   return NextResponse.json({ ok: true, result });
 }

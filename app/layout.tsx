@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EAAスコア — 食事写真からアミノ酸バランス判定",
+  title: "EPA/AAバランス — 食事写真から魚タンパク質割合を判定",
   description:
-    "食事の写真をアップロードするだけで、必須アミノ酸（EAA）の摂取バランスを信号機で判定します。",
+    "食事の写真をアップロードするだけで、魚タンパク質と非魚タンパク質の比率を信号機で判定します。EPA/AA比の食事面の目安に。",
 };
 
 export default function RootLayout({

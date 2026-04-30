@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { UploadZone } from "@/components/UploadZone";
 import { ResultPanel } from "@/components/ResultPanel";
-import type { AnalysisResult } from "@/lib/eaa-calculator";
+import type { AnalysisResult } from "@/lib/analyzer";
 
 type State =
   | { kind: "idle" }
@@ -42,10 +42,12 @@ export default function Home() {
     <main className="mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-12">
       <header className="mb-6 sm:mb-10 text-center">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
-          EAAスコア
+          EPA/AAバランス
         </h1>
-        <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-          食事の写真から、必須アミノ酸（EAA）バランスを信号機で判定します。
+        <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+          食事の写真から、魚タンパク質と非魚タンパク質の比率を信号機で判定します。
+          <br className="hidden sm:block" />
+          EPA/AA比の食事面の目安として活用できます。
         </p>
       </header>
 

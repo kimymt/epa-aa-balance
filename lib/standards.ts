@@ -1,50 +1,47 @@
 /**
- * EAA基準パターン（mg/gタンパク質）— アミノ酸スコア計算用の参照値。
+ * 食品カテゴリ。EPA/AA比のプロキシ計算で使う。
  *
- * Source: WHO/FAO/UNU (2007) "Protein and amino acid requirements in human nutrition"
- *         Table 26, p.150 — adult amino acid scoring pattern
- *
- * これは「タンパク質1gあたり、各EAAが何mg含まれているべきか」の理想パターン。
- * 食事のEAA含有量をこの基準に対する比率で評価することで、摂取量や体重に依存せずに
- * 「タンパク質の質」を判定できる（アミノ酸スコア法）。
- *
- * 日本水産のEAA基準が公開文書から入手できた場合はこの値を差し替える。
- * スコアリングロジックは値に依存しないため、差し替えはこのファイルだけで完結する。
+ * - fish: 魚介類（EPA源 = numerator）
+ * - meat / egg_dairy / plant_protein / other: それ以外（denominatorに加算）
  */
-export const EAA_REFERENCE_MG_PER_G_PROTEIN = {
-  histidine: 15,
-  isoleucine: 30,
-  leucine: 59,
-  lysine: 45,
-  methionine_cysteine: 22, // Met + Cys 合算
-  phenylalanine_tyrosine: 38, // Phe + Tyr 合算
-  threonine: 23,
-  tryptophan: 6,
-  valine: 39,
+export type ProteinCategory =
+  | "fish"
+  | "meat"
+  | "egg_dairy"
+  | "plant_protein"
+  | "other";
+
+/**
+ * 信号機判定の閾値（魚タンパク質割合 % で判定）。
+ *
+ * EPA/AA比は本来は血中脂肪酸の比だが、食事写真からの推定としては
+ * 「魚タンパク質 / 総タンパク質」を実用的なプロキシとして使う。
+ *
+ * 一般的なEPA/AA比の医学的目安:
+ *   - 0.5以上: 一般健康ライン
+ *   - 0.75以上: 心血管保護
+ *   - 1.0以上: アスリート目標
+ *
+ * 食事中の魚タンパク質比率としてのMVP閾値（推奨値が出たら差し替え可能）:
+ *   - 50%以上: 青信号（魚中心の食事）
+ *   - 25%以上: 黄信号（混在）
+ *   - 25%未満: 赤信号（魚が少ない）
+ */
+export const FISH_RATIO_THRESHOLDS = {
+  green: 50, // ≥ 50% → 青
+  yellow: 25, // 25-49% → 黄、< 25% → 赤
 } as const;
 
-export type EAAKey = keyof typeof EAA_REFERENCE_MG_PER_G_PROTEIN;
+/** タンパク質量がこれ未満だと比率の信頼性が低い（誤差が大きすぎる） */
+export const MIN_TOTAL_PROTEIN_G = 1;
 
-export const EAA_LABELS_JA: Record<EAAKey, string> = {
-  histidine: "ヒスチジン",
-  isoleucine: "イソロイシン",
-  leucine: "ロイシン",
-  lysine: "リジン",
-  methionine_cysteine: "含硫アミノ酸 (Met+Cys)",
-  phenylalanine_tyrosine: "芳香族アミノ酸 (Phe+Tyr)",
-  threonine: "スレオニン",
-  tryptophan: "トリプトファン",
-  valine: "バリン",
+/** 食材データのカバレッジ閾値（マッチした食材のタンパク質比率） */
+export const COVERAGE_THRESHOLD = 0.5;
+
+export const CATEGORY_LABELS_JA: Record<ProteinCategory, string> = {
+  fish: "魚介",
+  meat: "肉",
+  egg_dairy: "卵・乳",
+  plant_protein: "豆類",
+  other: "その他",
 };
-
-export const EAA_KEYS: EAAKey[] = [
-  "histidine",
-  "isoleucine",
-  "leucine",
-  "lysine",
-  "methionine_cysteine",
-  "phenylalanine_tyrosine",
-  "threonine",
-  "tryptophan",
-  "valine",
-];
