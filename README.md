@@ -1,5 +1,7 @@
 # EPA/AAバランス
 
+[![Deployed on Vercel](https://img.shields.io/badge/Vercel-deployed-black?logo=vercel)](https://eaa-scorer.vercel.app)
+
 食事の写真から、**魚タンパク質と非魚タンパク質の比率**を信号機で判定するWebアプリ。
 EPA/AA比（血中脂肪酸の指標）の食事面の目安として活用できます。
 
