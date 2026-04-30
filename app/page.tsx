@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { UploadZone } from "@/components/UploadZone";
 import { ResultPanel } from "@/components/ResultPanel";
-import { BodyWeightInput } from "@/components/BodyWeightInput";
 import type { AnalysisResult } from "@/lib/eaa-calculator";
 
 type State =
@@ -12,42 +11,15 @@ type State =
   | { kind: "error"; message: string }
   | { kind: "result"; result: AnalysisResult };
 
-const DEFAULT_WEIGHT = 60;
-const STORAGE_KEY = "eaa-scorer:body-weight-kg";
-
 export default function Home() {
   const [state, setState] = useState<State>({ kind: "idle" });
   const [file, setFile] = useState<File | null>(null);
-  const [bodyWeightKg, setBodyWeightKg] = useState<number>(DEFAULT_WEIGHT);
-
-  // localStorage から復元
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const v = Number(saved);
-        if (Number.isFinite(v) && v >= 20 && v <= 250) setBodyWeightKg(v);
-      }
-    } catch {
-      // localStorage が使えない環境（プライベートブラウジング等）は無視
-    }
-  }, []);
-
-  function updateWeight(kg: number) {
-    setBodyWeightKg(kg);
-    try {
-      localStorage.setItem(STORAGE_KEY, String(kg));
-    } catch {
-      // 同上
-    }
-  }
 
   async function analyze() {
     if (!file) return;
     setState({ kind: "loading" });
     const fd = new FormData();
     fd.append("photo", file);
-    fd.append("body_weight_kg", String(bodyWeightKg));
     try {
       const res = await fetch("/api/analyze", { method: "POST", body: fd });
       const json = await res.json();
@@ -78,16 +50,13 @@ export default function Home() {
       </header>
 
       {state.kind !== "result" && (
-        <div className="space-y-4">
-          <BodyWeightInput bodyWeightKg={bodyWeightKg} onChange={updateWeight} />
-          <UploadZone
-            onSelect={(f) => {
-              setFile(f);
-              setState({ kind: "idle" });
-            }}
-            disabled={state.kind === "loading"}
-          />
-        </div>
+        <UploadZone
+          onSelect={(f) => {
+            setFile(f);
+            setState({ kind: "idle" });
+          }}
+          disabled={state.kind === "loading"}
+        />
       )}
 
       {state.kind === "idle" && file && (

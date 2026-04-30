@@ -8,13 +8,13 @@ export function ResultPanel({ result }: { result: AnalysisResult }) {
   const yellowDeficient = result.deficient.filter((d) => d.pct >= 80 && d.pct < 100);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6 sm:gap-8">
       {result.insufficientCoverage ? (
         <div className="rounded-xl border border-amber-300 bg-amber-50 p-6 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-          多くの食材のデータが不足しているため、正確なスコアを算出できませんでした。
+          食材データまたはタンパク質量が不足しているため、正確なスコアを算出できませんでした。
         </div>
       ) : (
-        <TrafficLight light={result.light} />
+        <TrafficLight light={result.light} limitingScore={result.limitingScore} />
       )}
 
       {!result.insufficientCoverage && (
@@ -23,7 +23,7 @@ export function ResultPanel({ result }: { result: AnalysisResult }) {
             <div className="rounded-lg bg-rose-50 p-4 dark:bg-rose-950/30">
               {redDeficient.map((d) => (
                 <p key={d.key} className="text-sm text-rose-900 dark:text-rose-200">
-                  {EAA_LABELS_JA[d.key]}が不足しています（充足率{d.pct}%）。
+                  {EAA_LABELS_JA[d.key]}が基準パターンを大きく下回っています（スコア{d.pct}%）。
                 </p>
               ))}
             </div>
@@ -32,7 +32,7 @@ export function ResultPanel({ result }: { result: AnalysisResult }) {
             <div className="rounded-lg bg-amber-50 p-4 dark:bg-amber-950/30">
               {yellowDeficient.map((d) => (
                 <p key={d.key} className="text-sm text-amber-900 dark:text-amber-200">
-                  {EAA_LABELS_JA[d.key]}がやや不足しています（充足率{d.pct}%）。
+                  {EAA_LABELS_JA[d.key]}が基準パターンよりやや少なめです（スコア{d.pct}%）。
                 </p>
               ))}
             </div>
@@ -40,9 +40,13 @@ export function ResultPanel({ result }: { result: AnalysisResult }) {
 
           <div>
             <h3 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
-              EAA別の充足率
+              EAA別のスコア（基準パターン比）
             </h3>
-            <AminoAcidBars sufficiencyPct={result.sufficiencyPct} />
+            <AminoAcidBars scorePct={result.scorePct} />
+            <p className="mt-3 text-xs text-slate-500 dark:text-slate-500 leading-relaxed">
+              タンパク質1gあたりの各EAA含有量を、WHO/FAO/UNU 2007のアミノ酸スコア基準パターンと比較しています。
+              100% = 基準通り。最も低いEAA（制限アミノ酸）でタンパク質の質が決まります。
+            </p>
           </div>
         </>
       )}
@@ -69,10 +73,9 @@ export function ResultPanel({ result }: { result: AnalysisResult }) {
             </li>
           ))}
         </ul>
-      </div>
-
-      <div className="text-xs text-slate-500 dark:text-slate-500 leading-relaxed">
-        体重{result.bodyWeightKg}kgを基準として、必要量の目安を計算しています。基準値はWHO/FAO/UNU 2007（mg/kg体重/日）。
+        <p className="mt-3 text-xs text-slate-500 dark:text-slate-500">
+          食事全体のタンパク質量: 約 {result.totalProteinG.toFixed(1)} g
+        </p>
       </div>
     </div>
   );

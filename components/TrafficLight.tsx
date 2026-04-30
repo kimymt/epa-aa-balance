@@ -7,9 +7,9 @@ const LABELS: Record<Light, string> = {
 };
 
 const SUBTITLES: Record<Light, string> = {
-  green: "全EAAが基準値を満たしています",
-  yellow: "一部のEAAが基準値の80-99%です",
-  red: "1種以上のEAAが基準値の80%未満です",
+  green: "全EAAが基準パターンを満たしています",
+  yellow: "一部のEAAが基準の80-99%です",
+  red: "1種以上のEAAが基準の80%未満です",
 };
 
 const COLORS: Record<Light, string> = {
@@ -18,19 +18,32 @@ const COLORS: Record<Light, string> = {
   red: "bg-rose-500 shadow-rose-500/50",
 };
 
-export function TrafficLight({ light }: { light: Light }) {
+interface Props {
+  light: Light;
+  /** 制限アミノ酸スコア（最低スコア）。これがアミノ酸スコアの代表値 */
+  limitingScore: number;
+}
+
+export function TrafficLight({ light, limitingScore }: Props) {
   return (
     <div className="flex flex-col items-center gap-3">
       <div
-        className={`h-24 w-24 sm:h-32 sm:w-32 rounded-full shadow-2xl ${COLORS[light]} transition-all`}
+        className={`relative h-24 w-24 sm:h-32 sm:w-32 rounded-full shadow-2xl ${COLORS[light]} transition-all flex items-center justify-center`}
         aria-label={LABELS[light]}
-      />
+      >
+        <span className="text-2xl sm:text-3xl font-bold text-white tabular-nums">
+          {limitingScore}
+        </span>
+      </div>
       <div className="text-center">
         <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">
           {LABELS[light]}
         </div>
         <div className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
           {SUBTITLES[light]}
+        </div>
+        <div className="mt-2 text-xs text-slate-500 dark:text-slate-500">
+          アミノ酸スコア: {limitingScore}
         </div>
       </div>
     </div>

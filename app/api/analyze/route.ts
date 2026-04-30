@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { analyzePhoto, VisionError } from "@/lib/vision";
 import { calculate } from "@/lib/eaa-calculator";
-import { DEFAULT_BODY_WEIGHT_KG } from "@/lib/standards";
 
 export const runtime = "nodejs";
 export const maxDuration = 45;
@@ -52,15 +51,6 @@ export async function POST(req: Request) {
     );
   }
 
-  const bodyWeightRaw = formData.get("body_weight_kg");
-  let bodyWeightKg = DEFAULT_BODY_WEIGHT_KG;
-  if (typeof bodyWeightRaw === "string" && bodyWeightRaw.trim()) {
-    const parsed = Number(bodyWeightRaw);
-    if (Number.isFinite(parsed) && parsed > 0 && parsed < 300) {
-      bodyWeightKg = parsed;
-    }
-  }
-
   const bytes = await file.arrayBuffer();
 
   let foods;
@@ -86,6 +76,6 @@ export async function POST(req: Request) {
     );
   }
 
-  const result = calculate(foods, bodyWeightKg);
+  const result = calculate(foods);
   return NextResponse.json({ ok: true, result });
 }

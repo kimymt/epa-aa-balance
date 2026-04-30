@@ -1,7 +1,7 @@
 import { EAA_KEYS, EAA_LABELS_JA, type EAAKey } from "@/lib/standards";
 
 interface Props {
-  sufficiencyPct: Record<EAAKey, number>;
+  scorePct: Record<EAAKey, number>;
 }
 
 function colorFor(pct: number): string {
@@ -23,11 +23,11 @@ const EAA_LABELS_SHORT: Record<EAAKey, string> = {
   valine: "Val",
 };
 
-export function AminoAcidBars({ sufficiencyPct }: Props) {
+export function AminoAcidBars({ scorePct }: Props) {
   return (
     <div className="space-y-3">
       {EAA_KEYS.map((k) => {
-        const pct = sufficiencyPct[k];
+        const pct = scorePct[k];
         const width = Math.min(pct, 150);
         return (
           <div
