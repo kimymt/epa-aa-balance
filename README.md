@@ -117,7 +117,9 @@ Vercelに直接デプロイ。`maxDuration: 45` を指定しているためHobby
 環境変数：
 - `GEMINI_API_KEY` — Google AI Studio で無料取得
 
-## 開発履歴
+## 開発履歴・設計ドキュメント
 
 このプロジェクトは [gstack](https://github.com/garrytan/gstack) の `/office-hours` スキルで設計されました。
-設計議論の経緯は `docs/design.md` を参照。
+
+- 📄 [`docs/design-v2-epa-aa.md`](./docs/design-v2-epa-aa.md) — **現在の実装の根拠**（EPA/AA比プロキシ、魚タンパク質割合）
+- 📄 [`docs/design.md`](./docs/design.md) — 当初設計（EAAスコア）。仕様変更後に廃止、設計プロセスの記録として保存
