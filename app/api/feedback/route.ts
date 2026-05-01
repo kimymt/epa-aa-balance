@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { validateFeedbackBody } from "@/lib/feedback-validation";
 
 export const runtime = "nodejs";
 
@@ -49,15 +50,15 @@ async function d1Query<T = unknown>(
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { mealType, predictedFoods, accurate, correctedFoods, timestamp } =
-      body;
-
-    if (typeof mealType !== "string" || typeof accurate !== "boolean") {
+    const validation = validateFeedbackBody(body);
+    if (!validation.ok) {
       return NextResponse.json(
         { error: "リクエストの形式が不正です。" },
         { status: 400 }
       );
     }
+    const { mealType, predictedFoods, accurate, correctedFoods, timestamp } =
+      validation.body;
 
     const feedbackId = `feedback-${Date.now()}-${Math.random()
       .toString(36)
