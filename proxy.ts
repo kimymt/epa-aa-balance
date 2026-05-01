@@ -1,28 +1,24 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { checkBasicAuth } from "@/lib/auth";
 
 // Protects /admin with HTTP Basic Auth.
 // Set env var ADMIN_BASIC_AUTH="username:password" in Vercel.
 export function proxy(request: NextRequest) {
-  const expected = process.env.ADMIN_BASIC_AUTH;
+  const result = checkBasicAuth(
+    request.headers.get("authorization"),
+    process.env.ADMIN_BASIC_AUTH
+  );
 
-  if (!expected) {
+  if (result.ok) {
+    return NextResponse.next();
+  }
+
+  if (result.reason === "missing-config") {
     return new NextResponse("Admin auth is not configured.", { status: 500 });
   }
 
-  const auth = request.headers.get("authorization");
-  if (!auth || !auth.startsWith("Basic ")) {
-    return unauthorized();
-  }
-
-  const provided = auth.slice(6).trim();
-  const expectedB64 = btoa(expected);
-
-  if (provided !== expectedB64) {
-    return unauthorized();
-  }
-
-  return NextResponse.next();
+  return unauthorized();
 }
 
 function unauthorized() {
