@@ -15,7 +15,8 @@ export class VisionError extends Error {
   }
 }
 
-const PROMPT = `あなたは栄養士のアシスタントです。食事写真から食材と推定グラム数を抽出します。
+const PROMPT_TEMPLATE = (mealType: string = "朝食") => `あなたは栄養士のアシスタントです。食事写真から食材と推定グラム数を抽出します。
+この写真は【${mealType}】の食事です。
 このアプリは魚タンパク質の割合を判定するため、**魚の種類を特定すること**が最重要です。
 
 【最重要ルール】曖昧な総称ではなく**必ず具体名**にコミットしてください。
@@ -55,7 +56,16 @@ const RESPONSE_SCHEMA = {
 export async function analyzePhoto(
   imageBytes: ArrayBuffer,
   mimeType: string,
+  mealType?: string,
 ): Promise<VisionFood[]> {
+  const mealTypeLabel =
+    mealType === "breakfast"
+      ? "朝食"
+      : mealType === "lunch"
+        ? "昼食"
+        : mealType === "dinner"
+          ? "夕食"
+          : "朝食";
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new VisionError(
@@ -85,7 +95,7 @@ export async function analyzePhoto(
         {
           role: "user",
           parts: [
-            { text: PROMPT },
+            { text: PROMPT_TEMPLATE(mealTypeLabel) },
             { inlineData: { mimeType, data: base64 } },
           ],
         },
