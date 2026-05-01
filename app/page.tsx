@@ -3,23 +3,33 @@
 import { useState } from "react";
 import { UploadZone } from "@/components/UploadZone";
 import { ResultPanel } from "@/components/ResultPanel";
-import type { AnalysisResult } from "@/lib/analyzer";
+import type { AnalysisSessionResult } from "@/lib/session";
 
 type State =
   | { kind: "idle" }
-  | { kind: "loading" }
+  | { kind: "loading"; progress?: number }
   | { kind: "error"; message: string }
-  | { kind: "result"; result: AnalysisResult };
+  | { kind: "result"; result: AnalysisSessionResult };
 
 export default function Home() {
   const [state, setState] = useState<State>({ kind: "idle" });
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [mealTypes, setMealTypes] = useState<(string | null)[]>([]);
 
   async function analyze() {
-    if (!file) return;
+    if (files.length === 0) return;
+
     setState({ kind: "loading" });
     const fd = new FormData();
-    fd.append("photo", file);
+
+    files.forEach((file) => {
+      fd.append("photo", file);
+    });
+
+    mealTypes.forEach((mealType) => {
+      fd.append("mealType", mealType || "breakfast");
+    });
+
     try {
       const res = await fetch("/api/analyze", { method: "POST", body: fd });
       const json = await res.json();
@@ -35,8 +45,11 @@ export default function Home() {
 
   function reset() {
     setState({ kind: "idle" });
-    setFile(null);
+    setFiles([]);
+    setMealTypes([]);
   }
+
+  const canAnalyze = files.length > 0 && mealTypes.every((mt) => mt !== null);
 
   return (
     <main className="mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-12">
@@ -45,28 +58,28 @@ export default function Home() {
           EPA/AAバランス
         </h1>
         <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-          食事の写真から、魚タンパク質と非魚タンパク質の比率を信号機で判定します。
+          複数日の食事の写真から、魚タンパク質の割合の傾向を見ることができます。
           <br className="hidden sm:block" />
-          EPA/AA比の食事面の目安として活用できます。
+          最大9枚までアップロードして、あなたの食事パターンを分析しましょう。
         </p>
       </header>
 
       {state.kind !== "result" && (
         <UploadZone
-          onSelect={(f) => {
-            setFile(f);
-            setState({ kind: "idle" });
-          }}
+          files={files}
+          mealTypes={mealTypes}
+          onFilesChange={setFiles}
+          onMealTypesChange={setMealTypes}
           disabled={state.kind === "loading"}
         />
       )}
 
-      {state.kind === "idle" && file && (
+      {state.kind === "idle" && canAnalyze && (
         <button
           onClick={analyze}
           className="mt-6 w-full rounded-xl bg-emerald-600 px-6 py-4 text-base font-semibold text-white shadow-lg shadow-emerald-600/30 transition hover:bg-emerald-700 active:scale-[0.99]"
         >
-          解析する
+          {files.length === 1 ? "写真を解析する" : `${files.length}枚を解析する`}
         </button>
       )}
 
@@ -75,7 +88,7 @@ export default function Home() {
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-600" />
           <div className="text-sm text-slate-600 dark:text-slate-400">解析中...</div>
           <div className="text-xs text-slate-400 dark:text-slate-600">
-            写真の食材を識別しています（最長45秒）
+            {files.length}枚の写真の食材を識別しています（最長45秒）
           </div>
         </div>
       )}
