@@ -114,7 +114,7 @@ export async function POST(req: Request) {
           throw new Error("食材を認識できませんでした。");
         }
         const result = analyze(foods);
-        return { index, mealType: file.mealType, result, success: true as const };
+        return { index, mealType: file.mealType, result, foods, success: true as const };
       })
       .catch((err) => {
         const errorMsg =
@@ -140,6 +140,7 @@ export async function POST(req: Request) {
           index: value.index,
           mealType: value.mealType,
           result: value.result,
+          foods: value.foods,
         });
         successfulResults.push(value.result);
       } else {

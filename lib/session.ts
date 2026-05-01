@@ -1,4 +1,5 @@
 import type { AnalysisResult } from "./analyzer";
+import type { VisionFood } from "./vision";
 
 export type TrafficLight = "green" | "yellow" | "red";
 
@@ -6,6 +7,7 @@ export interface MealAnalysis {
   index: number;
   mealType: "breakfast" | "lunch" | "dinner";
   result: AnalysisResult;
+  foods?: VisionFood[];
 }
 
 export interface FailedMeal {

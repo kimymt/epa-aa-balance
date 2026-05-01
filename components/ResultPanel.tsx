@@ -4,6 +4,8 @@ import { CATEGORY_LABELS_JA } from "@/lib/standards";
 import { MEAL_TYPES } from "@/lib/session";
 import type { AnalysisResult } from "@/lib/analyzer";
 import type { AnalysisSessionResult } from "@/lib/session";
+import type { VisionFood } from "@/lib/vision";
+import { useState } from "react";
 
 // Component for a single meal result (reusable)
 function MealResultCard({
@@ -11,14 +13,45 @@ function MealResultCard({
   mealType,
   index,
   total,
+  foods,
 }: {
   result: AnalysisResult;
   mealType: string;
   index: number;
   total: number;
+  foods?: VisionFood[];
 }) {
   const mealLabel =
     MEAL_TYPES.find((m) => m.value === mealType)?.label || "食事";
+
+  const [feedbackState, setFeedbackState] = useState<
+    "none" | "accurate" | "correcting" | "submitted"
+  >("none");
+  const [selectedCorrection, setSelectedCorrection] = useState<string>("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleFeedbackSubmit = async (accurate: boolean, correction?: string) => {
+    setSubmitting(true);
+    try {
+      const response = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mealType,
+          predictedFoods: foods || [],
+          accurate,
+          correctedFoods: correction ? correction.split(",").map(f => f.trim()) : undefined,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+      if (response.ok) {
+        setFeedbackState("submitted");
+        setSelectedCorrection("");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -91,6 +124,73 @@ function MealResultCard({
               <strong>植物タンパク:</strong>{" "}
               {result.proteinByCategory.plant_protein.toFixed(1)}g
             </p>
+          </div>
+
+          {/* Feedback Section */}
+          <div className="border-t border-slate-200 dark:border-slate-700 pt-3">
+            {feedbackState === "submitted" && (
+              <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-3 py-2 text-xs text-emerald-800 dark:text-emerald-200">
+                ✓ フィードバックありがとうございました。精度改善に活用します。
+              </div>
+            )}
+
+            {feedbackState === "none" && (
+              <div>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+                  この判定は正確ですか？
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleFeedbackSubmit(true)}
+                    disabled={submitting}
+                    className="flex-1 text-xs px-3 py-2 rounded border border-green-300 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950/40 disabled:opacity-50"
+                  >
+                    正確 ✓
+                  </button>
+                  <button
+                    onClick={() => setFeedbackState("correcting")}
+                    disabled={submitting}
+                    className="flex-1 text-xs px-3 py-2 rounded border border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40 disabled:opacity-50"
+                  >
+                    誤り - 修正
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {feedbackState === "correcting" && (
+              <div>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+                  実際の食材は何でしたか？（カンマで区切る）
+                </p>
+                <input
+                  type="text"
+                  placeholder="例：サケ, 野菜"
+                  value={selectedCorrection}
+                  onChange={(e) => setSelectedCorrection(e.target.value)}
+                  className="w-full text-xs px-2 py-2 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 mb-2"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleFeedbackSubmit(false, selectedCorrection)}
+                    disabled={submitting || !selectedCorrection.trim()}
+                    className="flex-1 text-xs px-3 py-2 rounded bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50"
+                  >
+                    送信
+                  </button>
+                  <button
+                    onClick={() => {
+                      setFeedbackState("none");
+                      setSelectedCorrection("");
+                    }}
+                    disabled={submitting}
+                    className="flex-1 text-xs px-3 py-2 rounded border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50"
+                  >
+                    キャンセル
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </>
     </div>
@@ -177,6 +277,7 @@ export function ResultPanel({ result }: { result: AnalysisSessionResult }) {
                   mealType={meal.mealType}
                   index={meal.index}
                   total={result.aggregate.totalMeals}
+                  foods={meal.foods}
                 />
               </div>
             ))}
