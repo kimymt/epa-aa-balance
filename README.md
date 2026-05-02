@@ -121,3 +121,14 @@ Vercelに直接デプロイ。`maxDuration: 45` を指定しているためHobby
 
 - 📄 [`docs/design-v2-epa-aa.md`](./docs/design-v2-epa-aa.md) — **現在の実装の根拠**（EPA/AA比プロキシ、魚タンパク質割合）
 - 📄 [`docs/design.md`](./docs/design.md) — 当初設計（EAAスコア）。仕様変更後に廃止、設計プロセスの記録として保存
+
+## ライセンス
+
+[Apache License 2.0](./LICENSE) で公開しています。
+
+- 商用利用 OK
+- 改変・再配布 OK
+- 特許権の明示的許可を含む（Apache 2.0 セクション 3）
+- 改変版を配布する場合は [`NOTICE`](./NOTICE) ファイルと変更履歴を含めてください
+
+Copyright 2026 eaa-scorer contributors. See [`NOTICE`](./NOTICE) for details.

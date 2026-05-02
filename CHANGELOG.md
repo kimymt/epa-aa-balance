@@ -2,7 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.2.0] - 2026-05-02
+## [0.3.0] - Unreleased
+
+### Planned
+- TBD: Discuss with product
+
+---
+
+## [0.2.0] - 2026-05-02 [LOCKED & RELEASED]
 
 ### Added
 - Vision API accuracy feedback on each meal result card (正確 / 誤り-修正 buttons).
