@@ -5,7 +5,7 @@ import { MEAL_TYPES } from "@/lib/session";
 import type { AnalysisResult } from "@/lib/analyzer";
 import type { AnalysisSessionResult } from "@/lib/session";
 import type { VisionFood } from "@/lib/vision";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // 信号機色 → CSS class マッピング
 // v0.3.0: unknown=グレー追加
@@ -32,15 +32,31 @@ function MealResultCard({
   index,
   total,
   foods,
+  file,
 }: {
   result: AnalysisResult;
   mealType: string;
   index: number;
   total: number;
   foods?: VisionFood[];
+  /** v0.4.12: アップロードされた元画像。サムネイル表示 + フィードバック精度向上のため。 */
+  file?: File;
 }) {
   const mealLabel =
     MEAL_TYPES.find((m) => m.value === mealType)?.label || "食事";
+
+  // v0.4.12: file が渡されたら object URL を生成し、unmount 時に revoke する。
+  // useEffect の戻り値で確実に cleanup しないとメモリリーク。
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!file) {
+      setThumbnailUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setThumbnailUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
 
   const [feedbackState, setFeedbackState] = useState<
     "none" | "accurate" | "correcting" | "submitted"
@@ -73,6 +89,20 @@ function MealResultCard({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* v0.4.12: アップロード画像のサムネイル。フィードバック精度向上が主目的:
+          「正確 ✓ / 誤り - 修正」を判断するときに、どの食事の判定なのか目視確認できる。
+          file が無いケース (古い state や test fixture) は section 自体を省略。 */}
+      {thumbnailUrl && (
+        <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
+          <img
+            src={thumbnailUrl}
+            alt={`${mealLabel}の写真`}
+            className="block h-32 w-full object-cover"
+            loading="lazy"
+          />
+        </div>
+      )}
+
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
         <div>
           <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -207,7 +237,15 @@ function MealResultCard({
 }
 
 // Main result panel for multi-image session
-export function ResultPanel({ result }: { result: AnalysisSessionResult }) {
+export function ResultPanel({
+  result,
+  files,
+}: {
+  result: AnalysisSessionResult;
+  /** v0.4.12: アップロードされた元 File 配列。各 MealResultCard にサムネイル表示。
+      undefined OK (後方互換)。MealResultCard 側で「無ければ非表示」になる。 */
+  files?: File[];
+}) {
   const successfulMeals = result.meals;
   const failedMeals = result.failed;
   const aggregate = result.aggregate;
@@ -323,6 +361,7 @@ export function ResultPanel({ result }: { result: AnalysisSessionResult }) {
                   index={meal.index}
                   total={result.aggregate.totalMeals}
                   foods={meal.foods}
+                  file={files?.[meal.index]}
                 />
               </div>
             ))}

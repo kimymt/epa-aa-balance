@@ -116,7 +116,9 @@ export default function Home() {
 
       {state.kind === "result" && (
         <div className="mt-4">
-          <ResultPanel result={state.result} />
+          {/* v0.4.12: files を渡してサムネイル表示 (MealResultCard 内で
+              meal.index でルックアップ → 各カード上部に画像表示)。 */}
+          <ResultPanel result={state.result} files={files} />
           {/* v0.4.7: outline-only → subtle filled で reset CTA を見つけやすく
               (F-007 対応)。primary CTA (アップロード) と差別化しつつ、結果ページの
               唯一の secondary action として認識可能に。 */}
