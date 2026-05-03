@@ -11,6 +11,7 @@ interface FeedbackItem {
   correctedFoods: string[] | null;
   timestamp: string;
   createdAt: string;
+  calculationVersion: number;
 }
 
 interface Stats {
@@ -19,12 +20,25 @@ interface Stats {
   inaccurateFeedback: number;
   accuracyPercentage: string;
   byMealType: Record<string, { accurate: number; inaccurate: number }>;
+  byCalculationVersion: Record<string, number>; // {"1": N, "2": M}
 }
 
 interface FeedbackResponse {
+  filter: { version: string };
   stats: Stats;
   recentFeedback: FeedbackItem[];
 }
+
+type VersionFilter = "all" | "1" | "2";
+
+const VERSION_LABELS: Record<string, string> = {
+  "1": "v1 (タンパク質)",
+  "2": "v2 (脂質)",
+};
+const VERSION_BADGE_BG: Record<string, string> = {
+  "1": "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300",
+  "2": "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
+};
 
 const TOKEN_STORAGE_KEY = "eaa-scorer-admin-token";
 
@@ -49,6 +63,7 @@ export default function AdminPage() {
   const [data, setData] = useState<FeedbackResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [versionFilter, setVersionFilter] = useState<VersionFilter>("all");
 
   // Restore token from localStorage
   useEffect(() => {
@@ -59,12 +74,12 @@ export default function AdminPage() {
     }
   }, []);
 
-  // Auto-fetch when token is set
+  // Auto-fetch when token or version filter changes
   useEffect(() => {
     if (!token) return;
     void fetchStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, versionFilter]);
 
   async function fetchStats() {
     if (!token) return;
@@ -72,7 +87,7 @@ export default function AdminPage() {
     setError(null);
     try {
       const res = await fetch(
-        `/api/feedback?token=${encodeURIComponent(token)}`
+        `/api/feedback?token=${encodeURIComponent(token)}&version=${versionFilter}`
       );
       if (res.status === 401) {
         setError("認証に失敗しました。トークンを確認してください。");
@@ -170,6 +185,36 @@ export default function AdminPage() {
         {/* Stats */}
         {data && (
           <>
+            {/* Calculation version filter (v0.3.8) */}
+            <div className="mb-4 flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+              <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                計算バージョン:
+              </span>
+              {(["all", "2", "1"] as VersionFilter[]).map((v) => {
+                const count =
+                  v === "all"
+                    ? (data.stats.byCalculationVersion["1"] ?? 0) +
+                      (data.stats.byCalculationVersion["2"] ?? 0)
+                    : (data.stats.byCalculationVersion[v] ?? 0);
+                const label =
+                  v === "all" ? "すべて" : VERSION_LABELS[v] ?? v;
+                const active = versionFilter === v;
+                return (
+                  <button
+                    key={v}
+                    onClick={() => setVersionFilter(v)}
+                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                      active
+                        ? "bg-emerald-600 text-white"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    {label} <span className="opacity-75">({count})</span>
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Top stats */}
             <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <StatCard
@@ -263,7 +308,7 @@ export default function AdminPage() {
                     <li key={item.id} className="px-6 py-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span
                               className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                                 item.accurate
@@ -272,6 +317,17 @@ export default function AdminPage() {
                               }`}
                             >
                               {item.accurate ? "✓ 正確" : "✗ 誤り"}
+                            </span>
+                            {/* v0.3.8: calculation version badge */}
+                            <span
+                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                VERSION_BADGE_BG[String(item.calculationVersion)] ??
+                                "bg-slate-100 text-slate-700"
+                              }`}
+                              title={`計算バージョン: ${item.calculationVersion}`}
+                            >
+                              {VERSION_LABELS[String(item.calculationVersion)] ??
+                                `v${item.calculationVersion}`}
                             </span>
                             <span className="text-xs text-slate-500 dark:text-slate-400">
                               {mealLabel(item.mealType)}
