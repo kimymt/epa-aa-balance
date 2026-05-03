@@ -103,6 +103,61 @@ describe("validateCoachBody", () => {
       refinement: { type: "freetext", value: "" },
     }).ok).toBe(false);
   });
+
+  // v0.4.10: target validation
+  it("accepts valid target", () => {
+    const r = validateCoachBody({
+      aggregate: sampleAggregate,
+      recentFoods: sampleFoods,
+      target: { patternName: "地中海食", gapMg: 120 },
+    });
+    expect(r.ok).toBe(true);
+  });
+
+  it("accepts target with gapMg = 0 (already at target)", () => {
+    const r = validateCoachBody({
+      aggregate: sampleAggregate,
+      recentFoods: sampleFoods,
+      target: { patternName: "地中海食", gapMg: 0 },
+    });
+    expect(r.ok).toBe(true);
+  });
+
+  it("rejects target with negative gapMg", () => {
+    const r = validateCoachBody({
+      aggregate: sampleAggregate,
+      recentFoods: sampleFoods,
+      target: { patternName: "地中海食", gapMg: -10 },
+    });
+    expect(r.ok).toBe(false);
+  });
+
+  it("rejects target with empty patternName", () => {
+    const r = validateCoachBody({
+      aggregate: sampleAggregate,
+      recentFoods: sampleFoods,
+      target: { patternName: "", gapMg: 100 },
+    });
+    expect(r.ok).toBe(false);
+  });
+
+  it("rejects target with NaN gapMg", () => {
+    const r = validateCoachBody({
+      aggregate: sampleAggregate,
+      recentFoods: sampleFoods,
+      target: { patternName: "地中海食", gapMg: NaN },
+    });
+    expect(r.ok).toBe(false);
+  });
+
+  it("rejects target with non-string patternName", () => {
+    const r = validateCoachBody({
+      aggregate: sampleAggregate,
+      recentFoods: sampleFoods,
+      target: { patternName: 123, gapMg: 100 },
+    });
+    expect(r.ok).toBe(false);
+  });
 });
 
 describe("buildPrompt", () => {
@@ -147,6 +202,51 @@ describe("buildPrompt", () => {
       refinement: { type: "freetext", value: "魚卵中心で" },
     });
     expect(p).toContain("魚卵中心で");
+  });
+
+  // v0.4.10: target section in prompt
+  it("includes target pattern section when target is provided", () => {
+    const p = buildPrompt({
+      ...baseReq,
+      target: { patternName: "地中海食", gapMg: 120 },
+    });
+    expect(p).toContain("【目標食習慣】");
+    expect(p).toContain("地中海食");
+    expect(p).toContain("+120 mg/日");
+  });
+
+  it("includes content food guidance (mg/100g hints) when target set", () => {
+    const p = buildPrompt({
+      ...baseReq,
+      target: { patternName: "日本伝統食", gapMg: 800 },
+    });
+    expect(p).toContain("サバ");
+    expect(p).toContain("含有量");
+  });
+
+  it("rounds fractional gapMg to integer in prompt", () => {
+    const p = buildPrompt({
+      ...baseReq,
+      target: { patternName: "地中海食", gapMg: 119.6 },
+    });
+    expect(p).toContain("+120 mg/日"); // Math.round(119.6) = 120
+  });
+
+  it("omits target section when target is undefined", () => {
+    const p = buildPrompt(baseReq);
+    expect(p).not.toContain("【目標食習慣】");
+  });
+
+  it("includes both refinement and target sections when both provided", () => {
+    const p = buildPrompt({
+      ...baseReq,
+      refinement: { type: "chip", value: "japanese_style" },
+      target: { patternName: "日本伝統食", gapMg: 500 },
+    });
+    expect(p).toContain("【追加要望】");
+    expect(p).toContain("【目標食習慣】");
+    expect(p).toContain("和食");
+    expect(p).toContain("日本伝統食");
   });
 });
 

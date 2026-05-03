@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.10] - 2026-05-04 — AI コーチ目標食習慣連動（WOW 体験 Step 3/3 完）
+
+### Added
+- **`CoachRequest.target`** 新フィールド: 目標食習慣 (`patternName`) と
+  不足量 (`gapMg`) を Gemini に渡すため。
+- **`buildPrompt` 強化**: target が設定されていれば prompt に「【目標食習慣】」
+  セクションを追加。「あと +N mg/日」明示 + 高 EPA+DHA 食材 (サバ ~1500mg/100g
+  等) のヒントを Gemini に与え、ギャップを埋める設計のレシピを優先誘導。
+- **`CoachSection` で目標自動算出**: `findPatternPosition` + `dailyAverageMg`
+  を用いて、ユーザー現在地の「次の食習慣パターン」を自動でターゲットに設定。
+  - 全パターン超え or データ無しなら target=undefined（prompt にセクション出さない）
+- **UI 表示**: 「AI に提案してもらう」ボタン上部に sky-blue のチップで
+  「目標: 地中海食 (あと +120 mg/日)」を inline 表示。ユーザーが事前に
+  「何を目指すレシピが返ってくるか」を把握できる。
+
+### Changed
+- `validateCoachBody` に target validation 追加:
+  - patternName: string、1-50 文字
+  - gapMg: 数値、0 以上、有限
+- `ResultPanel` から `CoachSection` への props に `mealsWithData` を追加。
+
+### Tests
+- `lib/coach.test.ts`: 11 ケース追加（target validation 6 + prompt 強化 5）
+- 149 → 160 pass
+
+### Background
+WOW ファクター追求 3 ステップ計画の **Step 3 (完)**:
+- ✅ Step 1 (#24): オンボーディング（プロキシ性開示）
+- ✅ Step 2 (#25): 食パターン比較ビジュアル
+- ✅ Step 3 (本 PR): AI コーチが目標食習慣を理解してレシピ提案
+
+### User flow (3 ステップ完成形)
+1. 初回訪問 → オンボーディングカードで「EPA/DHA とは何か」+「食事比率は血液
+   検査の代用ではない」を理解
+2. 食事写真アップロード → 結果ページで「あなたは標準的アメリカ食と地中海食の
+   間です」と現在地を把握
+3. 「AI に提案してもらう」ボタン → 「地中海食まであと +120 mg/日」のギャップを
+   埋める具体的レシピを 3 件取得 → 行動変容トリガー
+
 ## [0.4.9] - 2026-05-04 — 食習慣パターン比較ビジュアル（WOW 体験 Step 2/3）
 
 ### Added
