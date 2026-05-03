@@ -55,7 +55,7 @@ describe("data/foods.json schema (v0.3.1+)", () => {
   });
 
   it("category is one of the 5 valid values", () => {
-    const validCategories = new Set(["fish", "meat", "egg_dairy", "plant_protein", "other"]);
+    const validCategories = new Set(["fish", "meat", "egg_dairy", "plant", "other"]);
     for (const f of foods) {
       expect(validCategories.has(f.category), `${f.name}: invalid category ${f.category}`).toBe(true);
     }

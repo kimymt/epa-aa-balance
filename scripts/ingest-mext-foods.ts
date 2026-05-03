@@ -30,7 +30,7 @@ const KUROMOJI_DICT = path.join(process.cwd(), "node_modules/kuromoji/dict");
 
 const COL = { group: 0, name: 3, fat: 6, aa: 53, epa: 54, dha: 60 };
 
-type Category = "fish" | "meat" | "egg_dairy" | "plant_protein" | "other";
+type Category = "fish" | "meat" | "egg_dairy" | "plant" | "other";
 
 // 食品群コード → category マッピング
 const GROUP_TO_CATEGORY: Record<string, Category> = {
@@ -38,7 +38,7 @@ const GROUP_TO_CATEGORY: Record<string, Category> = {
   "11": "meat",        // 肉類
   "12": "egg_dairy",   // 卵類
   "13": "egg_dairy",   // 乳類
-  "04": "plant_protein", // 豆類
+  "04": "plant",       // 豆類
   // 残り全部 "other": 穀類, いも・でん粉, 種実, 野菜, 果実, きのこ, 藻類,
   //                  油脂, 菓子, し好飲料, 調味料, 調理済み流通食品
 };

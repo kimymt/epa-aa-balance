@@ -4,7 +4,7 @@
     "fish": "魚介類（EPA源、numerator）",
     "meat": "獣鳥肉類（AA寄与）",
     "egg_dairy": "卵・乳製品（AA寄与）",
-    "plant_protein": "植物性タンパク（豆類等）",
+    "plant": "植物性タンパク（豆類等）",
     "other": "野菜・穀類・果物等（タンパク質寄与少）"
   },
   "foods": [
@@ -476,7 +476,7 @@
         "冷奴",
         "湯豆腐"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -490,7 +490,7 @@
         "なっとう",
         "natto"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -504,7 +504,7 @@
         "えだまめ",
         "edamame"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -518,7 +518,7 @@
         "みそ",
         "miso"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": 0,
       "aa_mg": null,
@@ -533,7 +533,7 @@
         "miso soup",
         "おみそ汁"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": 0,
       "aa_mg": null,
@@ -547,7 +547,7 @@
       "aliases": [
         "豆腐入り味噌汁"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -4444,7 +4444,7 @@
         "全粒",
         "あずきぜんつぶいぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -4460,7 +4460,7 @@
         "全粒",
         "あずきぜんつぶゆで"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -4476,7 +4476,7 @@
         "ゆで小豆缶詰",
         "あずきゆであずきかんづめ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -4493,7 +4493,7 @@
         "こし生あん",
         "あずきあんこしなまあん"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -4509,7 +4509,7 @@
         "あん",
         "さらしあん"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -4526,7 +4526,7 @@
         "つぶし生あん",
         "あずきあんつぶしせいあん"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -4543,7 +4543,7 @@
         "つぶし練りあん",
         "あずきあんつぶしねりあん"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -4559,7 +4559,7 @@
         "全粒",
         "いんげんまめぜんつぶいぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -4575,7 +4575,7 @@
         "全粒",
         "いんげんまめぜんつぶゆで"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -4591,7 +4591,7 @@
         "うずら豆",
         "いんげんまめうずらまめ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -4607,7 +4607,7 @@
         "こし生あん",
         "いんげんまめこしなまあん"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -4623,7 +4623,7 @@
         "豆きんとん",
         "いんげんまめまめきんとん"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -4640,7 +4640,7 @@
         "青えんどう",
         "えんどうぜんつぶあおえんどういぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -4657,7 +4657,7 @@
         "青えんどう",
         "えんどうぜんつぶあおえんどうゆで"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -4672,7 +4672,7 @@
         "えんどう",
         "グリンピース"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -4688,7 +4688,7 @@
         "塩豆",
         "えんどうしおまめ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 1,
       "aa_mg": 0,
@@ -4704,7 +4704,7 @@
         "うぐいす豆",
         "えんどううぐいすまめ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -4719,7 +4719,7 @@
         "えんどう",
         "うぐいすあん"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -4735,7 +4735,7 @@
         "全粒",
         "ささげぜんつぶいぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -4751,7 +4751,7 @@
         "全粒",
         "ささげぜんつぶゆで"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -4767,7 +4767,7 @@
         "全粒",
         "そらまめぜんつぶいぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -4782,7 +4782,7 @@
         "そらまめ",
         "フライビーンズ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -4798,7 +4798,7 @@
         "おたふく豆",
         "そらまめおたふくまめ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -4814,7 +4814,7 @@
         "ふき豆",
         "そらまめふきまめ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -4830,7 +4830,7 @@
         "しょうゆ豆",
         "そらまめしょうゆまめ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -4848,7 +4848,7 @@
         "国産",
         "だいずぜんつぶあおだいずこくさんいぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -4866,7 +4866,7 @@
         "国産",
         "だいずぜんつぶあおだいずこくさんゆで"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -4884,7 +4884,7 @@
         "国産",
         "だいずぜんつぶきだいずこくさんいぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -4902,7 +4902,7 @@
         "国産",
         "だいずぜんつぶきだいずこくさんゆで"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -4920,7 +4920,7 @@
         "米国産",
         "だいずぜんつぶきだいずべいこくさんいぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -4938,7 +4938,7 @@
         "中国産",
         "だいずぜんつぶきだいずちゅうごくさんいぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -4956,7 +4956,7 @@
         "ブラジル産",
         "だいずぜんつぶきだいずぶらじるさんいぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -4974,7 +4974,7 @@
         "国産",
         "だいずぜんつぶくろだいずこくさんいぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 2,
@@ -4992,7 +4992,7 @@
         "国産",
         "だいずぜんつぶくろだいずこくさんゆで"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5009,7 +5009,7 @@
         "青大豆",
         "だいずいりだいずあおだいず"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5026,7 +5026,7 @@
         "黄大豆",
         "だいずいりだいずきだいず"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5043,7 +5043,7 @@
         "黒大豆",
         "だいずいりだいずくろだいず"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5060,7 +5060,7 @@
         "黄大豆",
         "だいずみずにかんづめきだいず"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5077,7 +5077,7 @@
         "黄大豆",
         "だいずむしだいずきだいず"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5095,7 +5095,7 @@
         "全粒大豆",
         "だいずきなこあおだいずぜんつぶだいず"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5113,7 +5113,7 @@
         "脱皮大豆",
         "だいずきなこあおだいずだっぴだいず"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5131,7 +5131,7 @@
         "全粒大豆",
         "だいずきなこきだいずぜんつぶだいず"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5149,7 +5149,7 @@
         "脱皮大豆",
         "だいずきなこきだいずだっぴだいず"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5165,7 +5165,7 @@
         "ぶどう豆",
         "だいずぶどうまめ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5181,7 +5181,7 @@
         "木綿豆腐",
         "だいずこわたとうふ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -5197,7 +5197,7 @@
         "木綿豆腐",
         "だいずこわたとうふ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -5213,7 +5213,7 @@
         "絹ごし豆腐",
         "だいずきぬごしとうふ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -5229,7 +5229,7 @@
         "ソフト豆腐",
         "だいずそふととうふ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -5245,7 +5245,7 @@
         "充てん豆腐",
         "だいずじゅうてんとうふ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -5261,7 +5261,7 @@
         "沖縄豆腐",
         "だいずおきなわとうふ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -5277,7 +5277,7 @@
         "ゆし豆腐",
         "だいずゆしとうふ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -5293,7 +5293,7 @@
         "焼き豆腐",
         "だいずやきどうふ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -5309,7 +5309,7 @@
         "生揚げ",
         "だいずなまあげ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5325,7 +5325,7 @@
         "絹生揚げ",
         "だいずきぬなまあげ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5341,7 +5341,7 @@
         "油揚げ",
         "だいずあぶらあげなま"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5358,7 +5358,7 @@
         "油抜き",
         "だいずあぶらあげあぶらぬきなま"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5375,7 +5375,7 @@
         "油抜き",
         "だいずあぶらあげあぶらぬきゆで"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5392,7 +5392,7 @@
         "油抜き",
         "だいずあぶらあげあぶらぬきやき"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5409,7 +5409,7 @@
         "甘煮",
         "だいずあぶらあげうまに"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5424,7 +5424,7 @@
         "だいず",
         "がんもどき"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5440,7 +5440,7 @@
         "凍り豆腐",
         "だいずこおりどうふいぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5457,7 +5457,7 @@
         "水煮",
         "だいずこおりどうふみずに"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5473,7 +5473,7 @@
         "豆腐よう",
         "だいずとうふよう"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5489,7 +5489,7 @@
         "豆腐竹輪",
         "だいずとうふちくわむし"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 17,
       "dha_mg": 39,
       "aa_mg": 3,
@@ -5505,7 +5505,7 @@
         "豆腐竹輪",
         "だいずとうふちくわやき"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 19,
       "dha_mg": 46,
       "aa_mg": 4,
@@ -5521,7 +5521,7 @@
         "ろくじょう豆腐",
         "だいずろくじょうとうふ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -5537,7 +5537,7 @@
         "挽きわり納豆",
         "だいずひきわりなっとう"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5553,7 +5553,7 @@
         "五斗納豆",
         "だいずごとなっとう"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5569,7 +5569,7 @@
         "塩納豆",
         "だいずしおなっとう"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5585,7 +5585,7 @@
         "寺納豆",
         "だいずてらなっとう"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5601,7 +5601,7 @@
         "干し納豆",
         "だいずほしなっとう"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5617,7 +5617,7 @@
         "おから",
         "だいずおからなま"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -5634,7 +5634,7 @@
         "乾燥",
         "だいずおからかんそう"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": null,
       "dha_mg": null,
       "aa_mg": null,
@@ -5651,7 +5651,7 @@
         "豆乳",
         "だいずとうにゅうとうにゅう"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5668,7 +5668,7 @@
         "調製豆乳",
         "だいずとうにゅうちょうせいとうにゅう"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5685,7 +5685,7 @@
         "豆乳飲料・麦芽コーヒー",
         "だいずとうにゅうとうにゅういんりょう・ばくがこーひー"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5702,7 +5702,7 @@
         "粒状大豆たんぱく",
         "だいずだいずたんぱくりゅうじょうだいずたんぱく"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5719,7 +5719,7 @@
         "濃縮大豆たんぱく",
         "だいずだいずたんぱくのうしゅくだいずたんぱく"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5737,7 +5737,7 @@
         "塩分無調整タイプ",
         "だいずだいずたんぱくぶんりだいずたんぱくえんぶんむちょうせいたいぷ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5754,7 +5754,7 @@
         "繊維状大豆たんぱく",
         "だいずだいずたんぱくせんいじょうだいずたんぱく"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5770,7 +5770,7 @@
         "湯葉",
         "だいずゆばなま"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5786,7 +5786,7 @@
         "湯葉",
         "だいずゆばほしいぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5803,7 +5803,7 @@
         "湯戻し",
         "だいずゆばほしゆもどし"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5819,7 +5819,7 @@
         "金山寺みそ",
         "だいずきんざんじみそ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 1,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5834,7 +5834,7 @@
         "だいず",
         "ひしおみそ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5849,7 +5849,7 @@
         "だいず",
         "テンペ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5865,7 +5865,7 @@
         "全粒",
         "つるあずきぜんつぶいぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5881,7 +5881,7 @@
         "全粒",
         "つるあずきぜんつぶゆで"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5897,7 +5897,7 @@
         "全粒",
         "ひよこまめぜんつぶいぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5913,7 +5913,7 @@
         "全粒",
         "ひよこまめぜんつぶゆで"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5931,7 +5931,7 @@
         "味付け",
         "ひよこまめぜんつぶふらいあじつけ"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5947,7 +5947,7 @@
         "全粒",
         "べにばないんげんぜんつぶいぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5963,7 +5963,7 @@
         "全粒",
         "べにばないんげんぜんつぶゆで"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5979,7 +5979,7 @@
         "全粒",
         "らいまめぜんつぶいぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -5995,7 +5995,7 @@
         "全粒",
         "らいまめぜんつぶゆで"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -6011,7 +6011,7 @@
         "全粒",
         "りょくとうぜんつぶいぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -6027,7 +6027,7 @@
         "全粒",
         "りょくとうぜんつぶゆで"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -6043,7 +6043,7 @@
         "全粒",
         "れんずまめぜんつぶいぬい"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
@@ -6059,7 +6059,7 @@
         "全粒",
         "れんずまめぜんつぶゆで"
       ],
-      "category": "plant_protein",
+      "category": "plant",
       "epa_mg": 0,
       "dha_mg": 0,
       "aa_mg": 0,
