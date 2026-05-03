@@ -36,15 +36,12 @@ describe("lookupFood - kana normalization (v0.3.2)", () => {
     expect(r!.entry.name).toBe("サバ");
   });
 
-  it("matches mixed kanji+kana query (餃子 → ぎょうざ)", () => {
-    // 餃子 (kanji) を MEXT の「ぎょうざ」(hiragana) にマッチさせる。
-    // 注: 漢字 ↔ ひらがなの変換はしないので、これは正規化だけでは解けない。
-    // ただし MEXT のフルネーム「中国料理 点心類 ぎょうざ」を kana 正規化しても
-    // 「餃子」を含まないので unmatched が期待値。
-    // → このテストは現状の限界を文書化するためのもの。
+  it("matches mixed kanji+kana query (餃子 → ぎょうざ) [v0.3.3 fix]", () => {
+    // v0.3.2 までは unmatched だった。v0.3.3 で kanji map により解決。
     const r = lookupFood("餃子");
-    expect(r).toBeNull();
-    // 期待される将来挙動: 漢字辞書を導入すれば match。今は known limitation。
+    expect(r).not.toBeNull();
+    // MEXT「中国料理 点心類 ぎょうざ」または同等の entry にマッチ
+    expect(r!.entry.name.includes("ぎょうざ") || (r!.entry.aliases ?? []).some(a => a.includes("ぎょうざ"))).toBe(true);
   });
 
   it("normalize is case-insensitive for ascii", () => {
@@ -53,5 +50,40 @@ describe("lookupFood - kana normalization (v0.3.2)", () => {
     const r2 = lookupFood("chicken breast");
     expect(r1?.entry.name).toBe(r2?.entry.name);
     expect(r1?.entry.name).toBe("鶏むね肉（皮なし）");
+  });
+});
+
+describe("lookupFood - kanji conversion (v0.3.3)", () => {
+  // v0.3.2 で UNMATCHED だった漢字食材が v0.3.3 で全部 hit するか
+  const cases: Array<{ q: string; mustMatch?: boolean }> = [
+    { q: "鰊" },     // にしん
+    { q: "鰆" },     // さわら
+    { q: "鰻" },     // うなぎ
+    { q: "蟹" },     // かに
+    { q: "餃子" },   // ぎょうざ
+    { q: "明太子" }, // めんたいこ
+    { q: "林檎" },   // りんご
+    { q: "鯖" },     // 既存 curated alias でも hit、漢字 map でも OK
+    { q: "焼売" },   // しゅうまい
+    { q: "饅頭" },   // まんじゅう
+    { q: "牛蒡" },   // ごぼう
+  ];
+  for (const { q } of cases) {
+    it(`maps ${q} to a hiragana MEXT entry`, () => {
+      const r = lookupFood(q);
+      expect(r, `${q} should match (was UNMATCHED in v0.3.2)`).not.toBeNull();
+    });
+  }
+
+  it("preserves curated priority for kanji that exist as alias", () => {
+    // 鯖 は curated 「サバ」 の alias に既にある → 鯖 → サバ で curated 勝ち
+    // (kanji map で「さば」変換されてから match するルートでも結果は同じ)
+    const r = lookupFood("鯖");
+    expect(r?.entry.name).toBe("サバ");
+  });
+
+  it("handles compound kanji+okurigana (玉葱 → たまねぎ)", () => {
+    const r = lookupFood("玉葱");
+    expect(r?.entry.name).toBe("玉ねぎ"); // curated alias hit (玉葱 → たまねぎ → curated 「玉ねぎ」)
   });
 });
