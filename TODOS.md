@@ -1,5 +1,47 @@
 # TODOS
 
+## v0.5.x Design backlog (/design-review 由来)
+
+### F-001: ホーム画面の空白 60% を埋める「what's next」コンテンツ
+**What:** 初期状態のホーム画面、アップロードゾーン下に画面の 60% が空白で
+"is this all?" 感を生む。サンプル結果プレビュー / FAQ / 「アップロード後にこんな
+分析が見られる」例を入れる。
+**Why:** First Impression が "MVP 感" になる主因。Goodwill 60/100 の主因。
+**Effort:** デザイン要検討 (sample data + レイアウト)、〜2-4h。
+**Trigger:** /design-consultation で仕様化してから実装。
+
+### F-003: アップロード前の「何が得られるか」プレビュー
+**What:** F-001 とセット。"あなたが得られる結果はこれです" という 1 食分の
+サンプル結果カードを home に inline 表示。
+**Why:** 初見ユーザーが「魚由来脂質って何？それで何が分かる？」を試さずに把握できる。
+**Trigger:** F-001 と同時。
+
+### F-005: 🍱 絵文字をブランディング要素に置換
+**What:** ホーム + after-upload の bento 🍱 を、科学的雰囲気にあう SVG icon
+（魚アイコン or 食材分析アイコン）に置換。
+**Why:** 現状は generic、ブランド identity ゼロ。EPA/AA 科学アプリらしさを欠く。
+**Effort:** SVG icon 選定 + 配色合わせ、〜1h。
+**Trigger:** ブランドアイデンティティ方針が決まってから。
+
+### F-008: LCP 改善 (2.27s → <2.0s)
+**What:** font-display: swap、画像 preload、critical CSS inlining。
+**Effort:** Next.js 16 の最適化機能で 30 分。
+**Trigger:** 実ユーザーから遅さの指摘があったとき。
+
+### F-009: スピナーをブランド化
+**What:** 解析中の generic 円形ボーダースピナーを on-brand なアニメーション
+（例: 魚泳ぎ、もしくはタイポグラフィベース）に。
+**Effort:** 1-2h、要デザイン検討。
+**Trigger:** brand identity 確立後。
+
+### F-010: After-upload state でアップロードゾーンを縮小
+**What:** 写真追加後はアップロードゾーンを「+ 追加」アイコンボタンに collapse、
+垂直スペース節約。
+**Effort:** 30 分、CSS state toggling。
+**Trigger:** モバイル UX 改善の優先度が上がったとき。
+
+---
+
 ## v0.5.x Security backlog
 
 ### xlsx → exceljs 置換（または CDN tarball pin）

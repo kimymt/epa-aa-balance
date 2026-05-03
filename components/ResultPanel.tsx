@@ -6,12 +6,16 @@ import type { AnalysisSessionResult } from "@/lib/session";
 import type { VisionFood } from "@/lib/vision";
 import { useState } from "react";
 
-// 信号機色 → CSS class マッピング (v0.3.0: unknown=グレー追加)
-const SIGNAL_BG: Record<string, string> = {
-  green: "bg-green-500",
-  yellow: "bg-yellow-500",
-  red: "bg-red-500",
-  unknown: "bg-slate-400",
+// 信号機色 → CSS class マッピング
+// v0.3.0: unknown=グレー追加
+// v0.4.7: bg-*-500 (saturated pill, button-like) → bg-*-50 + text-*-700 + border
+//         (chip style, status-label-like)。/design-review F-002 対応:
+//         「改善推奨」が clickable CTA に見える false affordance を解消。
+const SIGNAL_CHIP: Record<string, string> = {
+  green: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800",
+  yellow: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800",
+  red: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800",
+  unknown: "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
 };
 const SIGNAL_LABEL: Record<string, string> = {
   green: "良好",
@@ -94,7 +98,7 @@ function MealResultCard({
               </span>
             </div>
             <div
-              className={`mt-2 inline-block px-3 py-1 rounded-full text-sm font-medium text-white ${SIGNAL_BG[result.light]}`}
+              className={`mt-2 inline-flex items-center px-2.5 py-0.5 rounded-md border text-xs font-medium ${SIGNAL_CHIP[result.light]}`}
             >
               {SIGNAL_LABEL[result.light]}
             </div>
@@ -221,16 +225,10 @@ export function ResultPanel({ result }: { result: AnalysisSessionResult }) {
           <div className="mt-2 text-base text-emerald-800 dark:text-emerald-200">
             魚由来脂質の割合（EPA+DHA / EPA+DHA+AA）
           </div>
+          {/* v0.4.7: aggregate signal label も chip スタイルに統一 (F-002 対応)。
+              大きめ (px-3 py-1 + text-base) で hierarchy は保つ。 */}
           <div
-            className={`mt-4 inline-block px-4 py-2 rounded-full text-lg font-semibold text-white ${
-              aggregate.signal === "green"
-                ? "bg-emerald-600"
-                : aggregate.signal === "yellow"
-                  ? "bg-yellow-500"
-                  : aggregate.signal === "red"
-                    ? "bg-rose-500"
-                    : "bg-slate-500"
-            }`}
+            className={`mt-4 inline-flex items-center px-3 py-1 rounded-md border text-base font-semibold ${SIGNAL_CHIP[aggregate.signal]}`}
           >
             {aggregate.signal === "green" ? "良好 ✓"
               : aggregate.signal === "yellow" ? "中程度"
@@ -281,9 +279,12 @@ export function ResultPanel({ result }: { result: AnalysisSessionResult }) {
       {/* Carousel of Individual Meals */}
       {successfulMeals.length > 0 && (
         <div>
-          <div className="mb-4 text-sm font-semibold text-slate-700 dark:text-slate-300">
+          {/* v0.4.7: <div> → <h2> でセマンティック見出しに昇格 (F-004 対応)。
+              スクリーンリーダーと検索エンジンに section 構造を伝える。
+              視覚は既存のままに保つ (mb-4 text-sm font-semibold)。 */}
+          <h2 className="mb-4 text-sm font-semibold text-slate-700 dark:text-slate-300">
             個別の食事結果
-          </div>
+          </h2>
 
           <div
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-2"
@@ -309,7 +310,10 @@ export function ResultPanel({ result }: { result: AnalysisSessionResult }) {
       )}
 
       {/* EPA/AA Explanation */}
-      <div className="text-xs text-slate-500 dark:text-slate-400 space-y-2 leading-relaxed">
+      {/* v0.4.7: text-xs (12px) text-slate-500 → text-sm (14px) text-slate-600
+          で本文のコントラストと可読性を改善 (F-006 対応)。
+          dark mode は slate-400 → slate-300 で同様の改善。 */}
+      <div className="text-sm text-slate-600 dark:text-slate-300 space-y-2 leading-relaxed">
         <p>
           <strong>判定方法:</strong>{" "}
           食材ごとの脂肪酸成分（MEXT 食品成分表 脂肪酸成分表編 2020 由来）から、
