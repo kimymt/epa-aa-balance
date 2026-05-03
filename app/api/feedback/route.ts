@@ -2,8 +2,26 @@ import { NextResponse } from "next/server";
 import { validateFeedbackBody } from "@/lib/feedback-validation";
 // v0.4.2: D1 client を lib/d1.ts に抽出（rate-limit と共有）。
 import { d1Query } from "@/lib/d1";
+// v0.4.6: GET admin endpoint の token 比較を constant-time 化、
+// brute-force 抑止のため rate limit も追加。
+import { constantTimeStringEqual } from "@/lib/timing-safe";
+import { checkRateLimit, getClientIp, hashIp, logRequest } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
+
+const ADMIN_GET_ENDPOINT = "/api/feedback-admin"; // request_log で POST と区別
+// admin がダッシュボードを開く頻度には十分。token 32 文字ランダムなら brute-force 不可、
+// 弱い token でも 30/h = 720/day に制限すれば計算的に総当たり困難。
+const ADMIN_GET_RATE_LIMIT = Number(process.env.FEEDBACK_ADMIN_RATE_LIMIT ?? "30");
+const ADMIN_GET_WINDOW_MS = 60 * 60 * 1000;
+
+function isD1Configured(): boolean {
+  return Boolean(
+    process.env.CLOUDFLARE_ACCOUNT_ID &&
+      process.env.CLOUDFLARE_D1_DATABASE_ID &&
+      process.env.CLOUDFLARE_API_TOKEN
+  );
+}
 
 export async function POST(req: Request) {
   try {
@@ -73,12 +91,54 @@ interface FeedbackRow {
  * track v0.2.0 → v0.3.0 transition data quality.
  */
 export async function GET(req: Request) {
+  // v0.4.6: GET 全体に rate limit を適用（401 含む）。
+  // 401 をログするので brute-force 試行が request_log で可視化できる。
+  const ip = getClientIp(req);
+  const ipHash = hashIp(ip);
+  const rateLimitEnabled = isD1Configured();
+  const logIfEnabled = (status: number): Promise<void> =>
+    rateLimitEnabled
+      ? logRequest({ endpoint: ADMIN_GET_ENDPOINT, ipHash, status })
+      : Promise.resolve();
+
+  if (rateLimitEnabled) {
+    try {
+      const rl = await checkRateLimit({
+        endpoint: ADMIN_GET_ENDPOINT,
+        ipHash,
+        limit: ADMIN_GET_RATE_LIMIT,
+        windowMs: ADMIN_GET_WINDOW_MS,
+      });
+      if (!rl.allowed) {
+        await logIfEnabled(429);
+        return NextResponse.json(
+          { error: `リクエスト過多です。${rl.retryAfterSec} 秒後に再試行してください。` },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(rl.retryAfterSec),
+              "X-RateLimit-Limit": String(ADMIN_GET_RATE_LIMIT),
+              "X-RateLimit-Remaining": "0",
+            },
+          }
+        );
+      }
+    } catch (e) {
+      console.warn("rate-limit check failed:", e instanceof Error ? e.message : e);
+    }
+  }
+
   try {
     const url = new URL(req.url);
     const token = url.searchParams.get("token");
     const versionFilter = url.searchParams.get("version") ?? "all"; // "1"|"2"|"all"
 
-    if (!token || token !== process.env.FEEDBACK_ADMIN_TOKEN) {
+    // v0.4.6: タイミング攻撃対策で constant-time 比較。token 未設定 / env 未設定の
+    // ガードは早期 return で OK（これらは攻撃者からは「常に」当てはまらないため
+    // タイミング差で漏れる情報がない）。
+    const expected = process.env.FEEDBACK_ADMIN_TOKEN;
+    if (!token || !expected || !constantTimeStringEqual(token, expected)) {
+      await logIfEnabled(401);
       return NextResponse.json(
         { error: "認証に失敗しました。" },
         { status: 401 }
@@ -165,6 +225,7 @@ export async function GET(req: Request) {
     const accuracyPercentage =
       total > 0 ? ((accurateCount / total) * 100).toFixed(1) : "N/A";
 
+    await logIfEnabled(200);
     return NextResponse.json({
       filter: { version: versionFilter },
       stats: {
@@ -179,6 +240,7 @@ export async function GET(req: Request) {
     });
   } catch (error) {
     console.error("Feedback fetch error:", error);
+    await logIfEnabled(500);
     return NextResponse.json(
       { error: "フィードバックの取得に失敗しました。" },
       { status: 500 }

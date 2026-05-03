@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.6] - 2026-05-03 — セキュリティ hardening パッケージ (/cso 監査 informational 対応)
+
+### Security
+- **Constant-time credential comparison** (`lib/timing-safe.ts` 新規):
+  - `lib/auth.ts:28` の Basic Auth 比較を `!==` → `constantTimeStringEqual` に変更
+  - `app/api/feedback/route.ts:81` の admin token 比較も同様
+  - 内部で Node 標準 `crypto.timingSafeEqual` を使用
+  - 実害は理論的だがセキュリティ慣習に準拠
+- **`/api/feedback` GET (admin) endpoint に rate limit を追加**:
+  - デフォルト **30 req/h/IP**、`FEEDBACK_ADMIN_RATE_LIMIT` env で変更可
+  - `request_log` テーブルに `endpoint = "/api/feedback-admin"` で記録（POST と区別）
+  - 401 連発（brute-force 試行）も telemetry で可視化される
+  - 超過時 429 + `Retry-After`
+
+### Documentation
+- `scripts/ingest-mext-foods.ts` のヘッダに xlsx CVE の **受容根拠**を明記:
+  - xlsx@0.18.5 には HIGH 級 CVE 2 件存在
+  - 修正版 (0.19.3+) は SheetJS が npm 配布停止、CDN のみ
+  - 本プロジェクトでは devDep + build-only + 信頼入力 (MEXT) のみで実害ゼロと判断、受容
+  - 将来的な exceljs 置換は TODOS.md に記録
+- `.env.example` に `FEEDBACK_ADMIN_RATE_LIMIT` を追記
+
+### Tests
+- `lib/timing-safe.test.ts` 5 ケース新規（同一/異長/UTF-8/トークン形式）
+- 121 → 126 pass
+
 ## [0.4.5] - 2026-05-03 — `/api/analyze` レート制限 + 環境変数ドキュメント整備
 
 ### Security

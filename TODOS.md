@@ -1,5 +1,31 @@
 # TODOS
 
+## v0.5.x Security backlog
+
+### xlsx → exceljs 置換（または CDN tarball pin）
+**What:** `scripts/ingest-mext-foods.ts` の `xlsx@0.18.5` を `exceljs` に置換、
+または SheetJS CDN tarball (`xlsx-0.20.3.tgz` 等) に URL pin。
+
+**Why:** xlsx@0.18.5 には HIGH CVE 2 件 (Prototype Pollution + ReDoS)。
+v0.4.6 時点では devDep + build-only + 信頼入力で実害ゼロと判断し受容。
+ただし `bun audit` 警告が消えないのでメンテ感が悪い。
+
+**Pros:** audit 通る、将来的な exploit 経路もゼロ。
+**Cons:** API 書き換え 30 分 (exceljs)、または URL pin のメンテ性悪化 (CDN)。
+**Trigger:** `scripts/ingest-mext-foods.ts` を再度触る機会、または audit 警告を CI で
+fail させたくなったとき。
+
+---
+
+### CSP ヘッダー追加
+**What:** `next.config.ts` の `headers()` で `Content-Security-Policy` を設定。
+**Why:** 現状 React のデフォルト XSS 防御のみ。defense in depth として CSP を追加。
+**Notes:** YouTube nocookie iframe (v0.4.3 洗脳動画) を許可するため `frame-src` に
+`https://www.youtube-nocookie.com` を含める必要あり。
+**Effort:** 30 分 (慎重に reload 検証)。
+
+---
+
 ## v1.x Candidates (monetization-adjacent)
 
 ### 履歴バルクアップロード機能（過去 1〜3 ヶ月遡及）
