@@ -131,3 +131,27 @@ describe("lookupFood - rendaku query variants (v0.3.4)", () => {
     expect(lookupFood("鯖")?.entry.name).toBe("サバ");
   });
 });
+
+describe("lookupFood - kuromoji-generated aliases (v0.3.5)", () => {
+  // ingestion 時に kuromoji で MEXT entry の連続 kana 読みを alias 追加。
+  // Vision API が連結形式 (おしむぎ、げんこく) で出力した時の hit 率向上。
+
+  it("おしむぎ → おおむぎ 押麦 系 (kuromoji alias)", () => {
+    const r = lookupFood("おしむぎ");
+    expect(r).not.toBeNull();
+    expect(r!.entry.name).toContain("おおむぎ");
+  });
+
+  it("げんこく → アマランサス 玄穀 系 (kuromoji alias)", () => {
+    const r = lookupFood("げんこく");
+    expect(r).not.toBeNull();
+    expect(r!.entry.name).toContain("玄穀");
+  });
+
+  it("kuromoji aliases do not break existing curated lookups", () => {
+    // regression: 主要な curated lookup が壊れていないか
+    expect(lookupFood("サバ")?.entry.name).toBe("サバ");
+    expect(lookupFood("白米")?.entry.name).toBe("白米（炊飯後）");
+    expect(lookupFood("鶏むね肉")?.entry.name).toBe("鶏むね肉（皮なし）");
+  });
+});
