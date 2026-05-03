@@ -74,7 +74,9 @@ export interface CoachResponse {
 
 export interface CoachError {
   error: string;
-  code: "INVALID_REQUEST" | "LLM_ERROR" | "TIMEOUT";
+  // v0.4.3: RATE_LIMITED 追加。UI 側で 429 のときに「魚啓蒙動画」を出すため、
+  // 通常の LLM_ERROR と区別できる必要がある。
+  code: "INVALID_REQUEST" | "LLM_ERROR" | "TIMEOUT" | "RATE_LIMITED";
 }
 
 const RECIPE_SCHEMA = {

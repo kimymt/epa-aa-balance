@@ -54,8 +54,10 @@ export async function POST(req: Request) {
         await logRequest({ endpoint: ENDPOINT, ipHash, status: 429 });
         return NextResponse.json<CoachError>(
           {
+            // v0.4.3: メッセージは UI 側の「魚啓蒙」表示に置き換わるので、
+            // ここでは fallback 用の中立な文言のみ返す。Retry-After は引き続き設定。
             error: `リクエスト過多です。${rl.retryAfterSec} 秒後に再試行してください。`,
-            code: "LLM_ERROR",
+            code: "RATE_LIMITED",
           },
           {
             status: 429,

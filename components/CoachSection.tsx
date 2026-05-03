@@ -22,6 +22,9 @@ type State =
   | { kind: "initial" }
   | { kind: "loading" }
   | { kind: "result"; recipes: Recipe[]; activeChip: ChipKey | null; retried: boolean }
+  // v0.4.3: 429 (rate limit) 専用 state。AI 提案の上限に達したユーザーは
+  // まだ「魚を食べる意識」が育っていないと解釈し、洗脳動画で啓蒙する。
+  | { kind: "rate_limited" }
   | { kind: "error"; message: string };
 
 interface Props {
@@ -43,6 +46,12 @@ export function CoachSection({ aggregate, recentFoods }: Props) {
       });
       const json = await res.json();
       if (!res.ok) {
+        // v0.4.3: 429 (rate limit) は専用 UI（魚啓蒙動画）。
+        // status と code どちらでも判定できるよう両方見る。
+        if (res.status === 429 || json.code === "RATE_LIMITED") {
+          setState({ kind: "rate_limited" });
+          return;
+        }
         setState({ kind: "error", message: json.error ?? "提案を取得できませんでした。" });
         return;
       }
@@ -185,6 +194,39 @@ export function CoachSection({ aggregate, recentFoods }: Props) {
             </div>
             <p className="mt-1 text-xs text-slate-400">最大 200 文字</p>
           </div>
+        </div>
+      )}
+
+      {state.kind === "rate_limited" && (
+        <div>
+          <div className="text-base sm:text-lg text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+            <span className="text-2xl">🐟</span>
+            <span className="font-medium">魚のこと、好きですか？</span>
+          </div>
+          <p className="text-sm text-slate-700 dark:text-slate-300 mb-4 leading-relaxed">
+            魚のことが好きではないですか？魚を好きになれるよう、この
+            <s className="text-slate-400 dark:text-slate-500">動機づけ</s>
+            <span className="font-semibold">洗脳</span>動画をご覧ください。
+          </p>
+          <div className="aspect-video w-full overflow-hidden rounded-lg bg-black mb-4">
+            <iframe
+              className="w-full h-full"
+              src="https://www.youtube-nocookie.com/embed/rPPJey1perw?si=Re8uhR7G_MZ8L3rL"
+              title="YouTube video player"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+            />
+          </div>
+          <button
+            onClick={() => setState({ kind: "initial" })}
+            className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600 py-3 px-6 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+          >
+            戻る
+          </button>
+          <p className="mt-3 text-xs text-slate-400 text-center">
+            ※ AI 提案は 1 時間あたり 10 回までです。少し時間を置いてから再試行してください。
+          </p>
         </div>
       )}
 

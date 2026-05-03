@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.3] - 2026-05-03 — 429 で魚啓蒙動画
+
+### Added
+- `/api/coach` で 429 (rate limit 到達) を受けたとき、汎用エラー画面ではなく
+  「魚を好きになれるよう、この洗脳動画をご覧ください」という啓蒙メッセージと
+  YouTube 動画 (youtube-nocookie 埋め込み) を表示する専用 UI。
+- 「上限に達するまで提案を求めるユーザーは、まだ魚を食べる意識が育っていない」
+  という仮説に基づく啓蒙体験。
+
+### Changed
+- `CoachError.code` に `"RATE_LIMITED"` を追加（既存 INVALID_REQUEST / LLM_ERROR / TIMEOUT に加えて）。
+- `app/api/coach/route.ts` の 429 レスポンスは `code: "RATE_LIMITED"` を返す。
+- `components/CoachSection.tsx` に新 state `rate_limited` を追加。
+  status 429 もしくは `code === "RATE_LIMITED"` で判定。
+
 ## [0.4.2] - 2026-05-03 — レート制限 + リクエスト telemetry
 
 ### Added
