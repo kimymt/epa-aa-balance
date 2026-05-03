@@ -1,4 +1,9 @@
 // HTTP Basic Auth helpers (extracted for testability).
+//
+// v0.4.6: 認証文字列比較を constant-time 化（lib/timing-safe.ts）。
+// 旧 `provided !== expectedB64` だと早期 return でタイミング攻撃に脆弱。
+
+import { constantTimeStringEqual } from "./timing-safe";
 
 export type AuthCheckResult =
   | { ok: true }
@@ -25,7 +30,7 @@ export function checkBasicAuth(
   }
   const provided = authHeader.slice(6).trim();
   const expectedB64 = btoa(expected);
-  if (provided !== expectedB64) {
+  if (!constantTimeStringEqual(provided, expectedB64)) {
     return { ok: false, reason: "wrong-creds" };
   }
   return { ok: true };

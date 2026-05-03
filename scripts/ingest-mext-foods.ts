@@ -16,6 +16,16 @@
 //
 // 注意: protein_g フィールドは v0.3.1 で削除 (lipid migration 完了で unused)。
 //       既存 57 食材からも protein_g を除去する。
+//
+// セキュリティ注記 (v0.4.6, /cso 監査時に評価):
+//   xlsx@0.18.5 には HIGH 級 CVE 2 件 (Prototype Pollution + ReDoS) がある。
+//   修正は xlsx@0.19.3+ だが、SheetJS は npm 配布を停止しており CDN 経由のみ。
+//   本スクリプトは:
+//     - devDependency (production bundle に乗らない)
+//     - メンテナが手動実行する build-time only
+//     - 入力は信頼できる MEXT 公開 Excel のみ (攻撃者が差し替える経路なし)
+//   よって実害ゼロと判断し、CVE は受容する。
+//   将来的に xlsx を脱却するなら exceljs への置換が候補 (TODOS.md 参照)。
 
 // @ts-ignore
 import * as XLSX from "xlsx";
