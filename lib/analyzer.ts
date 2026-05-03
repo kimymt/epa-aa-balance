@@ -5,6 +5,8 @@ import {
   type ProteinCategory,
 } from "./standards";
 import { computeLight, type TrafficLight } from "./scoring";
+import { computeLipidScore } from "./lipid-scoring";
+import { useLipidCalculation } from "./feature-flags";
 import type { VisionFood } from "./vision";
 
 export interface MatchedFood {
@@ -23,19 +25,40 @@ export interface UnmatchedFood {
 }
 
 export interface AnalysisResult {
+  /**
+   * 信号機判定。USE_LIPID_CALCULATION=true なら lipidPct ベース、
+   * false (default) なら fishProteinPct ベース。
+   * v0.3.0 (PR 3) で fishProteinPct 経路を削除予定。
+   */
   light: TrafficLight;
-  /** 魚タンパク質割合（%）。総タンパク質に対する魚タンパクの割合 */
+  /** 魚タンパク質割合（%）。総タンパク質に対する魚タンパクの割合。PR 3 で削除予定。 */
   fishProteinPct: number;
-  /** カテゴリ別タンパク質量（g） */
+  /** カテゴリ別タンパク質量（g）。PR 3 で削除予定。 */
   proteinByCategory: Record<ProteinCategory, number>;
-  /** マッチ食材の総タンパク質量（g） */
+  /** マッチ食材の総タンパク質量（g）。PR 3 で削除予定。 */
   totalProteinG: number;
   matched: MatchedFood[];
   unmatched: UnmatchedFood[];
-  /** マッチ食材が全食材推定タンパク質量に占める割合（0-1） */
+  /** マッチ食材が全食材推定タンパク質量に占める割合（0-1）。PR 3 で削除予定。 */
   proteinCoverage: number;
-  /** スコアの信頼性が低い場合 true（タンパク質量不足 or データ欠損） */
+  /** スコアの信頼性が低い場合 true。PR 3 で削除予定。 */
   insufficientData: boolean;
+
+  // === v0.3.0-beta 追加 (PR 3 で必須化) ===
+  /** (EPA+DHA)/(EPA+DHA+AA) * 100 (share form, %). 全食材データ欠損時 null */
+  lipidPct: number | null;
+  /** (EPA+DHA)/AA (true ratio, 無次元). AA=0 時 null */
+  lipidRatio: number | null;
+  /** Lipid 計算ベースの信号機。lipidPct=null 時 "unknown" */
+  lipidSignal: TrafficLight;
+  /** Meal 全体の EPA 合計 (mg) */
+  epaMg: number;
+  /** Meal 全体の DHA 合計 (mg) */
+  dhaMg: number;
+  /** Meal 全体の AA 合計 (mg) */
+  aaMg: number;
+  /** Mass-weighted lipid coverage 0.0〜1.0 (脂肪酸データある食材の grams 比率) */
+  lipidCoverage: number;
 }
 
 const FALLBACK_PROTEIN_PER_100G = 10;
@@ -97,7 +120,11 @@ export function analyze(foods: VisionFood[]): AnalysisResult {
     foods.length > 0 &&
     (totalProteinG < MIN_TOTAL_PROTEIN_G || proteinCoverage < COVERAGE_THRESHOLD);
 
-  const light = computeLight(fishProteinPct);
+  // 脂質ベース計算 (v0.3.0-beta+) は常に実行する。
+  // light を protein 由来にするか lipid 由来にするかは feature flag で切替。
+  const lipid = computeLipidScore(foods);
+  const proteinLight = computeLight(fishProteinPct);
+  const light = useLipidCalculation() ? lipid.signal : proteinLight;
 
   return {
     light,
@@ -108,5 +135,13 @@ export function analyze(foods: VisionFood[]): AnalysisResult {
     unmatched,
     proteinCoverage,
     insufficientData,
+    // Lipid fields (always computed, used by UI in PR 3)
+    lipidPct: lipid.lipidPct,
+    lipidRatio: lipid.lipidRatio,
+    lipidSignal: lipid.signal,
+    epaMg: lipid.epaMg,
+    dhaMg: lipid.dhaMg,
+    aaMg: lipid.aaMg,
+    lipidCoverage: lipid.lipidCoverage,
   };
 }
