@@ -58,7 +58,7 @@ export default function Home() {
           EPA/AAバランス
         </h1>
         <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-          複数日の食事の写真から、魚タンパク質の割合の傾向を見ることができます。
+          食事の写真から、魚由来脂質（EPA + DHA）と肉由来脂質（AA）の比率を計算します。
           <br className="hidden sm:block" />
           最大9枚までアップロードして、あなたの食事パターンを分析しましょう。
         </p>
