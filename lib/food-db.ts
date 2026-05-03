@@ -5,12 +5,13 @@ import type { ProteinCategory } from "./standards";
 export interface FoodEntry {
   name: string;
   aliases: string[];
-  protein_g: number;
   category: ProteinCategory;
   /**
    * 脂肪酸成分 (per 100g、MEXT 食品成分表 脂肪酸成分表編 2020 由来)。
-   * v0.3.0-alpha 追加。null は「データなし」(MEXT で「—」「Tr 以外の空欄」表記)。
+   * null は「データなし」(MEXT で「—」「Tr 以外の空欄」表記)。
    * MEXT で「Tr」(検出限界以下) 表記は 0 mg として保存（栄養学慣習に従う）。
+   *
+   * v0.3.1: 旧 protein_g フィールド削除 (lipid migration 完了で unused)。
    */
   epa_mg?: number | null;
   dha_mg?: number | null;
@@ -22,7 +23,6 @@ export interface FoodEntry {
 export interface CategoryFallback {
   category_name: string;
   matchers: string[];
-  protein_g: number;
   category: ProteinCategory;
   // 脂肪酸データはカテゴリ平均では不正確になるため fallback には含めない。
   // lookupFood が fallback を返した場合、計算側で lipid 値は null として扱う。
@@ -98,8 +98,9 @@ export function lookupFood(query: string): LookupResult | null {
           entry: {
             name: fb.category_name,
             aliases: fb.matchers,
-            protein_g: fb.protein_g,
             category: fb.category,
+            // fallback には脂肪酸データを含めない (カテゴリ平均は不正確)
+            // lookupFood の呼び出し側 (computeLipidScore) で isFallback=true をチェックして除外
           },
           isFallback: true,
         };

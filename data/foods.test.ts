@@ -1,57 +1,40 @@
-// data/foods.json schema 検証テスト (v0.3.0-alpha)
+// data/foods.json schema 検証テスト (v0.3.1+)
 //
-// 全 57 食材に脂肪酸フィールド (epa_mg, dha_mg, aa_mg, total_lipid_g) が
+// 全食材に脂肪酸フィールド (epa_mg, dha_mg, aa_mg, total_lipid_g) が
 // 「定義済み or null」であることを保証。number でも null でも OK だが、
-// undefined はバグ（マッピング忘れ）なので fail させる。
+// undefined はバグなので fail させる。
 //
-// MEXT 食品成分表 脂肪酸成分表編 2020 にデータが無い食材は明示的に null とする。
-// 既知の null 食材は KNOWN_NULL_FOODS で許容、それ以外は number 必須。
+// v0.3.1 で MEXT 全食品 (~1,900) を ingest し、protein_g フィールドを削除した。
+// 個別の null 許容リストは保守不能になったので、ロジカル不変性 (型・非負・分布) で検証する。
 
 import { describe, it, expect } from "bun:test";
 import { listAllFoods, __resetCache } from "../lib/food-db";
 
-// MEXT 食品成分表 脂肪酸成分表編 2020 にデータが無い食材
-// (商業サプリ、漬物の一部、MEXT で「—」記号のもの等)
-const KNOWN_NULL_FOODS = new Set([
-  "ホエイプロテイン",   // 市販品、MEXT 外
-  "たくあん",           // MEXT 脂肪酸成分表に未収録
-  "玄米（炊飯後）",     // MEXT で全 脂肪酸 「—」記号
-  "アーモンド",         // MEXT で EPA/DHA/AA すべて 「—」記号
-  "豆腐（木綿）",       // MEXT で「—」
-  "豆腐の味噌汁",       // 木綿豆腐 reference を使用、同じく null
-  "そば（ゆで）",       // MEXT で「—」(そば row 172)
-]);
-
-// EPA/DHA/AA いずれか null を許容する食材（部分 null）
-const PARTIAL_NULL_OK = new Set([
-  "チーズ（プロセス）", // EPA/DHA null、AA は 0
-  "味噌",               // EPA/AA null、DHA は 0
-  "味噌汁",             // 味噌 reference
-  "ほうれん草", "トマト", "玉ねぎ", "きゅうり", "なす", "大根", // 一部野菜の DHA が null
-  "アボカド",           // EPA/DHA null
-]);
-
-describe("data/foods.json schema (v0.3.0-alpha)", () => {
-  // モジュールキャッシュをクリアして fresh load を保証
+describe("data/foods.json schema (v0.3.1+)", () => {
   __resetCache();
   const foods = listAllFoods();
 
-  it("contains exactly 57 foods", () => {
-    expect(foods.length).toBe(57);
+  it("contains the hand-curated 57 plus MEXT-ingested entries (1900+ total)", () => {
+    expect(foods.length).toBeGreaterThanOrEqual(1900);
+    expect(foods.length).toBeLessThanOrEqual(2100);
   });
 
-  it("each food has the required base fields", () => {
+  it("each food has required base fields (name, aliases, category)", () => {
     for (const f of foods) {
       expect(f.name, `${f.name}: missing name`).toBeTruthy();
       expect(Array.isArray(f.aliases), `${f.name}: aliases not array`).toBe(true);
-      expect(typeof f.protein_g, `${f.name}: protein_g not number`).toBe("number");
       expect(f.category, `${f.name}: missing category`).toBeTruthy();
+    }
+  });
+
+  it("protein_g field has been removed (v0.3.1 schema cleanup)", () => {
+    for (const f of foods) {
+      expect((f as { protein_g?: unknown }).protein_g, `${f.name}: protein_g should be removed`).toBeUndefined();
     }
   });
 
   it("each food has lipid fields defined (number or null, never undefined)", () => {
     for (const f of foods) {
-      // undefined は許さない (マッピング忘れ防止)
       expect(f.epa_mg, `${f.name}: epa_mg undefined`).not.toBeUndefined();
       expect(f.dha_mg, `${f.name}: dha_mg undefined`).not.toBeUndefined();
       expect(f.aa_mg, `${f.name}: aa_mg undefined`).not.toBeUndefined();
@@ -71,33 +54,29 @@ describe("data/foods.json schema (v0.3.0-alpha)", () => {
     }
   });
 
-  it("KNOWN_NULL_FOODS have all lipid fields null", () => {
+  it("category is one of the 5 valid values", () => {
+    const validCategories = new Set(["fish", "meat", "egg_dairy", "plant_protein", "other"]);
     for (const f of foods) {
-      if (!KNOWN_NULL_FOODS.has(f.name)) continue;
-      expect(f.epa_mg, `${f.name}: should be null`).toBeNull();
-      expect(f.dha_mg, `${f.name}: should be null`).toBeNull();
-      expect(f.aa_mg, `${f.name}: should be null`).toBeNull();
-    }
-  });
-
-  it("foods not in KNOWN_NULL_FOODS or PARTIAL_NULL_OK have all 3 fatty acids as numbers", () => {
-    for (const f of foods) {
-      if (KNOWN_NULL_FOODS.has(f.name) || PARTIAL_NULL_OK.has(f.name)) continue;
-      expect(f.epa_mg, `${f.name}: epa_mg should be number, was null`).not.toBeNull();
-      expect(f.dha_mg, `${f.name}: dha_mg should be number, was null`).not.toBeNull();
-      expect(f.aa_mg, `${f.name}: aa_mg should be number, was null`).not.toBeNull();
+      expect(validCategories.has(f.category), `${f.name}: invalid category ${f.category}`).toBe(true);
     }
   });
 
   it("fish foods have higher EPA+DHA than meat foods on average", () => {
-    // sanity check: 魚カテゴリは EPA+DHA が肉カテゴリより明確に高いはず
+    // 不変性 sanity check: 魚カテゴリは EPA+DHA が肉カテゴリより明確に高いはず
     const fishFoods = foods.filter(f => f.category === "fish" && f.epa_mg != null && f.dha_mg != null);
     const meatFoods = foods.filter(f => f.category === "meat" && f.epa_mg != null && f.dha_mg != null);
     const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
     const fishAvg = avg(fishFoods.map(f => (f.epa_mg as number) + (f.dha_mg as number)));
     const meatAvg = avg(meatFoods.map(f => (f.epa_mg as number) + (f.dha_mg as number)));
-    expect(fishAvg, `fish avg EPA+DHA (${fishAvg}) should be >> meat avg (${meatAvg})`)
+    expect(fishAvg, `fish avg EPA+DHA (${fishAvg.toFixed(0)}) should be >> meat avg (${meatAvg.toFixed(0)})`)
       .toBeGreaterThan(meatAvg * 5);
+  });
+
+  it("hand-curated 57 entries are preserved at the start (lookup priority)", () => {
+    // 既存の 57 hand-curated エントリが foods 配列の先頭に来ていることを保証。
+    // food-db.ts の lookup は配列先頭から走査するため、hand-curated が先勝ち。
+    expect(foods[0].name).toBe("鶏むね肉（皮なし）");
+    expect(foods[56].name).toBe("アーモンド");
   });
 });
 
