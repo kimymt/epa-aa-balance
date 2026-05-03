@@ -9,6 +9,8 @@ import {
   buildPrompt,
   filterFishRecipes,
   aggregateFromAnalysis,
+  isGeminiQuotaError,
+  getCoachErrorCode,
   CHIP_LABELS,
   type CoachRequest,
   type Recipe,
@@ -210,6 +212,56 @@ describe("aggregateFromAnalysis", () => {
     expect(r.dhaMg).toBe(0);
     expect(r.aaMg).toBe(0);
     expect(r.lipidPct).toBeNull();
+  });
+});
+
+describe("isGeminiQuotaError", () => {
+  it("detects RESOURCE_EXHAUSTED status from real Gemini error JSON", () => {
+    const realMsg =
+      '{"error":{"code":429,"message":"You exceeded your current quota",' +
+      '"status":"RESOURCE_EXHAUSTED","details":[]}}';
+    expect(isGeminiQuotaError(realMsg)).toBe(true);
+  });
+
+  it("detects 'quota exceeded' phrase (case-insensitive)", () => {
+    expect(isGeminiQuotaError("Quota Exceeded for metric foo")).toBe(true);
+  });
+
+  it("detects 'exceeded your current quota' phrase", () => {
+    expect(isGeminiQuotaError("You exceeded your current quota.")).toBe(true);
+  });
+
+  it("returns false for unrelated error messages", () => {
+    expect(isGeminiQuotaError("Network error: ECONNREFUSED")).toBe(false);
+    expect(isGeminiQuotaError("Timeout after 25s")).toBe(false);
+    expect(isGeminiQuotaError("")).toBe(false);
+  });
+
+  it("does NOT trigger on a bare HTTP 429 string (avoids self-rate-limit confusion)", () => {
+    // 自前 rate limit (429 + RATE_LIMITED) と紛らわしいので、429 単独では検出しない
+    expect(isGeminiQuotaError("HTTP 429 Too Many Requests")).toBe(false);
+  });
+});
+
+describe("getCoachErrorCode", () => {
+  it("extracts QUOTA_EXCEEDED from tagged error", () => {
+    const err = Object.assign(new Error("quota"), { __code: "QUOTA_EXCEEDED" });
+    expect(getCoachErrorCode(err)).toBe("QUOTA_EXCEEDED");
+  });
+
+  it("extracts TIMEOUT and LLM_ERROR (regression)", () => {
+    expect(getCoachErrorCode(Object.assign(new Error(""), { __code: "TIMEOUT" }))).toBe(
+      "TIMEOUT"
+    );
+    expect(getCoachErrorCode(Object.assign(new Error(""), { __code: "LLM_ERROR" }))).toBe(
+      "LLM_ERROR"
+    );
+  });
+
+  it("returns null for untagged or unknown codes", () => {
+    expect(getCoachErrorCode(new Error("plain"))).toBeNull();
+    expect(getCoachErrorCode(Object.assign(new Error(""), { __code: "OTHER" }))).toBeNull();
+    expect(getCoachErrorCode(null)).toBeNull();
   });
 });
 

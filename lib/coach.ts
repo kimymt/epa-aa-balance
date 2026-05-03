@@ -74,9 +74,12 @@ export interface CoachResponse {
 
 export interface CoachError {
   error: string;
-  // v0.4.3: RATE_LIMITED 追加。UI 側で 429 のときに「魚啓蒙動画」を出すため、
-  // 通常の LLM_ERROR と区別できる必要がある。
-  code: "INVALID_REQUEST" | "LLM_ERROR" | "TIMEOUT" | "RATE_LIMITED";
+  // v0.4.3:
+  //   - RATE_LIMITED: 自前の D1 レート制限（10 req/h/IP）に到達。UI で洗脳動画。
+  //   - QUOTA_EXCEEDED: Gemini 側の無料枠（per-day / per-minute）に到達。
+  //     gemini-2.5-flash の無料枠は 20 req/day と非常に厳しい。LLM_ERROR と
+  //     区別することで UI が「Gemini API の本日の枠が尽きました」と明示できる。
+  code: "INVALID_REQUEST" | "LLM_ERROR" | "TIMEOUT" | "RATE_LIMITED" | "QUOTA_EXCEEDED";
 }
 
 const RECIPE_SCHEMA = {
@@ -246,7 +249,11 @@ export async function generateCoachRecipes(req: CoachRequest): Promise<CoachResp
     if (e?.name === "AbortError") {
       throw Object.assign(new Error("Coach API timeout"), { __code: "TIMEOUT" });
     }
-    throw Object.assign(new Error(`Coach LLM error: ${e?.message ?? String(err)}`), { __code: "LLM_ERROR" });
+    const msg = e?.message ?? String(err);
+    if (isGeminiQuotaError(msg)) {
+      throw Object.assign(new Error(`Coach quota exceeded: ${msg}`), { __code: "QUOTA_EXCEEDED" });
+    }
+    throw Object.assign(new Error(`Coach LLM error: ${msg}`), { __code: "LLM_ERROR" });
   }
 
   const final = filterFishRecipes(recipes).ok;
@@ -260,12 +267,35 @@ export async function generateCoachRecipes(req: CoachRequest): Promise<CoachResp
 /**
  * Helper: コードを取り出す型安全な関数。
  */
-export function getCoachErrorCode(err: unknown): "TIMEOUT" | "LLM_ERROR" | null {
+export function getCoachErrorCode(
+  err: unknown
+): "TIMEOUT" | "LLM_ERROR" | "QUOTA_EXCEEDED" | null {
   if (err && typeof err === "object" && "__code" in err) {
     const code = (err as { __code?: unknown }).__code;
-    if (code === "TIMEOUT" || code === "LLM_ERROR") return code;
+    if (code === "TIMEOUT" || code === "LLM_ERROR" || code === "QUOTA_EXCEEDED") {
+      return code;
+    }
   }
   return null;
+}
+
+/**
+ * Gemini API の quota / rate-limit エラーを検出する。
+ *
+ * Gemini SDK が throw する Error の message には、API のエラー JSON が文字列
+ * として含まれる（例: `{"error":{"code":429, ..., "status":"RESOURCE_EXHAUSTED"}}`）。
+ * "RESOURCE_EXHAUSTED" は Google API 共通の quota 超過コードなので最も信頼できる。
+ * fallback として "quota" / "rate limit" の文字列マッチも入れて、SDK 側の文言
+ * 揺らぎに強くしておく（HTTP 429 は自前 rate limit と紛らわしいので使わない）。
+ */
+export function isGeminiQuotaError(message: string): boolean {
+  if (!message) return false;
+  const m = message.toLowerCase();
+  return (
+    message.includes("RESOURCE_EXHAUSTED") ||
+    m.includes("quota exceeded") ||
+    m.includes("exceeded your current quota")
+  );
 }
 
 /**

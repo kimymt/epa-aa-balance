@@ -118,13 +118,28 @@ export async function POST(req: Request) {
     return NextResponse.json(result);
   } catch (err) {
     const code = getCoachErrorCode(err);
+    // Gemini quota は 503 (upstream 不調)、それ以外は 500。自前 rate limit (429) と
+    // 区別するため上流 quota は 503 を選択。
+    const httpStatus = code === "QUOTA_EXCEEDED" ? 503 : 500;
     if (rateLimitEnabled) {
-      await logRequest({ endpoint: ENDPOINT, ipHash, status: 500 });
+      await logRequest({ endpoint: ENDPOINT, ipHash, status: httpStatus });
     }
     if (code === "TIMEOUT") {
       return NextResponse.json<CoachError>(
         { error: "提案の生成に時間がかかりすぎました。もう一度お試しください。", code: "TIMEOUT" },
         { status: 500 }
+      );
+    }
+    if (code === "QUOTA_EXCEEDED") {
+      // 文言は UI 側 (CoachSection の quota_exceeded state) で出すので、ここの
+      // error フィールドは fallback テキストのみ。
+      console.warn("Gemini quota exceeded:", err instanceof Error ? err.message : err);
+      return NextResponse.json<CoachError>(
+        {
+          error: "AI 提案の本日分の枠が尽きました。明日また試してください。",
+          code: "QUOTA_EXCEEDED",
+        },
+        { status: 503 }
       );
     }
     console.error("Coach API error:", err);
