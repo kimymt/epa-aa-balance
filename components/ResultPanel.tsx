@@ -1,4 +1,5 @@
 import { LipidSourceBar } from "./LipidSourceBar";
+import { CoachSection } from "./CoachSection";
 import { MEAL_TYPES } from "@/lib/session";
 import type { AnalysisResult } from "@/lib/analyzer";
 import type { AnalysisSessionResult } from "@/lib/session";
@@ -247,6 +248,19 @@ export function ResultPanel({ result }: { result: AnalysisSessionResult }) {
           </p>
         </div>
       </div>
+
+      {/* AI Coach Section (v0.4.0): Aggregate と個別 MealResultCard の間 */}
+      {successfulMeals.length > 0 && (
+        <CoachSection
+          aggregate={{
+            lipidPct: aggregate.lipidPct,
+            epaMg: aggregate.totalEpaMg,
+            dhaMg: aggregate.totalDhaMg,
+            aaMg: aggregate.totalAaMg,
+          }}
+          recentFoods={successfulMeals.flatMap((m) => m.foods ?? [])}
+        />
+      )}
 
       {/* Failed Meals Alert */}
       {failedMeals.length > 0 && (
