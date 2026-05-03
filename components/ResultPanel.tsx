@@ -302,8 +302,13 @@ export function ResultPanel({ result }: { result: AnalysisSessionResult }) {
             個別の食事結果
           </h2>
 
+          {/* v0.4.11: items-start 追加 (F-011 対応)。
+              CSS grid のデフォルト align-items: stretch だと、判定不能カード
+              (signal=unknown、内訳セクションが空) も他カードと同じ高さに
+              引き伸ばされ、不自然な余白が出ていた。各カードを自然な高さで
+              並べることで、データ量の差がそのまま視覚的な軽重に反映される。 */}
           <div
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-2"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-start gap-4 pb-2"
             role="region"
             aria-label="食事結果のグリッド"
           >
