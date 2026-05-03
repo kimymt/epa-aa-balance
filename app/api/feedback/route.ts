@@ -65,8 +65,14 @@ export async function POST(req: Request) {
       .substring(2, 9)}`;
 
     await d1Query(
-      `INSERT INTO feedback (id, meal_type, predicted_foods, accurate, corrected_foods, timestamp)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      // v0.3.0-beta: calculation_version=2 (lipid-based) を明示的にセット。
+      // 過去 v0.2.0 レコードはマイグレーションで version=1 に backfill 済み。
+      // 本コードがデプロイされた時点から、新規 feedback はすべて version=2。
+      // (feature flag が OFF でも version=2 を記録する設計判断:
+      //  「コードバージョン」を表すため、計算ロジックの flag とは独立。
+      //  PR 3 で flag が ON になっても本ロジックは無変更で済む。)
+      `INSERT INTO feedback (id, meal_type, predicted_foods, accurate, corrected_foods, timestamp, calculation_version)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         feedbackId,
         mealType,
@@ -74,6 +80,7 @@ export async function POST(req: Request) {
         accurate ? 1 : 0,
         correctedFoods ? JSON.stringify(correctedFoods) : null,
         timestamp || new Date().toISOString(),
+        2,
       ]
     );
 

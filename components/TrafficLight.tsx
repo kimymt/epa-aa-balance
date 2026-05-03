@@ -1,21 +1,27 @@
 import type { TrafficLight as Light } from "@/lib/scoring";
 
+// PR 2: TrafficLight 型に "unknown" 値追加 (脂質ベース計算で全食材データ欠損ケース)。
+// PR 2 では UI 表示は変更しない (feature flag OFF が default のため "unknown" は来ない)。
+// PR 3 で flag ON 時に表示文言・色を本格対応。
 const LABELS: Record<Light, string> = {
   green: "魚タンパク中心",
   yellow: "やや魚少なめ",
   red: "魚不足",
+  unknown: "判定不能",
 };
 
 const SUBTITLES: Record<Light, string> = {
   green: "魚タンパク質が50%以上を占めています",
   yellow: "魚タンパク質は25〜50%です",
   red: "魚タンパク質が25%未満です",
+  unknown: "データ不足のため判定できません",
 };
 
 const COLORS: Record<Light, string> = {
   green: "bg-emerald-500 shadow-emerald-500/50",
   yellow: "bg-amber-400 shadow-amber-400/50",
   red: "bg-rose-500 shadow-rose-500/50",
+  unknown: "bg-slate-400 shadow-slate-400/50",
 };
 
 interface Props {
