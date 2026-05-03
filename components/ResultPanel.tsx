@@ -1,11 +1,23 @@
-import { TrafficLight } from "./TrafficLight";
-import { ProteinSourceBar } from "./ProteinSourceBar";
-import { CATEGORY_LABELS_JA } from "@/lib/standards";
+import { LipidSourceBar } from "./LipidSourceBar";
 import { MEAL_TYPES } from "@/lib/session";
 import type { AnalysisResult } from "@/lib/analyzer";
 import type { AnalysisSessionResult } from "@/lib/session";
 import type { VisionFood } from "@/lib/vision";
 import { useState } from "react";
+
+// 信号機色 → CSS class マッピング (v0.3.0: unknown=グレー追加)
+const SIGNAL_BG: Record<string, string> = {
+  green: "bg-green-500",
+  yellow: "bg-yellow-500",
+  red: "bg-red-500",
+  unknown: "bg-slate-400",
+};
+const SIGNAL_LABEL: Record<string, string> = {
+  green: "良好",
+  yellow: "中程度",
+  red: "改善推奨",
+  unknown: "判定不能",
+};
 
 // Component for a single meal result (reusable)
 function MealResultCard({
@@ -66,64 +78,55 @@ function MealResultCard({
         </div>
       </div>
 
-      {result.insufficientData && (
+      {result.lipidCoverage < 1 && result.lipidPct !== null && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-          ⚠ 一部の食材データが不足しています。下記は判明分のみの参考値です。
+          ⚠ {result.excludedNoData.length}品目の脂肪酸データが不足しているため計算から除外されています
+          （信頼度 {Math.round(result.lipidCoverage * 100)}%）
         </div>
       )}
       <>
           <div>
             <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-              {Math.round(result.fishProteinPct)}%
+              {result.lipidPct === null ? "—" : `${Math.round(result.lipidPct)}%`}
               <span className="ml-2 text-lg text-slate-600 dark:text-slate-400">
-                魚タンパク質
+                魚由来脂質（EPA+DHA / EPA+DHA+AA）
               </span>
             </div>
             <div
-              className={`mt-2 inline-block px-3 py-1 rounded-full text-sm font-medium text-white ${
-                result.light === "green"
-                  ? "bg-green-500"
-                  : result.light === "yellow"
-                    ? "bg-yellow-500"
-                    : "bg-red-500"
-              }`}
+              className={`mt-2 inline-block px-3 py-1 rounded-full text-sm font-medium text-white ${SIGNAL_BG[result.light]}`}
             >
-              {result.light === "green"
-                ? "良好"
-                : result.light === "yellow"
-                  ? "中程度"
-                  : "改善推奨"}
+              {SIGNAL_LABEL[result.light]}
             </div>
           </div>
 
           <div>
             <h4 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-              タンパク質の内訳
+              脂肪酸の内訳
             </h4>
             <div className="mt-2">
-              <ProteinSourceBar
-                proteinByCategory={result.proteinByCategory}
-                totalProteinG={result.totalProteinG}
+              <LipidSourceBar
+                epaMg={result.epaMg}
+                dhaMg={result.dhaMg}
+                aaMg={result.aaMg}
               />
             </div>
           </div>
 
-          <div className="text-xs text-slate-500 dark:text-slate-500 space-y-2">
+          <div className="text-xs text-slate-500 dark:text-slate-500 space-y-1">
             <p>
-              <strong>魚タンパク:</strong> {result.proteinByCategory.fish.toFixed(1)}g
+              <strong>EPA:</strong> {result.epaMg.toFixed(0)} mg（魚由来、抗炎症性）
             </p>
             <p>
-              <strong>肉タンパク:</strong>{" "}
-              {result.proteinByCategory.meat.toFixed(1)}g
+              <strong>DHA:</strong> {result.dhaMg.toFixed(0)} mg（魚由来）
             </p>
             <p>
-              <strong>卵・乳タンパク:</strong>{" "}
-              {result.proteinByCategory.egg_dairy.toFixed(1)}g
+              <strong>AA（アラキドン酸）:</strong> {result.aaMg.toFixed(0)} mg（肉・卵・乳由来）
             </p>
-            <p>
-              <strong>植物タンパク:</strong>{" "}
-              {result.proteinByCategory.plant_protein.toFixed(1)}g
-            </p>
+            {result.lipidRatio !== null && (
+              <p className="pt-1 border-t border-slate-200 dark:border-slate-700 mt-1">
+                <strong>(EPA+DHA) / AA 比:</strong> {result.lipidRatio.toFixed(2)}
+              </p>
+            )}
           </div>
 
           {/* Feedback Section */}
@@ -212,10 +215,10 @@ export function ResultPanel({ result }: { result: AnalysisSessionResult }) {
             {successfulMeals.length}食事の平均
           </div>
           <div className="mt-4 text-5xl sm:text-6xl font-bold text-emerald-900 dark:text-emerald-50">
-            {aggregate.fishPct}%
+            {aggregate.lipidPct === null ? "—" : `${Math.round(aggregate.lipidPct)}%`}
           </div>
           <div className="mt-2 text-base text-emerald-800 dark:text-emerald-200">
-            魚タンパク質の割合
+            魚由来脂質の割合（EPA+DHA / EPA+DHA+AA）
           </div>
           <div
             className={`mt-4 inline-block px-4 py-2 rounded-full text-lg font-semibold text-white ${
@@ -223,18 +226,24 @@ export function ResultPanel({ result }: { result: AnalysisSessionResult }) {
                 ? "bg-emerald-600"
                 : aggregate.signal === "yellow"
                   ? "bg-yellow-500"
-                  : "bg-rose-500"
+                  : aggregate.signal === "red"
+                    ? "bg-rose-500"
+                    : "bg-slate-500"
             }`}
           >
-            {aggregate.signal === "green"
-              ? "良好 ✓"
-              : aggregate.signal === "yellow"
-                ? "中程度"
-                : "改善推奨"}
+            {aggregate.signal === "green" ? "良好 ✓"
+              : aggregate.signal === "yellow" ? "中程度"
+              : aggregate.signal === "red" ? "改善推奨"
+              : "判定不能"}
           </div>
           <p className="mt-4 text-sm text-emerald-700 dark:text-emerald-300">
-            {aggregate.totalMeals} 食事中 {aggregate.successfulMeals}{" "}
-            食事を正常に解析しました
+            {aggregate.totalMeals} 食事中 {aggregate.successfulMeals} 食事を正常に解析
+            {aggregate.mealsWithData < aggregate.successfulMeals && (
+              <span>（{aggregate.mealsWithData} 食事で脂質計算可能）</span>
+            )}
+          </p>
+          <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+            EPA合計 {aggregate.totalEpaMg.toFixed(0)}mg ／ DHA合計 {aggregate.totalDhaMg.toFixed(0)}mg ／ AA合計 {aggregate.totalAaMg.toFixed(0)}mg
           </p>
         </div>
       </div>
@@ -289,11 +298,16 @@ export function ResultPanel({ result }: { result: AnalysisSessionResult }) {
       <div className="text-xs text-slate-500 dark:text-slate-400 space-y-2 leading-relaxed">
         <p>
           <strong>判定方法:</strong>{" "}
-          魚タンパク質（EPAの主要源）と総タンパク質の割合で、EPA/AAバランスの代理指標としています。
+          食材ごとの脂肪酸成分（MEXT 食品成分表 脂肪酸成分表編 2020 由来）から、
+          (EPA+DHA) / (EPA+DHA+AA) の割合を計算しています。
         </p>
         <p>
-          <strong>カテゴリ:</strong> 魚 / 肉 / 卵・乳 / 植物タンパク質に分類。
-          魚タンパク質の割合が高いほど、EPA/AAバランスが良好と推定されます。
+          <strong>EPA・DHA:</strong> 魚介類に多い omega-3 脂肪酸（抗炎症性）。
+          <strong className="ml-2">AA（アラキドン酸）:</strong> 肉・卵・乳製品に多い omega-6 脂肪酸。
+        </p>
+        <p>
+          <strong>暫定閾値:</strong> 30%以上 = 緑、15-29% = 黄、15%未満 = 赤。
+          エビデンスベース閾値は今後の改訂で再評価予定。
         </p>
       </div>
     </div>

@@ -2,22 +2,27 @@
 
 [![Deployed on Vercel](https://img.shields.io/badge/Vercel-deployed-black?logo=vercel)](https://eaa-scorer.vercel.app)
 
-食事の写真から、**魚タンパク質と非魚タンパク質の比率**を信号機で判定するWebアプリ。
+食事の写真から、**魚由来脂質（EPA + DHA）と肉由来脂質（AA）の比率**を信号機で判定するWebアプリ。
 EPA/AA比（血中脂肪酸の指標）の食事面の目安として活用できます。
+
+**v0.3.0 (2026-05-03):** タンパク質ベースの proxy 計算から、実際の脂肪酸成分
+（MEXT 食品成分表 脂肪酸成分表編 2020 由来）を使った計算にメジャーアップグレード。
 
 ## なにを測るか
 
-EPAは主に魚由来、AA（アラキドン酸）は主に肉・卵・乳由来。
-本来のEPA/AA比は血液検査でしか分かりませんが、食事写真からの実用的なプロキシとして
-**「魚タンパク質 / 総タンパク質」の割合**を計算しています。
+EPA・DHAは主に魚由来の omega-3 脂肪酸（抗炎症性）、AA（アラキドン酸）は主に肉・卵・乳由来の omega-6 脂肪酸。
+本来のEPA/AA比は血液検査でしか分かりませんが、食事写真からの食事面の目安として
+**(EPA + DHA) / (EPA + DHA + AA) の割合**を計算しています（share form）。
 
-| 信号 | 魚タンパク質割合 | 意味 |
+| 信号 | 魚由来脂質割合 | 意味 |
 |---|---|---|
-| 🟢 青 | ≥ 50% | 魚中心の食事 |
-| 🟡 黄 | 25-49% | 混在 |
-| 🔴 赤 | < 25% | 魚が少ない |
+| 🟢 緑 | ≥ 30% | 魚由来脂肪酸が多め（EPA/DHA リッチ） |
+| 🟡 黄 | 15-29% | 混在 |
+| 🔴 赤 | < 15% | 魚由来脂肪酸が少ない |
+| ⚪ 灰 | データ不足 | 全食材で脂肪酸データ欠損、判定不能 |
 
-閾値は仮置き（MVP）。実証データが出たら `lib/standards.ts` の `FISH_RATIO_THRESHOLDS` を差し替えればすべての判定に反映されます。
+閾値は v0.3.0 暫定値（MVP）。WHO/AHA 推奨の EPA+DHA 摂取量ベースのエビデンス再評価は v0.4.0 で予定。
+`lib/standards.ts` の `LIPID_RATIO_THRESHOLDS` を差し替えればすべての判定に反映されます。
 
 ## 動かし方
 
@@ -34,7 +39,7 @@ bun dev
 bun test
 ```
 
-スコア判定ロジックにユニットテストがあります（`lib/scoring.test.ts`）。
+スコア計算ロジック (`lib/scoring.test.ts`)、食材データ schema (`data/foods.test.ts`)、D1 マイグレーションランナー (`scripts/migrate-d1.test.ts`) にユニットテスト計 49 件。
 
 ## アーキテクチャ
 
@@ -42,20 +47,29 @@ bun test
 app/
   page.tsx                  # アップロードUI（client）
   api/analyze/route.ts      # メインパイプライン（maxDuration: 45）
+  api/feedback/route.ts     # 精度フィードバック収集（D1 保存、calculation_version 付与）
+  admin/page.tsx            # フィードバック閲覧 (HTTP Basic Auth)
 lib/
   vision.ts                 # Google Gemini 2.5 Flash で食材抽出
   food-db.ts                # data/foods.json ルックアップ（exact → substring → category fallback）
-  analyzer.ts               # カテゴリ別タンパク質量を集計、魚タンパク質割合を計算
-  scoring.ts                # 信号機判定（純関数）
-  scoring.test.ts           # ユニットテスト
+  analyzer.ts               # 食材リスト → AnalysisResult (lipidPct/lipidRatio/EPA/DHA/AA mg)
+  scoring.ts                # 脂質ベース計算 + 信号機判定（純関数）
+  scoring.test.ts           # 12 ケースの単体テスト (5 fixture meals + edge cases)
   standards.ts              # 閾値・カテゴリ定義
+  session.ts                # 複数食事 aggregate
 data/
-  foods.json                # 食品DB（57品目 + 5カテゴリfallback）
+  foods.json                # 食品DB（57品目、各品目に protein_g + epa_mg/dha_mg/aa_mg/total_lipid_g）
+  foods.test.ts             # schema 検証 (8 ケース)
 components/
-  TrafficLight.tsx          # 信号機UI（中央に魚％表示）
-  ProteinSourceBar.tsx      # スタックドバー（魚/肉/卵乳/豆/その他の内訳）
+  TrafficLight.tsx          # 信号機UI（中央に lipidPct% 表示、unknown グレー対応）
+  LipidSourceBar.tsx        # スタックドバー（EPA/DHA/AA mg 内訳）
   ResultPanel.tsx           # 結果まとめ
   UploadZone.tsx            # 画像アップロード（HEIC自動変換対応）
+migrations/
+  0003_add_calculation_version.sql  # D1 schema migration
+scripts/
+  migrate-d1.ts             # REST API ベースの migration ランナー
+  migrate-d1.test.ts        # PRAGMA mock テスト (6 ケース)
 ```
 
 ## パイプライン
@@ -71,12 +85,14 @@ components/
 
 [3] 食材ルックアップ
     └─ exact match → substring match → category fallback の3段階
+       (fallback は脂肪酸データ無し扱いで除外)
 
-[4] カテゴリ別集計
-    └─ fish / meat / egg_dairy / plant_protein / other ごとにタンパク質を合算
+[4] 脂肪酸集計
+    └─ 各食材 epa_mg × grams/100 を合計 → meal 全体の EPA / DHA / AA mg
 
 [5] 信号機判定
-    └─ 魚タンパク質割合(%) → 青/黄/赤
+    └─ lipidPct = (EPA+DHA) / (EPA+DHA+AA) × 100
+       ≥ 30% → 緑 / 15-29% → 黄 / < 15% → 赤 / 全食材 null → unknown
 ```
 
 ## 食品データベース
@@ -88,9 +104,18 @@ components/
   "name": "サバ",
   "aliases": ["鯖", "さば", "塩サバ", "焼きサバ"],
   "protein_g": 20.7,
-  "category": "fish"
+  "category": "fish",
+  "epa_mg": 690,
+  "dha_mg": 970,
+  "aa_mg": 180,
+  "total_lipid_g": 16.8,
+  "_mext_row": 1026,
+  "_mext_name": "＜魚類＞　（さば類）　まさば　生"
 }
 ```
+
+脂肪酸値の出典: MEXT 食品成分表 脂肪酸成分表編 2020 (可食部100g当たり)。
+`Tr` (検出限界以下) → `0 mg`、`—` / 空欄 → `null` (no data) として保存。
 
 カテゴリ：
 - `fish` — 魚介類（EPA源、numerator）
