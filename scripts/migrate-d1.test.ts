@@ -6,7 +6,11 @@
 // /plan-eng-review TODO 1: PR 2 のスコープ内で migrate-d1.test.ts を作る、と決定。
 
 import { describe, it, expect, mock } from "bun:test";
-import { D1Api, runMigrations } from "./migrate-d1";
+import { D1Api, runMigrations, MIGRATIONS } from "./migrate-d1";
+
+// Tests below scope to a single migration via [MIGRATIONS[0]] etc. so that
+// adding new migrations doesn't break older test expectations.
+const MIG_0003 = [MIGRATIONS[0]];
 
 function makeMockFetch(responses: Array<{ matchSql: RegExp; result?: unknown[]; error?: { code: number; message: string } }>) {
   let callIndex = 0;
@@ -76,7 +80,7 @@ describe("runMigrations - idempotency", () => {
       },
     ]);
     const api = new D1Api("acct", "db", "token", mockFetch);
-    const result = await runMigrations(api);
+    const result = await runMigrations(api, MIG_0003);
     expect(result.skipped).toContain("0003_add_calculation_version.sql");
     expect(result.applied).toEqual([]);
     // PRAGMA だけ呼ばれて ALTER は呼ばれていないことを確認
@@ -97,7 +101,7 @@ describe("runMigrations - idempotency", () => {
       { matchSql: /UPDATE feedback/, result: [] },
     ]);
     const api = new D1Api("acct", "db", "token", mockFetch);
-    const result = await runMigrations(api);
+    const result = await runMigrations(api, MIG_0003);
     expect(result.applied).toContain("0003_add_calculation_version.sql");
     expect(result.skipped).toEqual([]);
     // PRAGMA + ALTER + UPDATE の 3 回呼ばれる
@@ -116,7 +120,7 @@ describe("runMigrations - idempotency", () => {
       { matchSql: /ALTER TABLE/, error: { code: 1, message: "syntax error" } },
     ]);
     const api = new D1Api("acct", "db", "token", mockFetch);
-    await expect(runMigrations(api)).rejects.toThrow(/syntax error/);
+    await expect(runMigrations(api, MIG_0003)).rejects.toThrow(/syntax error/);
   });
 
   it("propagates D1 errors during PRAGMA (network failure simulated)", async () => {
@@ -124,6 +128,6 @@ describe("runMigrations - idempotency", () => {
       { matchSql: /PRAGMA/, error: { code: 503, message: "service unavailable" } },
     ]);
     const api = new D1Api("acct", "db", "token", mockFetch);
-    await expect(runMigrations(api)).rejects.toThrow(/service unavailable/);
+    await expect(runMigrations(api, MIG_0003)).rejects.toThrow(/service unavailable/);
   });
 });
