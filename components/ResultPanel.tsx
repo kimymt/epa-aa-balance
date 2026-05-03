@@ -1,5 +1,6 @@
 import { LipidSourceBar } from "./LipidSourceBar";
 import { CoachSection } from "./CoachSection";
+import { DietPatternComparison } from "./DietPatternComparison";
 import { MEAL_TYPES } from "@/lib/session";
 import type { AnalysisResult } from "@/lib/analyzer";
 import type { AnalysisSessionResult } from "@/lib/session";
@@ -246,6 +247,18 @@ export function ResultPanel({ result }: { result: AnalysisSessionResult }) {
           </p>
         </div>
       </div>
+
+      {/* v0.4.9: 食習慣パターン比較 (Aggregate と AI Coach の間)。
+          5 パターン (米国 / 地中海 / 日本 / ノルウェー / イヌイット) と並べて
+          ユーザーの位置を可視化する WOW 体験。 */}
+      {successfulMeals.length > 0 && (
+        <DietPatternComparison
+          totalEpaMg={aggregate.totalEpaMg}
+          totalDhaMg={aggregate.totalDhaMg}
+          mealsWithData={aggregate.mealsWithData}
+          lipidPct={aggregate.lipidPct}
+        />
+      )}
 
       {/* AI Coach Section (v0.4.0): Aggregate と個別 MealResultCard の間 */}
       {successfulMeals.length > 0 && (
