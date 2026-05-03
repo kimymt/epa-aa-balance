@@ -1,5 +1,5 @@
 {
-  "_note": "protein_g is total protein per 100g of edible portion. category classifies the food for fish-protein-ratio scoring (EPA/AA proxy). Sources: Japanese MEXT food composition tables (2020 ed.) and USDA FoodData Central.",
+  "_note": "protein_g is total protein per 100g of edible portion. category classifies the food for fish-protein-ratio scoring (EPA/AA proxy). Sources: Japanese MEXT food composition tables (2020 ed.) and USDA FoodData Central.\n\nLipid data added from MEXT 食品成分表 脂肪酸成分表編 2020 (可食部100g当たり). Tr → 0 mg. — and empty → null.",
   "_categories": {
     "fish": "魚介類（EPA源、numerator）",
     "meat": "獣鳥肉類（AA寄与）",
@@ -10,375 +10,1022 @@
   "foods": [
     {
       "name": "鶏むね肉（皮なし）",
-      "aliases": ["鶏むね", "鶏胸肉", "鶏肉", "チキン", "chicken breast"],
+      "aliases": [
+        "鶏むね",
+        "鶏胸肉",
+        "鶏肉",
+        "チキン",
+        "chicken breast"
+      ],
       "protein_g": 23.3,
-      "category": "meat"
+      "category": "meat",
+      "epa_mg": 3,
+      "dha_mg": 12,
+      "aa_mg": 27,
+      "total_lipid_g": 1.9,
+      "_mext_row": 1593,
+      "_mext_name": "＜鳥肉類＞　にわとり　［若どり・主品目］　むね　皮なし　生"
     },
     {
       "name": "鶏もも肉（皮なし）",
-      "aliases": ["鶏もも", "鶏腿肉", "もも肉"],
-      "protein_g": 19.0,
-      "category": "meat"
+      "aliases": [
+        "鶏もも",
+        "鶏腿肉",
+        "もも肉"
+      ],
+      "protein_g": 19,
+      "category": "meat",
+      "epa_mg": 2,
+      "dha_mg": 11,
+      "aa_mg": 89,
+      "total_lipid_g": 5,
+      "_mext_row": 1599,
+      "_mext_name": "＜鳥肉類＞　にわとり　［若どり・主品目］　もも　皮なし　生",
+      "_mext_note": "if found, else 1607"
     },
     {
       "name": "鶏ささみ",
-      "aliases": ["ささみ", "ササミ", "笹身"],
+      "aliases": [
+        "ささみ",
+        "ササミ",
+        "笹身"
+      ],
       "protein_g": 23.9,
-      "category": "meat"
+      "category": "meat",
+      "epa_mg": 2,
+      "dha_mg": 6,
+      "aa_mg": 21,
+      "total_lipid_g": 0.8,
+      "_mext_row": 1603,
+      "_mext_name": "＜鳥肉類＞　にわとり　［若どり・副品目］　ささみ　生"
     },
     {
       "name": "牛肉（赤身）",
-      "aliases": ["牛", "牛肉", "ビーフ", "beef", "ステーキ", "和牛"],
+      "aliases": [
+        "牛",
+        "牛肉",
+        "ビーフ",
+        "beef",
+        "ステーキ",
+        "和牛"
+      ],
       "protein_g": 21.3,
-      "category": "meat"
+      "category": "meat",
+      "epa_mg": 4,
+      "dha_mg": 1,
+      "aa_mg": 24,
+      "total_lipid_g": 4.3,
+      "_mext_row": 1414,
+      "_mext_name": "＜畜肉類＞　うし　［輸入牛肉］　もも　赤肉　生"
     },
     {
       "name": "牛ひき肉",
-      "aliases": ["牛挽肉", "ひき肉（牛）", "ミンチ"],
+      "aliases": [
+        "牛挽肉",
+        "ひき肉（牛）",
+        "ミンチ"
+      ],
       "protein_g": 17.1,
-      "category": "meat"
+      "category": "meat",
+      "epa_mg": 32,
+      "dha_mg": 87,
+      "aa_mg": 19,
+      "total_lipid_g": 21.1,
+      "_mext_row": 1426,
+      "_mext_name": "＜畜肉類＞　うし　［ひき肉］　生"
     },
     {
       "name": "豚ロース肉",
-      "aliases": ["豚", "豚肉", "ポーク", "pork", "豚ロース", "ロース"],
+      "aliases": [
+        "豚",
+        "豚肉",
+        "ポーク",
+        "pork",
+        "豚ロース",
+        "ロース"
+      ],
       "protein_g": 19.3,
-      "category": "meat"
+      "category": "meat",
+      "epa_mg": 0,
+      "dha_mg": 6,
+      "aa_mg": 47,
+      "total_lipid_g": 11.9,
+      "_mext_row": 1473,
+      "_mext_name": "＜畜肉類＞　ぶた　［大型種肉］　ロース　皮下脂肪なし　生"
     },
     {
       "name": "豚バラ肉",
-      "aliases": ["豚バラ", "バラ肉", "ベーコン用"],
+      "aliases": [
+        "豚バラ",
+        "バラ肉",
+        "ベーコン用"
+      ],
       "protein_g": 14.4,
-      "category": "meat"
+      "category": "meat",
+      "epa_mg": 0,
+      "dha_mg": 0,
+      "aa_mg": 75,
+      "total_lipid_g": 35.4,
+      "_mext_row": 1476,
+      "_mext_name": "＜畜肉類＞　ぶた　［大型種肉］　ばら　脂身つき　生"
     },
     {
       "name": "豚ひき肉",
-      "aliases": ["豚挽肉", "ひき肉（豚）", "ハンバーグ", "つくね", "メンチカツ"],
+      "aliases": [
+        "豚挽肉",
+        "ひき肉（豚）",
+        "ハンバーグ",
+        "つくね",
+        "メンチカツ"
+      ],
       "protein_g": 17.7,
-      "category": "meat"
+      "category": "meat",
+      "epa_mg": 0,
+      "dha_mg": 9,
+      "aa_mg": 55,
+      "total_lipid_g": 17.2,
+      "_mext_row": 1513,
+      "_mext_name": "＜畜肉類＞　ぶた　［ひき肉］　生"
     },
     {
       "name": "ベーコン",
-      "aliases": ["bacon"],
+      "aliases": [
+        "bacon"
+      ],
       "protein_g": 12.9,
-      "category": "meat"
+      "category": "meat",
+      "epa_mg": 3,
+      "dha_mg": 8,
+      "aa_mg": 59,
+      "total_lipid_g": 19.4,
+      "_mext_row": 1538,
+      "_mext_name": "＜畜肉類＞　ぶた　［ベーコン類］　ばらベーコン　ばらベーコン"
     },
     {
       "name": "ウインナー",
-      "aliases": ["ウィンナー", "ソーセージ", "sausage", "フランクフルト"],
+      "aliases": [
+        "ウィンナー",
+        "ソーセージ",
+        "sausage",
+        "フランクフルト"
+      ],
       "protein_g": 13.2,
-      "category": "meat"
+      "category": "meat",
+      "epa_mg": 4,
+      "dha_mg": 12,
+      "aa_mg": 76,
+      "total_lipid_g": 30.6,
+      "_mext_row": 1544,
+      "_mext_name": "＜畜肉類＞　ぶた　［ソーセージ類］　ウインナーソーセージ　ウインナーソーセージ"
     },
     {
       "name": "サバ",
-      "aliases": ["鯖", "さば", "塩サバ", "焼きサバ", "サバの塩焼き", "サバの味噌煮"],
+      "aliases": [
+        "鯖",
+        "さば",
+        "塩サバ",
+        "焼きサバ",
+        "サバの塩焼き",
+        "サバの味噌煮"
+      ],
       "protein_g": 20.7,
-      "category": "fish"
+      "category": "fish",
+      "epa_mg": 690,
+      "dha_mg": 970,
+      "aa_mg": 180,
+      "total_lipid_g": 16.8,
+      "_mext_row": 1026,
+      "_mext_name": "＜魚類＞　（さば類）　まさば　生"
     },
     {
       "name": "サンマ",
-      "aliases": ["秋刀魚", "さんま", "サンマの塩焼き"],
+      "aliases": [
+        "秋刀魚",
+        "さんま",
+        "サンマの塩焼き"
+      ],
       "protein_g": 18.1,
-      "category": "fish"
+      "category": "fish",
+      "epa_mg": 1500,
+      "dha_mg": 2200,
+      "aa_mg": 98,
+      "total_lipid_g": 25.6,
+      "_mext_row": 1049,
+      "_mext_name": "＜魚類＞　さんま　皮つき　生"
     },
     {
       "name": "サーモン",
-      "aliases": ["鮭", "シャケ", "salmon", "焼き鮭", "刺身（サーモン）", "鮭の塩焼き"],
+      "aliases": [
+        "鮭",
+        "シャケ",
+        "salmon",
+        "焼き鮭",
+        "刺身（サーモン）",
+        "鮭の塩焼き"
+      ],
       "protein_g": 22.3,
-      "category": "fish"
+      "category": "fish",
+      "epa_mg": 240,
+      "dha_mg": 460,
+      "aa_mg": 12,
+      "total_lipid_g": 4.1,
+      "_mext_row": 992,
+      "_mext_name": "＜魚類＞　（さけ・ます類）　しろさけ　生"
     },
     {
       "name": "ブリ",
-      "aliases": ["鰤", "ぶり", "ハマチ", "はまち", "ブリの照り焼き"],
+      "aliases": [
+        "鰤",
+        "ぶり",
+        "ハマチ",
+        "はまち",
+        "ブリの照り焼き"
+      ],
       "protein_g": 21.4,
-      "category": "fish"
+      "category": "fish",
+      "epa_mg": 940,
+      "dha_mg": 1700,
+      "aa_mg": 160,
+      "total_lipid_g": 17.6,
+      "_mext_row": 1124,
+      "_mext_name": "＜魚類＞　ぶり　成魚　生"
     },
     {
       "name": "アジ",
-      "aliases": ["鯵", "あじ", "干物", "アジの開き", "アジの塩焼き"],
+      "aliases": [
+        "鯵",
+        "あじ",
+        "干物",
+        "アジの開き",
+        "アジの塩焼き"
+      ],
       "protein_g": 19.7,
-      "category": "fish"
+      "category": "fish",
+      "epa_mg": 300,
+      "dha_mg": 570,
+      "aa_mg": 61,
+      "total_lipid_g": 4.5,
+      "_mext_row": 843,
+      "_mext_name": "＜魚類＞　（あじ類）　まあじ　皮つき　生"
     },
     {
       "name": "イワシ",
-      "aliases": ["鰯", "いわし", "イワシの蒲焼"],
+      "aliases": [
+        "鰯",
+        "いわし",
+        "イワシの蒲焼"
+      ],
       "protein_g": 19.2,
-      "category": "fish"
+      "category": "fish",
+      "epa_mg": 780,
+      "dha_mg": 870,
+      "aa_mg": 100,
+      "total_lipid_g": 9.2,
+      "_mext_row": 895,
+      "_mext_name": "＜魚類＞　（いわし類）　まいわし　生"
     },
     {
       "name": "マグロ（赤身）",
-      "aliases": ["まぐろ", "鮪", "刺身（マグロ）", "マグロの刺身"],
+      "aliases": [
+        "まぐろ",
+        "鮪",
+        "刺身（マグロ）",
+        "マグロの刺身"
+      ],
       "protein_g": 26.4,
-      "category": "fish"
+      "category": "fish",
+      "epa_mg": 420,
+      "dha_mg": 1000,
+      "aa_mg": 85,
+      "total_lipid_g": 7.6,
+      "_mext_row": 1140,
+      "_mext_name": "＜魚類＞　（まぐろ類）　くろまぐろ　養殖　赤身　生"
     },
     {
       "name": "ツナ缶",
-      "aliases": ["シーチキン", "ツナ", "tuna can", "ツナマヨ"],
+      "aliases": [
+        "シーチキン",
+        "ツナ",
+        "tuna can",
+        "ツナマヨ"
+      ],
       "protein_g": 17.7,
-      "category": "fish"
+      "category": "fish",
+      "epa_mg": 20,
+      "dha_mg": 120,
+      "aa_mg": 13,
+      "total_lipid_g": 0.7,
+      "_mext_row": 1160,
+      "_mext_name": "＜魚類＞　（まぐろ類）　缶詰　水煮　フレーク　ライト"
     },
     {
       "name": "タラ",
-      "aliases": ["鱈", "たら", "タラちり", "タラのムニエル"],
+      "aliases": [
+        "鱈",
+        "たら",
+        "タラちり",
+        "タラのムニエル"
+      ],
       "protein_g": 17.6,
-      "category": "fish"
+      "category": "fish",
+      "epa_mg": 24,
+      "dha_mg": 42,
+      "aa_mg": 4,
+      "total_lipid_g": 0.2,
+      "_mext_row": 1084,
+      "_mext_name": "＜魚類＞　（たら類）　まだら　生"
     },
     {
       "name": "しらす",
-      "aliases": ["シラス", "白子干し", "しらす干し", "釜揚げしらす"],
+      "aliases": [
+        "シラス",
+        "白子干し",
+        "しらす干し",
+        "釜揚げしらす"
+      ],
       "protein_g": 24.5,
-      "category": "fish"
+      "category": "fish",
+      "epa_mg": 90,
+      "dha_mg": 250,
+      "aa_mg": 15,
+      "total_lipid_g": 1.3,
+      "_mext_row": 904,
+      "_mext_name": "＜魚類＞　（いわし類）　しらす　生"
     },
     {
       "name": "エビ",
-      "aliases": ["海老", "えび", "shrimp", "車海老", "甘エビ", "エビの天ぷら"],
+      "aliases": [
+        "海老",
+        "えび",
+        "shrimp",
+        "車海老",
+        "甘エビ",
+        "エビの天ぷら"
+      ],
       "protein_g": 19.6,
-      "category": "fish"
+      "category": "fish",
+      "epa_mg": 35,
+      "dha_mg": 44,
+      "aa_mg": 9,
+      "total_lipid_g": 0.6,
+      "_mext_row": 1230,
+      "_mext_name": "＜えび・かに類＞　（えび類）　くるまえび　養殖　生"
     },
     {
       "name": "イカ",
-      "aliases": ["烏賊", "いか", "squid", "するめ", "イカの刺身"],
+      "aliases": [
+        "烏賊",
+        "いか",
+        "squid",
+        "するめ",
+        "イカの刺身"
+      ],
       "protein_g": 17.9,
-      "category": "fish"
+      "category": "fish",
+      "epa_mg": 43,
+      "dha_mg": 130,
+      "aa_mg": 8,
+      "total_lipid_g": 0.8,
+      "_mext_row": 1257,
+      "_mext_name": "＜いか・たこ類＞　（いか類）　するめいか　生"
     },
     {
       "name": "タコ",
-      "aliases": ["蛸", "たこ", "octopus", "タコの刺身"],
+      "aliases": [
+        "蛸",
+        "たこ",
+        "octopus",
+        "タコの刺身"
+      ],
       "protein_g": 16.4,
-      "category": "fish"
+      "category": "fish",
+      "epa_mg": 20,
+      "dha_mg": 39,
+      "aa_mg": 11,
+      "total_lipid_g": 0.9,
+      "_mext_row": 1278,
+      "_mext_name": "＜いか・たこ類＞　（たこ類）　まだこ　皮つき　生"
     },
     {
       "name": "ちくわ",
-      "aliases": ["竹輪", "練り物", "かまぼこ", "蒲鉾", "はんぺん", "魚肉ソーセージ"],
+      "aliases": [
+        "竹輪",
+        "練り物",
+        "かまぼこ",
+        "蒲鉾",
+        "はんぺん",
+        "魚肉ソーセージ"
+      ],
       "protein_g": 12.2,
-      "category": "fish"
+      "category": "fish",
+      "epa_mg": 39,
+      "dha_mg": 65,
+      "aa_mg": 4,
+      "total_lipid_g": 0.4,
+      "_mext_row": 1304,
+      "_mext_name": "＜水産練り製品＞　焼き竹輪"
     },
     {
       "name": "鶏卵（生）",
-      "aliases": ["卵", "たまご", "玉子", "卵焼き", "目玉焼き", "オムレツ", "egg", "ゆで卵", "温泉卵"],
+      "aliases": [
+        "卵",
+        "たまご",
+        "玉子",
+        "卵焼き",
+        "目玉焼き",
+        "オムレツ",
+        "egg",
+        "ゆで卵",
+        "温泉卵"
+      ],
       "protein_g": 12.2,
-      "category": "egg_dairy"
+      "category": "egg_dairy",
+      "epa_mg": 1,
+      "dha_mg": 72,
+      "aa_mg": 170,
+      "total_lipid_g": 10.2,
+      "_mext_row": 1630,
+      "_mext_name": "鶏卵　全卵　生"
     },
     {
       "name": "牛乳",
-      "aliases": ["ミルク", "milk"],
+      "aliases": [
+        "ミルク",
+        "milk"
+      ],
       "protein_g": 3.3,
-      "category": "egg_dairy"
+      "category": "egg_dairy",
+      "epa_mg": 1,
+      "dha_mg": 0,
+      "aa_mg": 6,
+      "total_lipid_g": 3.8,
+      "_mext_row": 1651,
+      "_mext_name": "＜牛乳及び乳製品＞　（液状乳類）　普通牛乳"
     },
     {
       "name": "ヨーグルト",
-      "aliases": ["yogurt", "ヨーグルト（プレーン）"],
+      "aliases": [
+        "yogurt",
+        "ヨーグルト（プレーン）"
+      ],
       "protein_g": 3.6,
-      "category": "egg_dairy"
+      "category": "egg_dairy",
+      "epa_mg": 1,
+      "dha_mg": 0,
+      "aa_mg": 5,
+      "total_lipid_g": 3,
+      "_mext_row": 1673,
+      "_mext_name": "＜牛乳及び乳製品＞　（発酵乳・乳酸菌飲料）　ヨーグルト　全脂無糖"
     },
     {
       "name": "チーズ（プロセス）",
-      "aliases": ["チーズ", "cheese", "カマンベール", "モッツァレラ"],
+      "aliases": [
+        "チーズ",
+        "cheese",
+        "カマンベール",
+        "モッツァレラ"
+      ],
       "protein_g": 22.7,
-      "category": "egg_dairy"
+      "category": "egg_dairy",
+      "epa_mg": null,
+      "dha_mg": null,
+      "aa_mg": 0,
+      "total_lipid_g": 26,
+      "_mext_row": 1692,
+      "_mext_name": "＜牛乳及び乳製品＞　（チーズ類）　プロセスチーズ"
     },
     {
       "name": "豆腐（木綿）",
-      "aliases": ["豆腐", "とうふ", "tofu", "絹豆腐", "冷奴", "湯豆腐"],
-      "protein_g": 7.0,
-      "category": "plant_protein"
+      "aliases": [
+        "豆腐",
+        "とうふ",
+        "tofu",
+        "絹豆腐",
+        "冷奴",
+        "湯豆腐"
+      ],
+      "protein_g": 7,
+      "category": "plant_protein",
+      "epa_mg": null,
+      "dha_mg": null,
+      "aa_mg": null,
+      "total_lipid_g": 4.9,
+      "_mext_row": 271,
+      "_mext_name": "だいず　［豆腐・油揚げ類］　木綿豆腐"
     },
     {
       "name": "納豆",
-      "aliases": ["なっとう", "natto"],
+      "aliases": [
+        "なっとう",
+        "natto"
+      ],
       "protein_g": 16.5,
-      "category": "plant_protein"
+      "category": "plant_protein",
+      "epa_mg": 0,
+      "dha_mg": 0,
+      "aa_mg": 0,
+      "total_lipid_g": 10,
+      "_mext_row": 294,
+      "_mext_name": "だいず　［納豆類］　糸引き納豆"
     },
     {
       "name": "枝豆",
-      "aliases": ["えだまめ", "edamame"],
+      "aliases": [
+        "えだまめ",
+        "edamame"
+      ],
       "protein_g": 11.7,
-      "category": "plant_protein"
+      "category": "plant_protein",
+      "epa_mg": 0,
+      "dha_mg": 0,
+      "aa_mg": 0,
+      "total_lipid_g": 6.2,
+      "_mext_row": 385,
+      "_mext_name": "えだまめ　生"
     },
     {
       "name": "味噌",
-      "aliases": ["みそ", "miso"],
+      "aliases": [
+        "みそ",
+        "miso"
+      ],
       "protein_g": 12.5,
-      "category": "plant_protein"
+      "category": "plant_protein",
+      "epa_mg": null,
+      "dha_mg": 0,
+      "aa_mg": null,
+      "total_lipid_g": 6,
+      "_mext_row": 1921,
+      "_mext_name": "＜調味料類＞　（みそ類）　米みそ　淡色辛みそ"
     },
     {
       "name": "味噌汁",
-      "aliases": ["みそ汁", "miso soup", "おみそ汁"],
+      "aliases": [
+        "みそ汁",
+        "miso soup",
+        "おみそ汁"
+      ],
       "protein_g": 1.3,
-      "category": "plant_protein"
+      "category": "plant_protein",
+      "epa_mg": null,
+      "dha_mg": 0,
+      "aa_mg": null,
+      "total_lipid_g": 6,
+      "_mext_row": 1921,
+      "_mext_name": "＜調味料類＞　（みそ類）　米みそ　淡色辛みそ",
+      "_mext_note": "Use miso reference; analyzer multiplies by grams. Realistic 味噌汁 grams ≈ 200g but only ~12g is miso."
     },
     {
       "name": "豆腐の味噌汁",
-      "aliases": ["豆腐入り味噌汁"],
+      "aliases": [
+        "豆腐入り味噌汁"
+      ],
       "protein_g": 2.5,
-      "category": "plant_protein"
+      "category": "plant_protein",
+      "epa_mg": null,
+      "dha_mg": null,
+      "aa_mg": null,
+      "total_lipid_g": 4.9,
+      "_mext_row": 271,
+      "_mext_name": "だいず　［豆腐・油揚げ類］　木綿豆腐",
+      "_mext_note": "Use 木綿豆腐 reference (dominant fish-source proxy)."
     },
     {
       "name": "ホエイプロテイン",
-      "aliases": ["プロテイン", "whey", "ホエイ", "プロテインシェイク"],
-      "protein_g": 75.0,
-      "category": "egg_dairy"
+      "aliases": [
+        "プロテイン",
+        "whey",
+        "ホエイ",
+        "プロテインシェイク"
+      ],
+      "protein_g": 75,
+      "category": "egg_dairy",
+      "epa_mg": null,
+      "dha_mg": null,
+      "aa_mg": null,
+      "total_lipid_g": null,
+      "_mext_note": "Commercial supplement, not in MEXT 食品成分表. Set null."
     },
     {
       "name": "白米（炊飯後）",
-      "aliases": ["ご飯", "ごはん", "米", "白飯", "ライス", "rice"],
+      "aliases": [
+        "ご飯",
+        "ごはん",
+        "米",
+        "白飯",
+        "ライス",
+        "rice"
+      ],
       "protein_g": 2.5,
-      "category": "other"
+      "category": "other",
+      "epa_mg": 0,
+      "dha_mg": 0,
+      "aa_mg": 0,
+      "total_lipid_g": 0.3,
+      "_mext_row": 122,
+      "_mext_name": "こめ　［水稲めし］　精白米　うるち米"
     },
     {
       "name": "玄米（炊飯後）",
-      "aliases": ["玄米ご飯", "brown rice"],
+      "aliases": [
+        "玄米ご飯",
+        "brown rice"
+      ],
       "protein_g": 2.8,
-      "category": "other"
+      "category": "other",
+      "epa_mg": null,
+      "dha_mg": null,
+      "aa_mg": null,
+      "total_lipid_g": 1,
+      "_mext_row": 118,
+      "_mext_name": "こめ　［水稲めし］　玄米"
     },
     {
       "name": "食パン",
-      "aliases": ["パン", "トースト", "bread", "ロールパン"],
+      "aliases": [
+        "パン",
+        "トースト",
+        "bread",
+        "ロールパン"
+      ],
       "protein_g": 8.9,
-      "category": "other"
+      "category": "other",
+      "epa_mg": 0,
+      "dha_mg": 0,
+      "aa_mg": 0,
+      "total_lipid_g": 4.1,
+      "_mext_row": 34,
+      "_mext_name": "こむぎ　［パン類］　角形食パン　食パン"
     },
     {
       "name": "うどん（ゆで）",
-      "aliases": ["udon", "かけうどん", "ざるうどん"],
+      "aliases": [
+        "udon",
+        "かけうどん",
+        "ざるうどん"
+      ],
       "protein_g": 2.6,
-      "category": "other"
+      "category": "other",
+      "epa_mg": 0,
+      "dha_mg": 0,
+      "aa_mg": 0,
+      "total_lipid_g": 0.4,
+      "_mext_row": 49,
+      "_mext_name": "こむぎ　［うどん・そうめん類］　うどん　ゆで"
     },
     {
       "name": "そば（ゆで）",
-      "aliases": ["蕎麦", "soba", "ざるそば", "かけそば"],
+      "aliases": [
+        "蕎麦",
+        "soba",
+        "ざるそば",
+        "かけそば"
+      ],
       "protein_g": 4.8,
-      "category": "other"
+      "category": "other",
+      "epa_mg": null,
+      "dha_mg": null,
+      "aa_mg": null,
+      "total_lipid_g": 1,
+      "_mext_row": 172,
+      "_mext_name": "そば　そば　ゆで"
     },
     {
       "name": "中華麺（ラーメン）",
-      "aliases": ["ラーメン", "中華そば", "ramen", "つけ麺"],
+      "aliases": [
+        "ラーメン",
+        "中華そば",
+        "ramen",
+        "つけ麺"
+      ],
       "protein_g": 4.9,
-      "category": "other"
+      "category": "other",
+      "epa_mg": 0,
+      "dha_mg": 0,
+      "aa_mg": 0,
+      "total_lipid_g": 1.2,
+      "_mext_row": 57,
+      "_mext_name": "こむぎ　［中華めん類］　中華めん　生"
     },
     {
       "name": "ブロッコリー",
-      "aliases": ["broccoli"],
+      "aliases": [
+        "broccoli"
+      ],
       "protein_g": 4.3,
-      "category": "other"
+      "category": "other",
+      "epa_mg": 0,
+      "dha_mg": 0,
+      "aa_mg": 0,
+      "total_lipid_g": 0.6,
+      "_mext_row": 590,
+      "_mext_name": "ブロッコリー　花序　生"
     },
     {
       "name": "ほうれん草",
-      "aliases": ["ホウレンソウ", "spinach", "おひたし", "ほうれん草のおひたし", "ほうれん草のごま和え"],
+      "aliases": [
+        "ホウレンソウ",
+        "spinach",
+        "おひたし",
+        "ほうれん草のおひたし",
+        "ほうれん草のごま和え"
+      ],
       "protein_g": 2.2,
-      "category": "other"
+      "category": "other",
+      "epa_mg": 0,
+      "dha_mg": null,
+      "aa_mg": 0,
+      "total_lipid_g": 0.4,
+      "_mext_row": 595,
+      "_mext_name": "ほうれんそう　葉　通年平均　生"
     },
     {
       "name": "キャベツ",
-      "aliases": ["cabbage", "千切りキャベツ"],
+      "aliases": [
+        "cabbage",
+        "千切りキャベツ"
+      ],
       "protein_g": 1.3,
-      "category": "other"
+      "category": "other",
+      "epa_mg": 0,
+      "dha_mg": 0,
+      "aa_mg": 0,
+      "total_lipid_g": 0.1,
+      "_mext_row": 421,
+      "_mext_name": "（キャベツ類）　キャベツ　結球葉　生"
     },
     {
       "name": "トマト",
-      "aliases": ["tomato", "プチトマト"],
+      "aliases": [
+        "tomato",
+        "プチトマト"
+      ],
       "protein_g": 0.7,
-      "category": "other"
+      "category": "other",
+      "epa_mg": 0,
+      "dha_mg": null,
+      "aa_mg": 0,
+      "total_lipid_g": 0.1,
+      "_mext_row": 510,
+      "_mext_name": "（トマト類）　赤色トマト　果実　生"
     },
     {
       "name": "じゃがいも",
-      "aliases": ["ジャガイモ", "馬鈴薯", "potato", "ポテト", "フライドポテト", "ポテトサラダ"],
+      "aliases": [
+        "ジャガイモ",
+        "馬鈴薯",
+        "potato",
+        "ポテト",
+        "フライドポテト",
+        "ポテトサラダ"
+      ],
       "protein_g": 1.6,
-      "category": "other"
+      "category": "other",
+      "epa_mg": 0,
+      "dha_mg": 0,
+      "aa_mg": 0,
+      "total_lipid_g": 0.1,
+      "_mext_row": 212,
+      "_mext_name": "＜いも類＞　じゃがいも　塊茎　皮なし　生"
     },
     {
       "name": "アボカド",
-      "aliases": ["avocado"],
+      "aliases": [
+        "avocado"
+      ],
       "protein_g": 2.1,
-      "category": "other"
+      "category": "other",
+      "epa_mg": null,
+      "dha_mg": null,
+      "aa_mg": 0,
+      "total_lipid_g": 17.5,
+      "_mext_row": 637,
+      "_mext_name": "アボカド　生"
     },
     {
       "name": "玉ねぎ",
-      "aliases": ["タマネギ", "たまねぎ", "玉葱", "onion"],
-      "protein_g": 1.0,
-      "category": "other"
+      "aliases": [
+        "タマネギ",
+        "たまねぎ",
+        "玉葱",
+        "onion"
+      ],
+      "protein_g": 1,
+      "category": "other",
+      "epa_mg": 0,
+      "dha_mg": null,
+      "aa_mg": 0,
+      "total_lipid_g": 0.1,
+      "_mext_row": 486,
+      "_mext_name": "（たまねぎ類）　たまねぎ　りん茎　生"
     },
     {
       "name": "にんじん",
-      "aliases": ["人参", "ニンジン", "carrot"],
+      "aliases": [
+        "人参",
+        "ニンジン",
+        "carrot"
+      ],
       "protein_g": 0.7,
-      "category": "other"
+      "category": "other",
+      "epa_mg": 0,
+      "dha_mg": 0,
+      "aa_mg": 0,
+      "total_lipid_g": 0.2,
+      "_mext_row": 539,
+      "_mext_name": "（にんじん類）　にんじん　根　皮なし　生"
     },
     {
       "name": "きゅうり",
-      "aliases": ["キュウリ", "胡瓜", "cucumber"],
-      "protein_g": 1.0,
-      "category": "other"
+      "aliases": [
+        "キュウリ",
+        "胡瓜",
+        "cucumber"
+      ],
+      "protein_g": 1,
+      "category": "other",
+      "epa_mg": 0,
+      "dha_mg": null,
+      "aa_mg": 0,
+      "total_lipid_g": 0.1,
+      "_mext_row": 428,
+      "_mext_name": "きゅうり　果実　生"
     },
     {
       "name": "なす",
-      "aliases": ["茄子", "ナス", "eggplant"],
+      "aliases": [
+        "茄子",
+        "ナス",
+        "eggplant"
+      ],
       "protein_g": 1.1,
-      "category": "other"
+      "category": "other",
+      "epa_mg": 0,
+      "dha_mg": null,
+      "aa_mg": 0,
+      "total_lipid_g": 0.1,
+      "_mext_row": 519,
+      "_mext_name": "（なす類）　なす　果実　生"
     },
     {
       "name": "わかめ",
-      "aliases": ["ワカメ", "若布", "海藻"],
+      "aliases": [
+        "ワカメ",
+        "若布",
+        "海藻"
+      ],
       "protein_g": 1.9,
-      "category": "other"
+      "category": "other",
+      "epa_mg": 12,
+      "dha_mg": 0,
+      "aa_mg": 12,
+      "total_lipid_g": 0.2,
+      "_mext_row": 829,
+      "_mext_name": "わかめ　原藻　生"
     },
     {
       "name": "大根",
-      "aliases": ["だいこん", "ダイコン", "大根おろし", "おろし大根", "刺身のつま"],
+      "aliases": [
+        "だいこん",
+        "ダイコン",
+        "大根おろし",
+        "おろし大根",
+        "刺身のつま"
+      ],
       "protein_g": 0.5,
-      "category": "other"
+      "category": "other",
+      "epa_mg": 0,
+      "dha_mg": null,
+      "aa_mg": 0,
+      "total_lipid_g": 0.1,
+      "_mext_row": 474,
+      "_mext_name": "（だいこん類）　だいこん　根　皮なし　生"
     },
     {
       "name": "ごぼう",
-      "aliases": ["牛蒡", "ゴボウ", "きんぴらごぼう", "きんぴら"],
+      "aliases": [
+        "牛蒡",
+        "ゴボウ",
+        "きんぴらごぼう",
+        "きんぴら"
+      ],
       "protein_g": 1.8,
-      "category": "other"
+      "category": "other",
+      "epa_mg": 0,
+      "dha_mg": 0,
+      "aa_mg": 0,
+      "total_lipid_g": 0.1,
+      "_mext_row": 438,
+      "_mext_name": "（ごぼう類）　ごぼう　根　生"
     },
     {
       "name": "たくあん",
-      "aliases": ["沢庵", "タクアン", "漬物", "つけもの", "お新香", "お漬物"],
+      "aliases": [
+        "沢庵",
+        "タクアン",
+        "漬物",
+        "つけもの",
+        "お新香",
+        "お漬物"
+      ],
       "protein_g": 0.6,
-      "category": "other"
+      "category": "other",
+      "epa_mg": null,
+      "dha_mg": null,
+      "aa_mg": null,
+      "total_lipid_g": null,
+      "_mext_note": "Not in MEXT 脂肪酸成分表. 大根の漬物だが脂肪酸データなし。Set null."
     },
     {
       "name": "梅干し",
-      "aliases": ["うめぼし", "梅"],
+      "aliases": [
+        "うめぼし",
+        "梅"
+      ],
       "protein_g": 0.9,
-      "category": "other"
+      "category": "other",
+      "epa_mg": 0,
+      "dha_mg": 0,
+      "aa_mg": 0,
+      "total_lipid_g": 0.7,
+      "_mext_row": 653,
+      "_mext_name": "うめ　梅干し　塩漬"
     },
     {
       "name": "アーモンド",
-      "aliases": ["almond", "ナッツ", "ミックスナッツ"],
+      "aliases": [
+        "almond",
+        "ナッツ",
+        "ミックスナッツ"
+      ],
       "protein_g": 19.6,
-      "category": "other"
+      "category": "other",
+      "epa_mg": null,
+      "dha_mg": null,
+      "aa_mg": null,
+      "total_lipid_g": 51.8,
+      "_mext_row": 328,
+      "_mext_name": "アーモンド　乾"
     }
   ],
   "category_fallbacks": [
     {
       "category_name": "焼き魚（具体名不明）",
-      "matchers": ["焼き魚", "煮魚", "魚料理", "刺身", "魚"],
-      "protein_g": 21.0,
+      "matchers": [
+        "焼き魚",
+        "煮魚",
+        "魚料理",
+        "刺身",
+        "魚"
+      ],
+      "protein_g": 21,
       "category": "fish"
     },
     {
       "category_name": "肉料理（具体名不明）",
-      "matchers": ["肉料理", "肉炒め", "焼肉", "焼き肉", "肉のソテー", "肉"],
-      "protein_g": 19.0,
+      "matchers": [
+        "肉料理",
+        "肉炒め",
+        "焼肉",
+        "焼き肉",
+        "肉のソテー",
+        "肉"
+      ],
+      "protein_g": 19,
       "category": "meat"
     },
     {
       "category_name": "野菜炒め・煮物（具体名不明）",
-      "matchers": ["野菜炒め", "煮物", "和え物", "おひたし", "サラダ", "野菜"],
+      "matchers": [
+        "野菜炒め",
+        "煮物",
+        "和え物",
+        "おひたし",
+        "サラダ",
+        "野菜"
+      ],
       "protein_g": 2.5,
       "category": "other"
     },
     {
       "category_name": "汁物（具体名不明）",
-      "matchers": ["スープ", "汁物", "コンソメ"],
+      "matchers": [
+        "スープ",
+        "汁物",
+        "コンソメ"
+      ],
       "protein_g": 1.5,
       "category": "other"
     },
     {
       "category_name": "麺類（具体名不明）",
-      "matchers": ["麺類", "麺", "パスタ", "スパゲッティ", "焼きそば"],
+      "matchers": [
+        "麺類",
+        "麺",
+        "パスタ",
+        "スパゲッティ",
+        "焼きそば"
+      ],
       "protein_g": 4.5,
       "category": "other"
     }
