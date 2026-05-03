@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.2] - 2026-05-03 — レート制限 + リクエスト telemetry
+
+### Added
+- D1 ベースのレート制限を `/api/coach` に実装。1 IP / 1 時間で
+  `COACH_RATE_LIMIT`（デフォルト 10）回まで。超過時は 429 + `Retry-After` ヘッダ。
+- `request_log` テーブル (`migrations/0004_add_request_log.sql`)。全リクエストの
+  endpoint / IP ハッシュ / status / timestamp を記録（429 含む）。
+  telemetry first 設計 — abuse パターンを後で集計可能。
+- `lib/d1.ts`: `d1Query`/`firstRow` を共有モジュールに抽出
+  （`app/api/feedback/route.ts` から重複削除）。
+- `lib/rate-limit.ts`: `getClientIp`, `hashIp`（SHA-256 + secret）,
+  `checkRateLimit`, `logRequest`。
+- `lib/rate-limit.test.ts`: 12 ケース（IP 抽出 6、ハッシュ決定性 6）。
+
+### Security / Privacy
+- IP は SHA-256 + `IP_HASH_SECRET`（環境変数）で 16 hex にハッシュ化して保存。
+  生 IP は永続化しない。
+- D1 環境変数が無い環境（local dev）では rate limit を自動 disable。
+
+### Migration Notes
+v0.4.2 デプロイ時、D1 マイグレーション実行が必須:
+```bash
+bun --env-file=.env.local run scripts/migrate-d1.ts
+```
+冪等。0003 がスキップ、0004 が APPLY される。
+
 ## [0.4.1] - 2026-05-03 — クリーンアップ
 
 ### Removed

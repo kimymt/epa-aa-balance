@@ -1,51 +1,9 @@
 import { NextResponse } from "next/server";
 import { validateFeedbackBody } from "@/lib/feedback-validation";
+// v0.4.2: D1 client を lib/d1.ts に抽出（rate-limit と共有）。
+import { d1Query } from "@/lib/d1";
 
 export const runtime = "nodejs";
-
-const CF_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
-const CF_D1_DATABASE_ID = process.env.CLOUDFLARE_D1_DATABASE_ID;
-const CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
-
-interface D1Response<T = unknown> {
-  result?: Array<{
-    results: T[];
-    success: boolean;
-    meta: Record<string, unknown>;
-  }>;
-  success: boolean;
-  errors: Array<{ code: number; message: string }>;
-  messages: unknown[];
-}
-
-async function d1Query<T = unknown>(
-  sql: string,
-  params: (string | number | null)[] = []
-): Promise<D1Response<T>> {
-  if (!CF_ACCOUNT_ID || !CF_D1_DATABASE_ID || !CF_API_TOKEN) {
-    throw new Error(
-      "Cloudflare D1 environment variables are not configured."
-    );
-  }
-
-  const url = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${CF_D1_DATABASE_ID}/query`;
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${CF_API_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ sql, params }),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`D1 query failed (${response.status}): ${text}`);
-  }
-
-  return response.json();
-}
 
 export async function POST(req: Request) {
   try {

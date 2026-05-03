@@ -31,12 +31,22 @@ interface Migration {
   isAlreadyApplied: (api: D1Api) => Promise<boolean>;
 }
 
-const MIGRATIONS: Migration[] = [
+export const MIGRATIONS: Migration[] = [
   {
     file: "0003_add_calculation_version.sql",
     isAlreadyApplied: async (api) => {
       const cols = await api.tableInfo("feedback");
       return cols.some((c) => c.name === "calculation_version");
+    },
+  },
+  {
+    // v0.4.2: rate limit / telemetry 用の request_log テーブル作成。
+    // テーブル存在で適用判定（CREATE TABLE IF NOT EXISTS なので二重実行も
+    // 安全だが、明示的に skip して APPLY ログを綺麗に保つ）。
+    file: "0004_add_request_log.sql",
+    isAlreadyApplied: async (api) => {
+      const cols = await api.tableInfo("request_log");
+      return cols.length > 0;
     },
   },
 ];
