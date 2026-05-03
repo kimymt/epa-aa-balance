@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.8] - 2026-05-04 — オンボーディングカード（プロキシ性の透明開示）
+
+### Added
+- **`components/OnboardingCard.tsx`**: 初回訪問ユーザー向けの説明カード。
+  - **EPA・DHA の心血管健康への寄与**を簡潔に説明（強いエビデンス領域に絞る）
+  - **食事比率は血液検査の代用ではない**ことを明示（プロキシ性を honesty 開示）
+  - EPA・DHA / AA の食材源（青魚 / 肉・卵・乳製品）も併記
+- **`lib/onboarding.ts`**: localStorage ベースの初回 / リピート判定ヘルパ
+  - `hasSeenOnboarding()`, `markOnboardingSeen()`, `resetOnboardingState()`
+  - SSR セーフ（`typeof window === "undefined"` ガード + try/catch）
+  - キーは `"eaa-onboarding-seen-v1"` — `-v1` suffix で将来 bump 可能
+- **`lib/onboarding.test.ts`**: 6 ケース（in-memory localStorage polyfill 使用）
+
+### UX
+- ホーム画面のヘッダー直下、UploadZone の上に配置
+- **初回訪問**: 完全展開（sky-blue 背景 + 本文 + bullet list + dismiss ボタン）
+- **リピート訪問**: 1 行に折りたたみ（「🐟 EPA/AA バランスとは？ （クリックで展開）」）
+- 折りたたみ ⇄ 再展開はトグル。再展開しても localStorage は更新しない
+  （「読み返しただけ」と「再 dismiss」を区別する設計）
+- 結果ページでは表示しない（情報過多回避）
+- SSR 対策: mounted flag で hydration mismatch 回避
+
+### Background
+`/design-review` 由来の F-001 (home 60% 空白) と F-003 (what's next preview)
+の議論から派生。WOW ファクター追求のための 3 ステップ計画 Step 1 として実装:
+- **Step 1 (本 PR)**: オンボーディング — プロキシ性の透明開示 + EPA/DHA 基礎説明
+- Step 2 (次 PR): 食パターン比較ビジュアル（5 パターン: 米国 / 地中海 / 日本 / ノルウェー / イヌイット）
+- Step 3 (3 つめ PR): AI コーチ強化（目標食パターンに近づける提案）
+
 ## [0.4.7] - 2026-05-03 — /design-review クイックウィン
 
 ### Changed
