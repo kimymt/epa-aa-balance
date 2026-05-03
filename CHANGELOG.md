@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.12] - 2026-05-04 — 個別食事カードに画像サムネイル表示（F-012）
+
+### Added
+- **MealResultCard 上部にアップロード画像のサムネイル表示** (`object-cover` で 128px 高)
+  - `URL.createObjectURL` でブラウザ内 URL を生成、`useEffect` cleanup で確実に
+    `URL.revokeObjectURL` を呼ぶ → メモリリーク防止
+  - `lazy` 属性で初期描画コスト最小化
+  - `file` prop 未提供時は section 自体省略（後方互換）
+- ResultPanel 経由で `app/page.tsx` の `files` state がカードまで伝搬
+
+### Why (フィードバック精度向上)
+従来は結果ページで「正確 ✓ / 誤り - 修正」フィードバックを押すとき、ユーザーは
+「どの写真の判定だったか」を記憶頼りで判断する必要があった。サムネイル併記で
+**Vision の食材識別が合っているかを目視で即判断**できるようになり、フィードバック
+の質が上がる → 将来の Vision プロンプトチューニング・食材 DB 改善の根拠データに直結。
+
+副次効果として「自分の食事」感が出てエンゲージメント向上。
+
+### Background
+v0.4.7 `/design-review` 監査時の本番動作確認でユーザーから直接挙がった要望
+（PR #23 で TODOS.md に F-012 として記録済み）。
+
 ## [0.4.11] - 2026-05-04 — 判定不能カード高さ問題（F-011）
 
 ### Fixed
