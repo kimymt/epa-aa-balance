@@ -14,7 +14,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { AnalysisResult } from "./analyzer";
 
-const MODEL = "gemini-2.5-flash";
+// v0.4.4: gemini-2.5-flash (free tier 20 req/day) → gemini-2.5-flash-lite
+// (free tier 1000 req/day) に切り替え。レシピ提案は短く構造化された出力なので
+// lite で品質は十分。50倍の枠で実用的なテスト・運用が可能になる。
+const MODEL = "gemini-2.5-flash-lite";
 const TIMEOUT_MS = 25_000;
 
 /** ユーザーが選択できる調整チップ。各 key は prompt 内の指示文に展開される。 */
@@ -77,7 +80,8 @@ export interface CoachError {
   // v0.4.3:
   //   - RATE_LIMITED: 自前の D1 レート制限（10 req/h/IP）に到達。UI で洗脳動画。
   //   - QUOTA_EXCEEDED: Gemini 側の無料枠（per-day / per-minute）に到達。
-  //     gemini-2.5-flash の無料枠は 20 req/day と非常に厳しい。LLM_ERROR と
+  //     gemini-2.5-flash-lite の無料枠は 1000 req/day（v0.4.4 で flash → lite に変更）。
+  //     それでも day 上限に達する可能性があるため明確な UI が必要。LLM_ERROR と
   //     区別することで UI が「Gemini API の本日の枠が尽きました」と明示できる。
   code: "INVALID_REQUEST" | "LLM_ERROR" | "TIMEOUT" | "RATE_LIMITED" | "QUOTA_EXCEEDED";
 }
