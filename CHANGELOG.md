@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.14] - 2026-05-04 — グローバルフッター（GitHub + Q&A リンク）
+
+### Added
+- **`components/Footer.tsx`** 新規: ページ最下部のグローバルフッター
+  - 左: 「EPA/AAバランス」ブランディングテキスト
+  - 右: GitHub リポジトリリンク（公式 Octocat SVG アイコン付き、新規タブで開く）
+  - 右: Q&A リンク（**URL 未確定のため一時的に「準備中」状態**、グレーアウト + cursor-not-allowed）
+- `app/layout.tsx` の body 末尾に `<Footer />` を配置（`mt-auto` で sticky bottom）
+- `min-h-full flex flex-col` の既存 body スタイルが効いて、コンテンツが少ないページでも常に viewport 最下部に貼り付く
+
+### TODO
+- Q&A の URL が確定したら `components/Footer.tsx:11` の `QA_URL` 定数を更新
+  - 現状 `"#"` プレースホルダ → `QA_URL_PLACEHOLDER` 判定で「準備中」表示
+  - 確定後は自動的に通常リンク化（target="_blank" + rel + active styling）
+
 ## [0.4.13] - 2026-05-04 — WHO/AHA 公的推奨値の達成バッジ（#17）
 
 ### Added
