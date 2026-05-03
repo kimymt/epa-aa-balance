@@ -25,6 +25,8 @@ import {
 } from "@/lib/diet-patterns";
 // v0.4.13: WHO/AHA 公的推奨値の達成バッジを追加 (#17 対応)
 import { evaluateAchievements } from "@/lib/recommendations";
+// v0.4.16: 「全パターン超え」時の文言を中央集権 safety-notes から取得
+import { SAFETY_NOTES } from "@/lib/safety-notes";
 
 interface Props {
   totalEpaMg: number;
@@ -140,9 +142,13 @@ export function DietPatternComparison({
           {gapHint(position.gapToNextMg)}
         </p>
       )}
+      {/* v0.4.16: 称賛 (🏆) ではなく「ここから先は維持が大事」のスタンスへ書き換え。
+          高摂取が必ずしも追加の健康上の利益にならない、サプリ高用量 + 抗凝固薬
+          併用等の状況では注意が必要な点を反映 (lib/safety-notes.ts に文言集約)。 */}
       {position.next === null && (
-        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100">
-          🏆 全パターンを超えました！EPA+DHA 摂取量がイヌイット伝統食水準です。
+        <p className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+          <span aria-hidden className="mr-1">ℹ</span>
+          {SAFETY_NOTES.HIGH_INTAKE_MAINTENANCE.body}
         </p>
       )}
     </section>

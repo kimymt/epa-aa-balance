@@ -15,6 +15,9 @@
 
 import { useEffect, useState } from "react";
 import { hasSeenOnboarding, markOnboardingSeen } from "@/lib/onboarding";
+// v0.4.16: 抗凝固薬服用者・手術予定者向けの相談推奨を inline 表示。
+// fear-mongering ではなく事実通告のスタンス (Q&A と整合)。
+import { SAFETY_NOTES } from "@/lib/safety-notes";
 
 export function OnboardingCard() {
   // SSR では localStorage が undefined なので、mounted 後に判定する。
@@ -83,6 +86,13 @@ export function OnboardingCard() {
           <li><strong>EPA・DHA</strong>: サバ・イワシ・サンマなどの青魚に豊富</li>
           <li><strong>AA（アラキドン酸）</strong>: 肉・卵・乳製品に豊富</li>
         </ul>
+      </div>
+
+      {/* v0.4.16: 抗凝固薬服用者・手術予定者向けの注意 (該当者のみアクション可能、
+          一般ユーザーには情報提供にとどまる)。lib/safety-notes.ts で一元管理。 */}
+      <div className="mt-4 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2 text-xs leading-relaxed text-amber-900 dark:border-amber-800/40 dark:bg-amber-950/20 dark:text-amber-200">
+        <span aria-hidden className="mr-1">⚠</span>
+        {SAFETY_NOTES.ANTICOAGULANT_CONSULT.body}
       </div>
 
       <div className="mt-4 flex justify-end">
