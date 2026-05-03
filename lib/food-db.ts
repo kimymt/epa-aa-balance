@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import type { ProteinCategory } from "./standards";
+import type { FoodCategory } from "./standards";
 
 export interface FoodEntry {
   name: string;
   aliases: string[];
-  category: ProteinCategory;
+  category: FoodCategory;
   /**
    * 脂肪酸成分 (per 100g、MEXT 食品成分表 脂肪酸成分表編 2020 由来)。
    * null は「データなし」(MEXT で「—」「Tr 以外の空欄」表記)。
@@ -23,7 +23,7 @@ export interface FoodEntry {
 export interface CategoryFallback {
   category_name: string;
   matchers: string[];
-  category: ProteinCategory;
+  category: FoodCategory;
   // 脂肪酸データはカテゴリ平均では不正確になるため fallback には含めない。
   // lookupFood が fallback を返した場合、計算側で lipid 値は null として扱う。
 }

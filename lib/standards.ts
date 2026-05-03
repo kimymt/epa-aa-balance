@@ -2,20 +2,24 @@
  * 食品カテゴリ。EPA/AA バランス計算で使う食材分類。
  *
  * - fish: 魚介類（EPA・DHA の主要源）
- * - meat / egg_dairy / plant_protein / other: それ以外
+ * - meat / egg_dairy / plant / other: それ以外
  *
  * v0.3.0+: 計算は脂肪酸ベース (lib/scoring.ts computeLipidScore)。
  * カテゴリは表示・凡例・将来の比較機能で使う。
  *
- * 注: 型名 `ProteinCategory` および `plant_protein` 値は v0.2.0 (タンパク質ベース計算)
- * からの歴史的な命名。v0.3.1 で `FoodCategory` / `plant` にリネーム予定 (TODOS.md)。
+ * v0.3.7: `ProteinCategory` → `FoodCategory`、`plant_protein` → `plant` にリネーム
+ * (タンパク質ベース計算からの歴史的命名を整理、ドメイン語彙統一)。
  */
-export type ProteinCategory =
+export type FoodCategory =
   | "fish"
   | "meat"
   | "egg_dairy"
-  | "plant_protein"
+  | "plant"
   | "other";
+
+// v0.3.7: 後方互換 alias (削除予定)。新コードは FoodCategory を使うこと。
+/** @deprecated Use FoodCategory. Will be removed in v0.4.0. */
+export type ProteinCategory = FoodCategory;
 
 /**
  * 脂質ベース計算 (v0.3.0+) の閾値。
@@ -35,10 +39,10 @@ export const LIPID_RATIO_THRESHOLDS = {
   yellow: 15, // 15-29% → 黄、< 15% → 赤
 } as const;
 
-export const CATEGORY_LABELS_JA: Record<ProteinCategory, string> = {
+export const CATEGORY_LABELS_JA: Record<FoodCategory, string> = {
   fish: "魚介",
   meat: "肉",
   egg_dairy: "卵・乳",
-  plant_protein: "豆類",
+  plant: "豆類",
   other: "その他",
 };
