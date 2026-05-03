@@ -74,11 +74,16 @@ function derivePrimaryName(mextName: string): string {
  * 主名称から検索用 aliases を生成する。
  *   "まさば 生" → ["まさば", "生"] → ["まさば"] (生/ゆで等を除外)
  *   "うし もも 赤肉 生" → ["うし", "もも", "赤肉"]
+ *
+ * 注: 連濁 (rendaku) 対応は v0.3.4 で実装したが、bare 2-char 連濁 alias
+ * (「ずわいがに」 entry に「かに」alias 追加) は別エントリの長 query を
+ * 誤マッチ (「めんたいこ」.includes(「たい」)) する false positive を生むため
+ * 食材 side では行わない。代わりに runtime 側 (lib/food-db.ts) で
+ * クエリの連濁 variant を生成して照合する。
  */
 function deriveAliases(primaryName: string): string[] {
   const COOKING_STATES = new Set(["生", "ゆで", "焼き", "蒸し", "乾", "煮", "揚げ", "干し"]);
   const words = primaryName.split(/\s+/).filter((w) => w && !COOKING_STATES.has(w));
-  // 短すぎる単語 (1 文字、ほぼノイズ) は除外
   return words.filter((w) => w.length >= 2);
 }
 
@@ -90,13 +95,18 @@ const data = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: "" });
 
 const existingFoodsRaw = JSON.parse(fs.readFileSync(FOODS_FILE, "utf8"));
 const existingFoods = existingFoodsRaw.foods as any[];
-const skipRows = new Set<number>(
-  existingFoods.map((f) => f._mext_row).filter((r): r is number => typeof r === "number")
-);
-console.error(`Existing hand-curated: ${existingFoods.length}, skipping MEXT rows: ${skipRows.size}`);
 
-// 既存 57 から protein_g を削除 (v0.3.1 schema cleanup)
-const cleanedExisting = existingFoods.map((f) => {
+// hand-curated 57 = source-order の先頭 57 件 (v0.3.1 で固定)。
+// それ以外 (auto-ingested 1,914) は今回再生成して alias 強化する (rendaku)。
+const HAND_CURATED_COUNT = 57;
+const handCurated = existingFoods.slice(0, HAND_CURATED_COUNT);
+const skipRows = new Set<number>(
+  handCurated.map((f) => f._mext_row).filter((r): r is number => typeof r === "number")
+);
+console.error(`Hand-curated entries preserved: ${handCurated.length}, skipping their MEXT rows: ${skipRows.size}`);
+
+// hand-curated から protein_g を削除 (v0.3.1 schema cleanup)
+const cleanedExisting = handCurated.map((f) => {
   const { protein_g, ...rest } = f;
   return rest;
 });

@@ -206,6 +206,37 @@ function normalize(s: string): string {
 }
 
 /**
+ * 連濁 (rendaku) のための初頭子音 voiced 変換マップ (v0.3.4)。
+ * 複合語の後半要素で起きる音韻変化を query side で再現する。
+ */
+const RENDAKU_INITIAL_VOICED: Record<string, string> = {
+  "か": "が", "き": "ぎ", "く": "ぐ", "け": "げ", "こ": "ご",
+  "さ": "ざ", "し": "じ", "す": "ず", "せ": "ぜ", "そ": "ぞ",
+  "た": "だ", "ち": "ぢ", "つ": "づ", "て": "で", "と": "ど",
+  "は": "ば", "ひ": "び", "ふ": "ぶ", "へ": "べ", "ほ": "ぼ",
+};
+
+/**
+ * クエリ文字列から検索 variant を生成する (v0.3.4)。
+ * - 元のクエリ
+ * - 初頭子音を voiced に変えた連濁形 (「かに」→「がに」、「さけ」→「ざけ」)
+ *
+ * 用途: substring 検索で複合語食材 (「ずわいがに」「ぎんざけ」) にヒットさせる。
+ * 食材 side に bare な base 形 (「かに」alias) を加えると別 entry の長クエリを
+ * 誤マッチ (「めんたいこ」.includes(「たい」)) するため、変換は query side で行う。
+ *
+ * Substring 検索のみで使用、exact match では使わない (誤マッチ防止)。
+ */
+function getQueryVariants(q: string): string[] {
+  const variants = [q];
+  if (q.length >= 2) {
+    const voicedFirst = RENDAKU_INITIAL_VOICED[q[0]];
+    if (voicedFirst) variants.push(voicedFirst + q.slice(1));
+  }
+  return variants;
+}
+
+/**
  * 食材名から食品エントリを検索する。
  *
  * 優先順位:
@@ -225,7 +256,22 @@ export function lookupFood(query: string): LookupResult | null {
       return { entry: f, isFallback: false };
   }
 
-  // 2. substring match (両方向)
+  // 2. 連濁 variant (voiced 初頭子音) を alias 末尾でマッチ
+  // 用途: 「かに」→「がに」を「ずわいがに」alias の末尾でヒット
+  // 短いクエリの compound 食材 priority のため original substring の前に配置。
+  // word-end のみに絞ることで「イングリッシュ」.includes(「ぐり」) みたいな
+  // 内部誤マッチを避ける。
+  const variants = getQueryVariants(q).slice(1); // skip original q
+  for (const f of data.foods) {
+    for (const a of f.aliases) {
+      const lower = normalize(a);
+      for (const qv of variants) {
+        if (lower.endsWith(qv)) return { entry: f, isFallback: false };
+      }
+    }
+  }
+
+  // 3. substring match (両方向、original query)
   for (const f of data.foods) {
     const candidates = [f.name, ...f.aliases];
     for (const c of candidates) {
@@ -236,7 +282,7 @@ export function lookupFood(query: string): LookupResult | null {
     }
   }
 
-  // 3. category fallback
+  // 3. category fallback (variant は使わない、fallback は最後の手段なので保守的に)
   for (const fb of data.category_fallbacks ?? []) {
     for (const matcher of fb.matchers) {
       const lower = normalize(matcher);
