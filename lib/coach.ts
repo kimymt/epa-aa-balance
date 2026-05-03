@@ -67,6 +67,18 @@ export interface CoachRequest {
     type: "chip" | "freetext";
     value: ChipKey | string; // chip なら ChipKey、freetext なら任意 (max 200 文字)
   };
+  /**
+   * Optional target diet pattern (v0.4.10): 「この食習慣に近づきたい」目標。
+   * 設定時、prompt に「あと +N mg/日 で {pattern.name} に到達」と明記、
+   * Gemini が「ギャップを埋める」レシピを優先するよう誘導する。
+   * UI 側で findPatternPosition() の結果から自動算出するのが想定運用。
+   */
+  target?: {
+    /** 目標食習慣の表示名 (例: "地中海食") */
+    patternName: string;
+    /** 1 日換算であと何 mg 必要か (>=0) */
+    gapMg: number;
+  };
 }
 
 export interface CoachResponse {
@@ -145,6 +157,17 @@ export function validateCoachBody(input: unknown): { ok: true; body: CoachReques
       return { ok: false, reason: "refinement-value-invalid" };
     }
   }
+  // v0.4.10: target validation
+  if (b.target !== undefined) {
+    const t = b.target as Record<string, unknown>;
+    if (!t || typeof t !== "object") return { ok: false, reason: "target-not-object" };
+    if (typeof t.patternName !== "string" || t.patternName.length === 0 || t.patternName.length > 50) {
+      return { ok: false, reason: "target-patternName-invalid" };
+    }
+    if (typeof t.gapMg !== "number" || t.gapMg < 0 || !Number.isFinite(t.gapMg)) {
+      return { ok: false, reason: "target-gapMg-invalid" };
+    }
+  }
   return { ok: true, body: b as unknown as CoachRequest };
 }
 
@@ -152,7 +175,7 @@ export function validateCoachBody(input: unknown): { ok: true; body: CoachReques
  * Gemini に投げる prompt を組み立てる。
  */
 export function buildPrompt(req: CoachRequest): string {
-  const { aggregate, recentFoods, refinement } = req;
+  const { aggregate, recentFoods, refinement, target } = req;
   const lipidPctStr = aggregate.lipidPct === null ? "計算不能" : `${Math.round(aggregate.lipidPct)}%`;
 
   const foodsSummary =
@@ -169,6 +192,20 @@ export function buildPrompt(req: CoachRequest): string {
     }
   }
 
+  // v0.4.10: 目標食習慣セクション。設定があれば prompt にギャップ情報を埋め込み、
+  // Gemini が「ギャップを埋める設計」のレシピを優先するよう誘導。
+  let targetSection = "";
+  if (target) {
+    targetSection = `
+
+【目標食習慣】
+ユーザーは「${target.patternName}」に近づきたい食習慣傾向にあります。
+1 日換算で **あと +${Math.round(target.gapMg)} mg/日** の EPA+DHA 摂取で目標水準に到達します。
+3 件のレシピで合計 ${Math.round(target.gapMg)} mg 程度の EPA+DHA を上乗せできるよう、
+含有量の多い食材 (サバ ~1500mg/100g、サンマ ~1300mg/100g、イワシ ~1200mg/100g、
+鮭 ~600mg/100g 等) を中心に組み立ててください。`;
+  }
+
   return `あなたは栄養士です。直近の食事から、EPA・DHA を増やすためのレシピを 3 件提案してください。
 
 【直近の食事の集計】
@@ -176,7 +213,7 @@ export function buildPrompt(req: CoachRequest): string {
 - EPA 合計: ${Math.round(aggregate.epaMg)} mg
 - DHA 合計: ${Math.round(aggregate.dhaMg)} mg
 - AA 合計: ${Math.round(aggregate.aaMg)} mg
-- 識別された食材: ${foodsSummary}
+- 識別された食材: ${foodsSummary}${targetSection}
 
 【提案ルール】
 1. 必ず 3 件、全て魚介類 (fish / shellfish / fish_product) を使うレシピ

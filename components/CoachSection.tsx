@@ -8,7 +8,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { RecipeCard } from "./RecipeCard";
 import {
   CHIP_LABELS,
@@ -17,6 +17,8 @@ import {
   type CoachResponse,
   type Recipe,
 } from "@/lib/coach";
+// v0.4.10: 目標食習慣を自動算出するため diet-patterns helpers を利用
+import { dailyAverageMg, findPatternPosition } from "@/lib/diet-patterns";
 
 type State =
   | { kind: "initial" }
@@ -32,12 +34,28 @@ type State =
 
 interface Props {
   aggregate: CoachRequest["aggregate"];
+  /** v0.4.10: 1 日換算 (3 食=1 日) のため。目標食習慣の自動算出に使う。 */
+  mealsWithData: number;
   recentFoods: CoachRequest["recentFoods"];
 }
 
-export function CoachSection({ aggregate, recentFoods }: Props) {
+export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
   const [state, setState] = useState<State>({ kind: "initial" });
   const [freeText, setFreeText] = useState("");
+
+  // v0.4.10: 目標食習慣を自動算出。次のパターン (= 現状を超えた直後のパターン) を狙う。
+  // 全パターン超え or データ無しなら target = undefined (prompt に目標セクション出さない)。
+  const target = useMemo<CoachRequest["target"]>(() => {
+    if (mealsWithData === 0) return undefined;
+    const totalMg = aggregate.epaMg + aggregate.dhaMg;
+    const dailyAvg = dailyAverageMg(totalMg, mealsWithData);
+    const position = findPatternPosition(dailyAvg);
+    if (!position.next || position.gapToNextMg === null) return undefined;
+    return {
+      patternName: position.next.name,
+      gapMg: position.gapToNextMg,
+    };
+  }, [aggregate.epaMg, aggregate.dhaMg, mealsWithData]);
 
   async function fetchRecipes(refinement?: CoachRequest["refinement"]) {
     setState({ kind: "loading" });
@@ -45,7 +63,7 @@ export function CoachSection({ aggregate, recentFoods }: Props) {
       const res = await fetch("/api/coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ aggregate, recentFoods, refinement }),
+        body: JSON.stringify({ aggregate, recentFoods, refinement, target }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -99,6 +117,20 @@ export function CoachSection({ aggregate, recentFoods }: Props) {
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
             EPA・DHA を増やすレシピを 3 件、AI が提案します。
           </p>
+          {/* v0.4.10: 自動算出された目標食習慣を inline 表示。
+              ユーザーが「何を目指すレシピが返ってくるのか」を事前に把握できる。 */}
+          {target && (
+            <div className="mb-4 rounded-lg bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
+              <span className="font-semibold">目標:</span>{" "}
+              <strong>{target.patternName}</strong>{" "}
+              <span className="text-sky-700 dark:text-sky-300">
+                (あと +{Math.round(target.gapMg).toLocaleString("en-US")} mg/日)
+              </span>
+              <div className="mt-1 text-xs text-sky-700 dark:text-sky-300">
+                このギャップを埋めるレシピを優先して提案します。
+              </div>
+            </div>
+          )}
           <button
             onClick={() => void fetchRecipes()}
             className="w-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 py-3 sm:py-4 px-6 rounded-lg font-medium hover:bg-slate-800 dark:hover:bg-slate-200 active:bg-slate-950 transition"

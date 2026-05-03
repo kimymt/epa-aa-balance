@@ -260,7 +260,9 @@ export function ResultPanel({ result }: { result: AnalysisSessionResult }) {
         />
       )}
 
-      {/* AI Coach Section (v0.4.0): Aggregate と個別 MealResultCard の間 */}
+      {/* AI Coach Section (v0.4.0): Aggregate と個別 MealResultCard の間
+          v0.4.10: mealsWithData を追加で渡し、CoachSection 内で目標食習慣を
+          自動算出する。 */}
       {successfulMeals.length > 0 && (
         <CoachSection
           aggregate={{
@@ -269,6 +271,7 @@ export function ResultPanel({ result }: { result: AnalysisSessionResult }) {
             dhaMg: aggregate.totalDhaMg,
             aaMg: aggregate.totalAaMg,
           }}
+          mealsWithData={aggregate.mealsWithData}
           recentFoods={successfulMeals.flatMap((m) => m.foods ?? [])}
         />
       )}
