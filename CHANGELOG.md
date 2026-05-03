@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.1] - 2026-05-03 — クリーンアップ
+
+### Removed
+- 後方互換 alias `ProteinCategory`（`lib/standards.ts`）を削除。v0.3.7 で
+  `FoodCategory` にリネーム後、参照ゼロを確認した上で完全撤去。
+  新コードは `FoodCategory` を使用すること。
+
 ## [0.3.0] - 2026-05-03 — 脂質ベース計算移行
 
 ### ⚠ 破壊的変更

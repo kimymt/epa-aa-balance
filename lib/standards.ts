@@ -9,6 +9,7 @@
  *
  * v0.3.7: `ProteinCategory` → `FoodCategory`、`plant_protein` → `plant` にリネーム
  * (タンパク質ベース計算からの歴史的命名を整理、ドメイン語彙統一)。
+ * v0.4.1: 後方互換 alias `ProteinCategory` を完全削除（移行完了）。
  */
 export type FoodCategory =
   | "fish"
@@ -16,10 +17,6 @@ export type FoodCategory =
   | "egg_dairy"
   | "plant"
   | "other";
-
-// v0.3.7: 後方互換 alias (削除予定)。新コードは FoodCategory を使うこと。
-/** @deprecated Use FoodCategory. Will be removed in v0.4.0. */
-export type ProteinCategory = FoodCategory;
 
 /**
  * 脂質ベース計算 (v0.3.0+) の閾値。
