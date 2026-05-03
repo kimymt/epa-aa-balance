@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.11] - 2026-05-04 — 判定不能カード高さ問題（F-011）
+
+### Fixed
+- 個別の食事結果グリッドに `items-start` を追加。CSS grid デフォルトの
+  `align-items: stretch` だと、判定不能カード（signal=unknown、内訳セクション空）
+  も他カードと同じ高さに引き伸ばされ、不自然な余白が出ていた。各カードを自然な
+  高さで並べることで、データ量の差がそのまま視覚的軽重に反映される。
+- `/design-review` 監査時のユーザー実機フィードバックから検出した F-011 に対応。
+
 ## [0.4.10] - 2026-05-04 — AI コーチ目標食習慣連動（WOW 体験 Step 3/3 完）
 
 ### Added
