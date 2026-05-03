@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { UploadZone } from "@/components/UploadZone";
 import { ResultPanel } from "@/components/ResultPanel";
+import { OnboardingCard } from "@/components/OnboardingCard";
 import type { AnalysisSessionResult } from "@/lib/session";
 
 type State =
@@ -63,6 +64,14 @@ export default function Home() {
           最大9枚までアップロードして、あなたの食事パターンを分析しましょう。
         </p>
       </header>
+
+      {/* v0.4.8: オンボーディングカード (初回展開・以降折りたたみ、localStorage 管理)。
+          結果ページでは表示しない (情報過多になるため、idle/loading/error 時のみ)。 */}
+      {state.kind !== "result" && (
+        <div className="mb-4">
+          <OnboardingCard />
+        </div>
+      )}
 
       {state.kind !== "result" && (
         <UploadZone
