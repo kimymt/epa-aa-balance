@@ -116,10 +116,11 @@ describe("computeLipidScore - edge cases", () => {
   });
 
   it("excludes fallback (category-average) matches from lipid calculation", () => {
-    // 食材データベースに無いものは unmatched
-    const r = computeLipidScore([F("クッキー", 50)]);
-    // category_fallback がヒットすれば isFallback=true で excluded、無ければ unmatched
+    // 食材データベースに無い完全な架空名 (v0.3.1 の MEXT 全食品に対しても hit しない)
+    const r = computeLipidScore([F("ZZZ_存在しない食材_XYZ", 50)]);
     expect(r.matched.length).toBe(0);
+    // unmatched OR excludedNoData (fallback ヒット) のいずれか。computeLipidScore は計算から除外するのが目的。
+    expect(r.matched.length + r.excludedNoData.length + r.unmatched.length).toBe(1);
   });
 
   it("computes correct mass-weighted lipidCoverage with mixed data availability", () => {
