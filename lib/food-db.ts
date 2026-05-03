@@ -7,6 +7,16 @@ export interface FoodEntry {
   aliases: string[];
   protein_g: number;
   category: ProteinCategory;
+  /**
+   * 脂肪酸成分 (per 100g、MEXT 食品成分表 脂肪酸成分表編 2020 由来)。
+   * v0.3.0-alpha 追加。null は「データなし」(MEXT で「—」「Tr 以外の空欄」表記)。
+   * MEXT で「Tr」(検出限界以下) 表記は 0 mg として保存（栄養学慣習に従う）。
+   */
+  epa_mg?: number | null;
+  dha_mg?: number | null;
+  aa_mg?: number | null;
+  /** 総脂質量 (g/100g、参考用)。MEXT の「脂質」(FAT-) 列由来。 */
+  total_lipid_g?: number | null;
 }
 
 export interface CategoryFallback {
@@ -14,6 +24,8 @@ export interface CategoryFallback {
   matchers: string[];
   protein_g: number;
   category: ProteinCategory;
+  // 脂肪酸データはカテゴリ平均では不正確になるため fallback には含めない。
+  // lookupFood が fallback を返した場合、計算側で lipid 値は null として扱う。
 }
 
 export interface LookupResult {
@@ -35,6 +47,15 @@ function loadFoods(): FoodsFile {
   const raw = readFileSync(file, "utf8");
   cache = JSON.parse(raw) as FoodsFile;
   return cache;
+}
+
+/**
+ * テスト専用：モジュールレベルキャッシュを reset する。
+ * テストが食材データを mock したい場合（例: lipid-scoring.test.ts）に
+ * `beforeEach(__resetCache)` で使う。本番コードからは呼ばないこと。
+ */
+export function __resetCache(): void {
+  cache = null;
 }
 
 /**

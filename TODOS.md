@@ -1,0 +1,131 @@
+# TODOS
+
+## v0.3.1 Candidates
+
+### ProteinCategory → FoodCategory リネーム
+**What:** `lib/standards.ts` の `ProteinCategory` 型を `FoodCategory` に、
+`plant_protein` を `plant` にリネーム。CATEGORY_LABELS_JA も連動。
+
+**Why:** v0.3.0 で計算が脂質ベースになると、「タンパク質」を含む型名がドメイン
+語彙とズレる。`FoodCategory` の方が中立で正確。
+
+**Pros:** ドメイン語彙統一、長期的にコードがきれい、新人が混乱しない。
+**Cons:** scoring.ts、analyzer.ts、UI 等多数ファイルへの波及。
+**Context:** /plan-eng-review 2026-05-02 Issue 8 で「機能変更（v0.3.0）と命名変更を
+分離する」原則に従い、別 PR にしました。Beck の "make the change easy, then make
+the easy change"。
+**Depends on:** v0.3.0 リリース完了。
+
+---
+
+### 食材 DB を MEXT 脂肪酸成分表編から自動 ingest（57 → 500+）
+**What:** `scripts/ingest-mext-foods.ts` を新規作成。MEXT 脂肪酸成分表編 Excel
+（公開）を読み込んで `data/foods.json` に自動転記。LLM 推定不使用、純粋な
+Excel パース。
+
+**Why:** 現状 57 品目では Vision API が識別する食材を頻繁にカバーできない。
+MEXT は 1900 品目登録、覚悟を決めて全部入れるべき。v0.3.0 で食材スキーマが
+固まった後がベストタイミング。
+
+**Pros:** Vision API ヒット率大幅改善、unknown 表示が激減、ユーザー体験向上、
+将来の手動メンテナンス不要。
+**Cons:** Excel パースのスクリプト工数（半日〜1 日）、データ品質チェック必要。
+**Context:** /plan-eng-review 2026-05-02 Cross-Model Tension 3。outside voice の
+「57 → 1900 のチャンスを逃すと後で 2 度手間」指摘を v0.3.1 で解決する判断。
+**Depends on:** v0.3.0 リリース完了（脂肪酸スキーマ確定）。
+
+---
+
+### admin ダッシュボードに calculation_version フィルタ追加
+**What:** `app/admin/page.tsx` に「集計対象バージョン」フィルタ UI 追加。
+v1 (タンパク質ベース)、v2 (脂質ベース)、両方の 3 オプション。
+
+**Why:** v0.2.0 と v0.3.0 で feedback のスコアが別 scale。混在表示すると分析できない。
+
+**Pros:** バージョン別に accuracy 集計可能、移行前後の品質比較できる。
+**Cons:** v0.2.0 feedback 数が少なければ実用価値低い。
+**Context:** /office-hours で「過去 feedback の表示扱い」を deferred。実際の蓄積数を
+v0.3.0 リリース後に確認してから判断。
+**Depends on:** v0.3.0 リリース完了 + v0.2.0 feedback ≥ 50 件あること。
+
+---
+
+### 過去スコアの UI 表示時バージョンバッジ
+**What:** admin で過去 feedback 表示時に「v1 (タンパク質ベース)」「v2 (脂質ベース)」
+バッジを併記。
+
+**Why:** 同じ admin 画面で v0.2.0 時代と v0.3.0 以降の feedback が混在表示される。
+スコアが意味する内容が違うのに視覚的に区別がない。
+
+**Pros:** ユーザー（自分）が混乱しない、データの解釈ミス防止。
+**Cons:** 軽量機能、上の calculation_version フィルタと合わせて実装でほぼ終わる。
+**Context:** /plan-eng-review 2026-05-02 outside voice point 7。
+**Depends on:** calculation_version フィルタの v0.3.1 実装と同時。
+
+---
+
+### Vision API → food-db マッチ率 telemetry
+**What:** `app/api/analyze/route.ts` でレスポンスに含まれる `unmatched` 配列を
+集計し、Vercel Analytics または admin に「unmatched food rate」を表示。
+
+**Why:** どの食材が food-db に無いか、頻度はどれくらいかをデータで把握。
+v0.3.1 の食材 DB 拡張優先順位の判断材料になる。
+
+**Pros:** データ駆動の優先順位付け、勘ではなく事実で判断。
+**Cons:** 集計基盤の実装工数（中程度）、telemetry 目的のためだけに inflastructure 追加。
+**Context:** /plan-eng-review 2026-05-02 outside voice point 9。
+**Depends on:** v0.3.0 リリース完了（マッチ率の baseline 取得開始）。
+
+---
+
+## v0.4.0 Candidates
+
+### AI コーチング・レシピ提案機能
+**What:** 食事結果カードに「AI に提案してもらう」ボタン、Gemini で 3 レシピ生成 +
+チップ refinement (和食寄り、コンビニで、20分以内、安い食材で、子ども向け) +
+自由入力。
+
+**Why:** 食事の数値を「行動を変える」アクションに変換する。EPA+DHA を増やす具体的
+レシピ提案で user value を運ぶ。
+
+**Pros:** v0.3.0 の正確な数値を活かせる、cultural data 比較（イヌイット食等）の
+ベース機能。
+**Cons:** Gemini API コスト、UX 設計工数。
+**Context:** 元の v0.3.0 設計だったが、土台（タンパク質ベース）が間違っていることが
+判明し v0.4.0 へ繰り延べ。設計ドキュメント
+`~/.gstack/projects/kimymt-epa-aa-balance/likemike-main-design-20260502-145712.md`
+プロトタイプ HTML
+`~/.gstack/projects/kimymt-epa-aa-balance/designs/coach-section-20260502/finalized.html`
+**Depends on:** v0.3.0 リリース完了。
+
+---
+
+### WHO/AHA EPA+DHA mg/日推奨値ベースの external validation
+**What:** v0.3.0 の閾値（30%/15%）が暫定。WHO（250-500mg/日）、AHA（500mg/日）、
+日本人健康人口の食事 EPA+DHA 摂取分布データを文献調査し、絶対量と share form の
+両方で根拠ある閾値を確定。
+
+**Why:** v0.3.0 の閾値は「人間が魚中心と判定 → 緑」という tautological な検証で
+仮置き。本当の妥当性は外部 anchor が必要。
+
+**Pros:** 信号機判定の科学的根拠、海外コミュニティへの説明責任、医療系プロが
+「これ根拠ある」と認める。
+**Cons:** 文献調査工数（中程度〜大）、栄養学知見必要。
+**Context:** /plan-eng-review 2026-05-02 outside voice point 2 + Open Question 1。
+absolute mg/day 目標値も同時検討。
+**Depends on:** 文献調査ができる時間の確保。
+
+---
+
+### 文化圏比較機能（イヌイット食、地中海食、伝統日本食 vs ユーザー）
+**What:** ユーザーの食事パターン（直近 7-30 日 average）を、イヌイット伝統食、
+地中海食、現代日本食、伝統日本食、アスリート食事等の参照データと比較表示。
+
+**Why:** 単独スコアより「自分は今どの食文化に近いか」のストーリーが強い。
+人間の感情を動かす UX。
+
+**Pros:** 唯一無二の差別化、教育的、SNS でシェアされる可能性、user retention 向上。
+**Cons:** 参照データ収集（学術文献）の工数、UX デザイン難。
+**Context:** /office-hours で AI コーチ機能と並んで「coolest version」候補だった。
+v0.3.0 で脂質ベース化された数値があれば同じ単位で比較可能。
+**Depends on:** v0.3.0 リリース + AI コーチング機能（提案文脈に組み込むため）。
