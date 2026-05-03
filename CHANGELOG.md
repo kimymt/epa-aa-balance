@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.7] - 2026-05-03 — /design-review クイックウィン
+
+### Changed
+- **F-002**: シグナルラベル（良好/中程度/改善推奨/判定不能）を **チップスタイル**に変更
+  - 旧: `bg-{color}-500 + rounded-full + text-white` = ボタン状ピル
+  - 新: `bg-{color}-50 + text-{color}-700 + border + rounded-md` = ステータスチップ
+  - 「改善推奨」が clickable CTA に見える false affordance を解消
+  - 4 色（green/yellow/red/unknown）すべてに dark mode 対応
+- **F-007**: 結果ページの「別の写真で試す」リセットボタンを可視化
+  - 旧: outline-only border + text-sm
+  - 新: subtle filled (bg-slate-100) + text-base + 矢印サフィックス
+  - スクロール後の見落とし軽減
+
+### Accessibility
+- **F-004**: 「個別の食事結果」を `<div>` から `<h2>` へ昇格（セマンティック構造）
+- **F-006**: 判定方法フッターのコントラスト改善
+  - text-xs (12px) text-slate-500 → text-sm (14px) text-slate-600
+  - WCAG コントラスト要件への準拠を強化
+
+### Background
+`/design-review` 監査結果より、CSS-only の最小リスク 4 件をまとめて修正。
+スコア: B− → B（推定、再監査で最終確認予定）。
+保留した HIGH 級項目（home page 60% empty space, "what's next" preview,
+🍱 emoji ブランディング）は別 PR / design-consultation 案件として TODOS.md 記録。
+
 ## [0.4.6] - 2026-05-03 — セキュリティ hardening パッケージ (/cso 監査 informational 対応)
 
 ### Security
