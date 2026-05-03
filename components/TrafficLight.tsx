@@ -1,19 +1,19 @@
+// 信号機 UI: lipidPct (魚由来脂質割合) を 4 値（green/yellow/red/unknown）で表示。
+// v0.3.0: 旧 fishProteinPct 表示を lipidPct に置換。"unknown" 値追加 (グレー)。
+
 import type { TrafficLight as Light } from "@/lib/scoring";
 
-// PR 2: TrafficLight 型に "unknown" 値追加 (脂質ベース計算で全食材データ欠損ケース)。
-// PR 2 では UI 表示は変更しない (feature flag OFF が default のため "unknown" は来ない)。
-// PR 3 で flag ON 時に表示文言・色を本格対応。
 const LABELS: Record<Light, string> = {
-  green: "魚タンパク中心",
-  yellow: "やや魚少なめ",
-  red: "魚不足",
+  green: "魚由来 多め",
+  yellow: "魚由来 やや少なめ",
+  red: "魚由来 少ない",
   unknown: "判定不能",
 };
 
 const SUBTITLES: Record<Light, string> = {
-  green: "魚タンパク質が50%以上を占めています",
-  yellow: "魚タンパク質は25〜50%です",
-  red: "魚タンパク質が25%未満です",
+  green: "EPA+DHA が脂肪酸の30%以上を占めています",
+  yellow: "EPA+DHA は脂肪酸の15〜29%です",
+  red: "EPA+DHA が15%未満です",
   unknown: "データ不足のため判定できません",
 };
 
@@ -26,11 +26,12 @@ const COLORS: Record<Light, string> = {
 
 interface Props {
   light: Light;
-  fishProteinPct: number;
+  /** (EPA+DHA) / (EPA+DHA+AA) * 100. データ不足時 null */
+  lipidPct: number | null;
 }
 
-export function TrafficLight({ light, fishProteinPct }: Props) {
-  const display = Math.round(fishProteinPct);
+export function TrafficLight({ light, lipidPct }: Props) {
+  const display = lipidPct === null ? "—" : Math.round(lipidPct).toString();
   return (
     <div className="flex flex-col items-center gap-3">
       <div
@@ -40,10 +41,10 @@ export function TrafficLight({ light, fishProteinPct }: Props) {
         <div className="text-center">
           <div className="text-3xl sm:text-4xl font-bold text-white tabular-nums leading-none">
             {display}
-            <span className="text-lg sm:text-xl">%</span>
+            {lipidPct !== null && <span className="text-lg sm:text-xl">%</span>}
           </div>
           <div className="mt-1 text-[10px] sm:text-xs text-white/90">
-            魚タンパク
+            魚由来脂質
           </div>
         </div>
       </div>
