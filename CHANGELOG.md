@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.13] - 2026-05-04 — WHO/AHA 公的推奨値の達成バッジ（#17）
+
+### Added
+- **`lib/recommendations.ts`** 新規: 国際的な公的推奨値 3 段階を定義
+  - WHO 一般推奨: 250 mg/日（FAO/WHO 2010 専門家委員会）
+  - AHA 一般推奨: 500 mg/日（週 2 回の oily fish 相当）
+  - AHA CVD 二次予防: 1000 mg/日（心血管疾患既往者向け）
+  - 各エントリに**出典付き description**（ホバーで tooltip 表示）
+- **`evaluateAchievements(userMgPerDay)`**: 全推奨値との照合結果を返すヘルパ
+- **DietPatternComparison ヘッダーに達成チップ追加**:
+  - 達成: emerald + ✓
+  - 未達: slate + ○ + 進捗 % 表示
+  - 各チップに mg/日 閾値表示
+- **`lib/recommendations.test.ts`**: 9 ケース（整合性 4 + 達成判定 5）
+
+### Documentation
+- `lib/standards.ts` の `LIPID_RATIO_THRESHOLDS` コメントを大幅拡充:
+  - 30%/15% 閾値は「魚に偏ってるか」を直感把握するヒューリスティック
+  - 血中 EPA/AA 比への直接マッピングは存在しない（AA は内因性合成支配）
+  - 心血管疾患リスク低減で確立しているのは絶対摂取量ベース推奨
+  - したがって UI は両指標を併記する設計（lipidPct + WHO/AHA 達成度）
+  - 出典は `lib/recommendations.ts` 参照
+
+### Why
+これまで lipidPct 閾値（30%/15%）には「暫定値、エビデンス再評価は v0.4.0 で」と
+明記しつつも、再評価そのものが宙に浮いていた。今回の対応:
+
+1. **lipidPct 閾値は維持** — ヒューリスティックとして残す価値あり、変更で既存
+   ユーザーが混乱
+2. **絶対 mg/日 のエビデンス anchor を別系統で導入** — WHO/AHA 達成バッジで
+   科学的に強い anchor を可視化
+3. **科学的位置付けをコードコメントで明文化** — 将来の貢献者・ユーザーから
+   「なぜ 30% なのか」と問われても答えられる状態に
+
+これで「ratio = 食事傾向把握」「mg = エビデンスベース判定」の二系統で食事を評価
+できる。/design-consultation の Step 1 オンボーディングで開示したプロキシ性とも整合。
+
 ## [0.4.12] - 2026-05-04 — 個別食事カードに画像サムネイル表示（F-012）
 
 ### Added
