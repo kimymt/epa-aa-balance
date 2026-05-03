@@ -87,3 +87,47 @@ describe("lookupFood - kanji conversion (v0.3.3)", () => {
     expect(r?.entry.name).toBe("玉ねぎ"); // curated alias hit (玉葱 → たまねぎ → curated 「玉ねぎ」)
   });
 });
+
+describe("lookupFood - rendaku query variants (v0.3.4)", () => {
+  // 連濁 (rendaku): 複合語の後半要素が voiced consonant に変化する。
+  // クエリ「かに」を「がに」variant も生成して「ずわいがに」「毛がに」alias の
+  // 末尾でヒットさせる。alias.endsWith() に絞ることで内部誤マッチ
+  // (「イングリッシュ」.includes(「ぐり」)) を回避。
+
+  it("蟹/かに → matches real crab entry (毛がに or ずわいがに) not かに風味かまぼこ", () => {
+    const r = lookupFood("蟹");
+    expect(r).not.toBeNull();
+    // 期待: 真のかに entry (alias が「がに」終わり)
+    expect(r!.entry.name).toMatch(/がに/);
+    expect(r!.entry.name).not.toContain("かまぼこ");
+  });
+
+  it("くり → 日本ぐり (rendaku ぐり) not クリーム系 substring false positive", () => {
+    const r = lookupFood("くり");
+    expect(r?.entry.name).toContain("ぐり");
+    expect(r?.entry.name).not.toContain("クリーム");
+  });
+
+  it("たい → あまだい/あこうだい (rendaku だい) not 大根 (だいこん substring)", () => {
+    const r = lookupFood("たい");
+    expect(r?.entry.name).toMatch(/だい/);
+    expect(r?.entry.name).not.toBe("大根");
+  });
+
+  it("さめ → あぶらつのざめ (rendaku ざめ)", () => {
+    const r = lookupFood("さめ");
+    expect(r?.entry.name).toContain("ざめ");
+  });
+
+  it("明太子 → からしめんたいこ (no regression from variant suffix priority)", () => {
+    const r = lookupFood("明太子");
+    expect(r?.entry.name).toContain("めんたいこ");
+  });
+
+  it("variant matching does not affect exact-match priority", () => {
+    // 既存の curated entries への exact match は variant より優先
+    expect(lookupFood("サバ")?.entry.name).toBe("サバ");
+    expect(lookupFood("白米")?.entry.name).toBe("白米（炊飯後）");
+    expect(lookupFood("鯖")?.entry.name).toBe("サバ");
+  });
+});
