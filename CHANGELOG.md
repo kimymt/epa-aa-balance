@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.4] - 2026-05-03 — Gemini モデル変更 (flash → flash-lite)
+
+### Changed
+- `lib/coach.ts` の `MODEL` を `gemini-2.5-flash` → `gemini-2.5-flash-lite` に変更。
+  無料枠が **20 req/day → 1000 req/day** と 50 倍になり、実用的な運用が可能に。
+- レシピ提案は 3 件 × 5 フィールドの構造化出力なので、lite モデルで品質は十分と判断。
+
+### Background
+v0.4.0-alpha のリリース直後、ローカル + 本番でテストを重ねて Gemini 2.5 Flash の
+無料枠 20 req/day にすぐ到達。v0.4.3 で QUOTA_EXCEEDED 専用 UI を入れて
+ユーザー体験は守ったが、根本的に枠が足りないので lite に切り替え。
+
 ## [0.4.3] - 2026-05-03 — エラー文言の細分化（魚啓蒙動画 + Gemini quota 専用 UI）
 
 ### Added
