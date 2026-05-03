@@ -23,6 +23,8 @@ import {
   dailyAverageMg,
   type DietPattern,
 } from "@/lib/diet-patterns";
+// v0.4.13: WHO/AHA 公的推奨値の達成バッジを追加 (#17 対応)
+import { evaluateAchievements } from "@/lib/recommendations";
 
 interface Props {
   totalEpaMg: number;
@@ -47,6 +49,8 @@ export function DietPatternComparison({
   const totalG = totalMg / 1000;
   const dailyAvgMg = Math.round(dailyAverageMg(totalMg, mealsWithData));
   const position = findPatternPosition(dailyAvgMg);
+  // v0.4.13: WHO/AHA 達成度評価
+  const achievements = evaluateAchievements(dailyAvgMg);
 
   // ガード: lipidPct が null なら「該当データなし」
   if (lipidPct === null || mealsWithData === 0) {
@@ -92,6 +96,13 @@ export function DietPatternComparison({
             <span className="ml-2 text-slate-500 dark:text-slate-400">
               （平均 {fmt(dailyAvgMg)} mg/日）
             </span>
+          </div>
+          {/* v0.4.13: WHO/AHA 公的推奨値の達成バッジ。lipidPct ratio より
+              科学的根拠が強い anchor (絶対 mg/日) を併記する。 */}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {achievements.map((a) => (
+              <AchievementChip key={a.recommendation.id} achievement={a} />
+            ))}
           </div>
         </div>
       </header>
@@ -205,6 +216,38 @@ function UserMarker({ dailyAvgMg }: { dailyAvgMg: number }) {
         <div className="text-xs text-amber-700 dark:text-amber-300">mg/日</div>
       </div>
     </div>
+  );
+}
+
+/**
+ * v0.4.13: WHO/AHA 推奨達成チップ。達成 = emerald + ✓、未達 = slate + 進捗 %。
+ * description は title 属性 (tooltip) で表示、出典付きで読める。
+ */
+function AchievementChip({
+  achievement,
+}: {
+  achievement: ReturnType<typeof evaluateAchievements>[number];
+}) {
+  const { recommendation, achieved, ratio } = achievement;
+  const pct = Math.round(Math.min(ratio, 9.99) * 100);
+  return (
+    <span
+      title={recommendation.description}
+      className={
+        achieved
+          ? "inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/30 dark:text-emerald-200"
+          : "inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400"
+      }
+    >
+      <span aria-hidden>{achieved ? "✓" : "○"}</span>
+      <span>{recommendation.label}</span>
+      <span className="text-[10px] opacity-75">
+        {recommendation.thresholdMgPerDay} mg/日
+      </span>
+      {!achieved && (
+        <span className="text-[10px] opacity-75">({pct}%)</span>
+      )}
+    </span>
   );
 }
 
