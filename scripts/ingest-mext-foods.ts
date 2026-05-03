@@ -19,11 +19,14 @@
 
 // @ts-ignore
 import * as XLSX from "xlsx";
+// @ts-ignore
+import kuromoji from "kuromoji";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
 const MEXT_FILE = "/tmp/mext.xlsx";
 const FOODS_FILE = path.join(process.cwd(), "data", "foods.json");
+const KUROMOJI_DICT = path.join(process.cwd(), "node_modules/kuromoji/dict");
 
 const COL = { group: 0, name: 3, fat: 6, aa: 53, epa: 54, dha: 60 };
 
@@ -87,7 +90,52 @@ function deriveAliases(primaryName: string): string[] {
   return words.filter((w) => w.length >= 2);
 }
 
+/**
+ * Kuromoji で漢字を含む primary name の連続 kana 読みを生成する (v0.3.5)。
+ *
+ * 入力例: "豚 大型種肉 ばら 脂身つき 生" (空白区切り、漢字含む)
+ * 出力例: "ぶたおおがたしゅにくばらしみつきなま"
+ *
+ * 用途: Vision API が「豚バラ」のように連結形式で出力した時に substring match
+ * させる。MEXT は単語空白区切り、Vision は連結 — このギャップを埋める。
+ *
+ * 制限:
+ *   - kuromoji は珍しい漢字や固有名詞で誤った読みを返すことあり (鯱 → ホコ vs シャチ)
+ *   - 食品文脈に固有の読みは外す可能性あり
+ *   → 全 alias を上書きせず、新規 alias として「追加」のみ。既存 alias で十分マッチ
+ *      する case が大半なので、kuromoji 由来 alias は補助的。
+ *   - 漢字含まない primary (純 kana) は kuromoji 不要、skip。
+ */
+function deriveKuromojiAlias(tokenizer: any, primaryName: string): string | null {
+  if (!/[一-鿿]/.test(primaryName)) return null; // 漢字なし → skip
+  try {
+    const tokens = tokenizer.tokenize(primaryName);
+    let reading = "";
+    for (const t of tokens) {
+      // reading は katakana で返ってくる; surface_form fallback (記号等)
+      reading += t.reading || t.surface_form || "";
+    }
+    // katakana → hiragana 変換
+    const hira = reading.replace(/[ァ-ヶ]/g, (m) =>
+      String.fromCharCode(m.charCodeAt(0) - 0x60)
+    );
+    // 空白除去 (「ぶた おおがた」→「ぶたおおがた」)
+    return hira.replace(/\s+/g, "").trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 // === Main ingestion ===
+
+// Kuromoji tokenizer ビルド (非同期、約 2-3 秒)
+const tokenizer: any = await new Promise((resolve, reject) => {
+  kuromoji.builder({ dicPath: KUROMOJI_DICT }).build((err: any, t: any) => {
+    if (err) reject(err);
+    else resolve(t);
+  });
+});
+console.error("Kuromoji tokenizer ready.");
 
 const wb = XLSX.readFile(MEXT_FILE);
 const sheet = wb.Sheets["表全体"];
@@ -140,6 +188,12 @@ for (let i = 6; i < data.length; i++) {
   const category = GROUP_TO_CATEGORY[groupCode] || "other";
   const primaryName = derivePrimaryName(mextName);
   const aliases = deriveAliases(primaryName);
+
+  // v0.3.5: kuromoji で連続 kana 読みを生成、既存 alias と異なれば追加
+  const kuromojiAlias = deriveKuromojiAlias(tokenizer, primaryName);
+  if (kuromojiAlias && kuromojiAlias.length >= 3 && !aliases.includes(kuromojiAlias)) {
+    aliases.push(kuromojiAlias);
+  }
 
   newFoods.push({
     name: primaryName,
