@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.5] - 2026-05-03 — `/api/analyze` レート制限 + 環境変数ドキュメント整備
+
+### Security
+- **`/api/analyze` に D1 ベースのレート制限を追加**（`/cso` 監査の Finding 1 対応）。
+  デフォルト 10 req/h/IP、`ANALYZE_RATE_LIMIT` env で変更可。1 リクエストで最大 9 並列
+  Vision 呼び出しが走るため、未保護のままだと攻撃者が 1 IP で free-tier quota を
+  数分で枯渇可能だった。
+- 制限超過時は **429 + Retry-After** ヘッダ。telemetry は `request_log` テーブルに
+  全リクエスト記録（v0.4.2 と同パターン、同テーブル共有）。
+- D1 環境変数が無い環境（local dev）では rate limit を自動 disable。
+
+### Added
+- `.env.example` に `IP_HASH_SECRET`, `COACH_RATE_LIMIT`, `ANALYZE_RATE_LIMIT` を
+  ドキュメント化。新規 contributor が rate limit / IP hash の存在を発見可能に。
+
+### Background
+v0.4.2 で `/api/coach` のみ守ったが、`/cso --infra` 監査で「`/api/analyze` の方が
+9 倍重い」ことが判明。同 D1 テーブル `request_log` を共有することでマイグレーション不要、
+コード変更のみでデプロイ可能。
+
 ## [0.4.4] - 2026-05-03 — Gemini モデル変更 (flash → flash-lite)
 
 ### Changed
