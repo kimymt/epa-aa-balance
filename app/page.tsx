@@ -108,11 +108,14 @@ export default function Home() {
       {state.kind === "result" && (
         <div className="mt-4">
           <ResultPanel result={state.result} />
+          {/* v0.4.7: outline-only → subtle filled で reset CTA を見つけやすく
+              (F-007 対応)。primary CTA (アップロード) と差別化しつつ、結果ページの
+              唯一の secondary action として認識可能に。 */}
           <button
             onClick={reset}
-            className="mt-8 w-full rounded-xl border border-slate-300 px-6 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
+            className="mt-8 w-full rounded-xl border border-slate-300 bg-slate-100 px-6 py-3 text-base font-medium text-slate-800 hover:bg-slate-200 active:bg-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
           >
-            別の写真で試す
+            別の写真で試す →
           </button>
         </div>
       )}
