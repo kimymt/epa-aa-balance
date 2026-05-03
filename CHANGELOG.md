@@ -2,6 +2,52 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.16] - 2026-05-04 — 安全性注意事項の中央集権 + 過剰称賛メッセージ修正
+
+### Added
+- **`lib/safety-notes.ts`** 新規: 安全性注意事項の単一情報源 (single source of truth)
+  - `ANTICOAGULANT_CONSULT`: 抗凝固薬・抗血小板剤服用者・手術予定者向けの相談推奨
+  - `HIGH_INTAKE_MAINTENANCE`: 高摂取到達時の「維持が大事」メッセージ
+  - 出典コメント付き (AHA 2002/2017, EFSA 2012, REDUCE-IT, Cochrane 2018)
+- **`lib/safety-notes.test.ts`**: 5 ケース（整合性 + 文言禁則チェック）
+
+### Changed
+- **OnboardingCard に注意書き 1 行追加**: 抗凝固薬服用者・手術予定者向けの医師
+  相談推奨 (amber 枠で「わかった」ボタン直前に配置、dismiss 前に必ず目に入る)
+- **DietPatternComparison「全パターン超え」メッセージを書き換え**:
+  - 旧: `🏆 全パターンを超えました！EPA+DHA 摂取量がイヌイット伝統食水準です。`
+  - 新: `ℹ 食事からの EPA+DHA 摂取が高水準に達しています。これ以上の上乗せは
+    不要で、ここから先は量より「この食習慣を続けること」が大事です。サプリメント
+    等で 3 g/日を超える継続摂取がある場合は医師にご相談ください。`
+  - 称賛 (🏆) → 中立的な情報通告 (ℹ)
+  - emerald (祝賀色) → amber (注意喚起色)
+  - 「目指せ Inuit」感を排除、行動方針 (「維持」) を明示
+
+### Why
+v0.4.15 で公開した Q&A 集の作成過程で、LLM 生成回答に「3 g/日を超える継続摂取で
+出血傾向リスク」という古い説に基づく誤情報が含まれていた問題が判明。
+
+科学的事実関係を再調査:
+- AHA 2002/2017: 〜3-4 g/日で出血リスク増加なし
+- EFSA 2012: 最大 5 g/日まで安全性懸念なし
+- REDUCE-IT 試験 (2018): 4 g/日 × 5 年で major bleeding なし (vs placebo)
+- Cochrane Review 2018 (79 RCTs): 出血イベントに有意差なし
+- 食事だけで 3 g 超は現実的に困難 (サバ缶 1 個で約 200 mg、15 個分必要)
+
+→ アプリ側は (1) 該当者 (抗凝固薬服用者等) には情報通告、(2) 一般ユーザーには
+fear-mongering せず、(3) 過剰摂取を称賛しない、の方針で修正。
+
+Q&A 側の文言修正はユーザー側で対応。
+
+## [0.4.15] - 2026-05-04 — Q&A リンク active 化
+
+### Changed
+- `components/Footer.tsx`: Q&A リンクの URL を確定値 (Notion ページ) に更新。
+  `QA_URL_PLACEHOLDER` 判定が自動で false になり、active リンク化される設計
+  どおりの挙動。「（準備中）」サフィックス消去、target=_blank 等が付与される。
+- `QA_URL` の型を `string` にウィデン (literal type narrowing で TS comparison
+  error 回避、将来 placeholder に戻す可能性も担保)。
+
 ## [0.4.14] - 2026-05-04 — グローバルフッター（GitHub + Q&A リンク）
 
 ### Added
