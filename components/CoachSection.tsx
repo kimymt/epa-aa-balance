@@ -22,6 +22,12 @@ type State =
   | { kind: "initial" }
   | { kind: "loading" }
   | { kind: "result"; recipes: Recipe[]; activeChip: ChipKey | null; retried: boolean }
+  // v0.4.3: 429 (自前 rate limit) 専用 state。AI 提案の上限に達したユーザーは
+  // まだ「魚を食べる意識」が育っていないと解釈し、洗脳動画で啓蒙する。
+  | { kind: "rate_limited" }
+  // v0.4.3: 503 (Gemini API quota) 専用 state。Google 側の無料枠が尽きた状態で、
+  // 「自分のせい」ではなくユーザー側からは打つ手なし（明日待つ）。
+  | { kind: "quota_exceeded" }
   | { kind: "error"; message: string };
 
 interface Props {
@@ -43,6 +49,17 @@ export function CoachSection({ aggregate, recentFoods }: Props) {
       });
       const json = await res.json();
       if (!res.ok) {
+        // v0.4.3: エラーコード別に専用 UI を出す。
+        // - RATE_LIMITED (429): 自前レート制限 → 魚啓蒙動画
+        // - QUOTA_EXCEEDED (503): Gemini 側 quota → 「明日また」
+        if (res.status === 429 || json.code === "RATE_LIMITED") {
+          setState({ kind: "rate_limited" });
+          return;
+        }
+        if (json.code === "QUOTA_EXCEEDED" || res.status === 503) {
+          setState({ kind: "quota_exceeded" });
+          return;
+        }
         setState({ kind: "error", message: json.error ?? "提案を取得できませんでした。" });
         return;
       }
@@ -185,6 +202,62 @@ export function CoachSection({ aggregate, recentFoods }: Props) {
             </div>
             <p className="mt-1 text-xs text-slate-400">最大 200 文字</p>
           </div>
+        </div>
+      )}
+
+      {state.kind === "rate_limited" && (
+        <div>
+          <div className="text-base sm:text-lg text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+            <span className="text-2xl">🐟</span>
+            <span className="font-medium">魚のこと、好きですか？</span>
+          </div>
+          <p className="text-sm text-slate-700 dark:text-slate-300 mb-4 leading-relaxed">
+            魚のことが好きではないですか？魚を好きになれるよう、この
+            <s className="text-slate-400 dark:text-slate-500">動機づけ</s>
+            <span className="font-semibold">洗脳</span>動画をご覧ください。
+          </p>
+          <div className="aspect-video w-full overflow-hidden rounded-lg bg-black mb-4">
+            <iframe
+              className="w-full h-full"
+              src="https://www.youtube-nocookie.com/embed/rPPJey1perw?si=Re8uhR7G_MZ8L3rL"
+              title="YouTube video player"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+            />
+          </div>
+          <button
+            onClick={() => setState({ kind: "initial" })}
+            className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600 py-3 px-6 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+          >
+            戻る
+          </button>
+          <p className="mt-3 text-xs text-slate-400 text-center">
+            ※ AI 提案は 1 時間あたり 10 回までです。少し時間を置いてから再試行してください。
+          </p>
+        </div>
+      )}
+
+      {state.kind === "quota_exceeded" && (
+        <div>
+          <div className="text-base sm:text-lg text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+            <span className="text-2xl">⏳</span>
+            <span className="font-medium">本日分の AI 提案枠が尽きました</span>
+          </div>
+          <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-4">
+            <p className="text-sm text-amber-900 dark:text-amber-200 leading-relaxed mb-2">
+              Google Gemini API の本日の無料枠に到達しました。アプリ側の問題ではないため、明日まで待つか、しばらく時間を置いてから再度お試しください。
+            </p>
+            <p className="text-xs text-amber-800/80 dark:text-amber-300/80">
+              ※ 無料枠は日次でリセットされます（JST 午後 5 時前後）。
+            </p>
+          </div>
+          <button
+            onClick={() => setState({ kind: "initial" })}
+            className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600 py-3 px-6 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+          >
+            戻る
+          </button>
         </div>
       )}
 

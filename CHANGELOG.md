@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.3] - 2026-05-03 — エラー文言の細分化（魚啓蒙動画 + Gemini quota 専用 UI）
+
+### Added
+- **429 (自前 rate limit) 専用 UI**: `/api/coach` で 1 IP / 1 時間 10 回の上限に
+  到達したとき、汎用エラー画面ではなく「魚を好きになれるよう、この洗脳動画を
+  ご覧ください」という啓蒙メッセージと YouTube 動画 (youtube-nocookie 埋め込み)
+  を表示。「上限に達するまで提案を求めるユーザーは、まだ魚を食べる意識が育って
+  いない」という仮説に基づく啓蒙体験。
+- **503 (Gemini quota 超過) 専用 UI**: Google Gemini API の本日の無料枠
+  (gemini-2.5-flash は 20 req/day と非常に厳しい) に到達したとき、
+  「本日分の AI 提案枠が尽きました。明日まで待つかしばらく時間を置いてください」
+  と明示。アプリ側の問題ではなく Google 側の問題であることをユーザーに明確化。
+- `lib/coach.ts` に `isGeminiQuotaError(message)` ヘルパ。SDK エラー文の
+  `RESOURCE_EXHAUSTED` / `quota exceeded` / `exceeded your current quota` を検出。
+  HTTP 429 単独では検出しない（自前 rate limit と紛らわしい）。
+- `lib/coach.test.ts` に 8 ケース追加（quota 検出 5 + getCoachErrorCode 3）。
+
+### Changed
+- `CoachError.code` に `"RATE_LIMITED"` と `"QUOTA_EXCEEDED"` を追加
+  （既存 INVALID_REQUEST / LLM_ERROR / TIMEOUT に加えて）。
+- `app/api/coach/route.ts` の 429 レスポンスは `code: "RATE_LIMITED"` を返す。
+- `app/api/coach/route.ts` の Gemini quota 検出時は **HTTP 503** + `code: "QUOTA_EXCEEDED"`
+  を返す（自前 429 と区別、上流 API 不調の意味）。
+- `components/CoachSection.tsx` に新 state `rate_limited` と `quota_exceeded` を追加。
+  status / code どちらでも判定可能。
+- `getCoachErrorCode` の戻り値型に `"QUOTA_EXCEEDED"` を追加。
+
 ## [0.4.2] - 2026-05-03 — レート制限 + リクエスト telemetry
 
 ### Added
