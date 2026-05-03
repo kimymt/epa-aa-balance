@@ -4,9 +4,11 @@
 // `mt-auto` で常にビューポート最下部 (or コンテンツ下) に押し出す
 // (body は flex flex-col + min-h-full なので機能する)。
 
-// TODO(v0.4.x): Q&A の URL は後ほど確定。確定したら下記 QA_URL を更新する。
-// 仮 URL は "#" にして、視覚的には存在を示すが押しても何も起きない状態。
-const QA_URL = "#";
+// v0.4.15: Q&A URL が確定 (Notion ページ)。QA_URL_PLACEHOLDER 判定が
+// false になり、active リンク化 (target="_blank" + 通常 styling)。
+// 型を string にウィデンしておくと、将来 "#" に戻した場合も TS エラーにならない。
+const QA_URL: string =
+  "https://healthy-park-7bc.notion.site/EPA-AA-Q-A-355a4a535c738108a028f06f1e47f7c9";
 const QA_URL_PLACEHOLDER = QA_URL === "#";
 
 const REPO_URL = "https://github.com/kimymt/epa-aa-balance";
