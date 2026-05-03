@@ -59,22 +59,38 @@ export function __resetCache(): void {
 }
 
 /**
+ * 文字列正規化: lowercase + カタカナ → ひらがな変換。
+ *
+ * v0.3.2: MEXT 由来の食材名は多くがひらがな（「はまち」「にしん」「あんこう」）、
+ * Vision API の出力は多くがカタカナ（「ハマチ」「ニシン」「アンコウ」）なので、
+ * 正規化なしだと substring match がスクリプト境界で外れる。
+ *
+ * カタカナ U+30A1〜U+30F6 をひらがな U+3041〜U+3096 にシフト（差は 0x60）。
+ * 漢字・英数字・記号は不変。
+ */
+function normalize(s: string): string {
+  return s.toLowerCase().replace(/[ァ-ヶ]/g, (m) =>
+    String.fromCharCode(m.charCodeAt(0) - 0x60)
+  );
+}
+
+/**
  * 食材名から食品エントリを検索する。
  *
  * 優先順位:
- *   1. 完全一致（name または aliases）
- *   2. 双方向の部分文字列一致
+ *   1. 完全一致（name または aliases、kana 正規化後）
+ *   2. 双方向の部分文字列一致（kana 正規化後）
  *   3. category_fallbacks の matchers との部分文字列一致（isFallback: true）
  */
 export function lookupFood(query: string): LookupResult | null {
   const data = loadFoods();
-  const q = query.trim().toLowerCase();
+  const q = normalize(query.trim());
   if (!q) return null;
 
   // 1. exact match
   for (const f of data.foods) {
-    if (f.name.toLowerCase() === q) return { entry: f, isFallback: false };
-    if (f.aliases.some((a) => a.toLowerCase() === q))
+    if (normalize(f.name) === q) return { entry: f, isFallback: false };
+    if (f.aliases.some((a) => normalize(a) === q))
       return { entry: f, isFallback: false };
   }
 
@@ -82,7 +98,7 @@ export function lookupFood(query: string): LookupResult | null {
   for (const f of data.foods) {
     const candidates = [f.name, ...f.aliases];
     for (const c of candidates) {
-      const lower = c.toLowerCase();
+      const lower = normalize(c);
       if (lower.includes(q) || q.includes(lower)) {
         return { entry: f, isFallback: false };
       }
@@ -92,7 +108,7 @@ export function lookupFood(query: string): LookupResult | null {
   // 3. category fallback
   for (const fb of data.category_fallbacks ?? []) {
     for (const matcher of fb.matchers) {
-      const lower = matcher.toLowerCase();
+      const lower = normalize(matcher);
       if (lower.includes(q) || q.includes(lower)) {
         return {
           entry: {
