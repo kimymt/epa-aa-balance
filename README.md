@@ -1,109 +1,237 @@
 # EPA/AAバランス
 
 [![Deployed on Vercel](https://img.shields.io/badge/Vercel-deployed-black?logo=vercel)](https://eaa-scorer.vercel.app)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
+[![Tests](https://img.shields.io/badge/tests-175_pass-success)](./lib)
 
-食事の写真から、**魚由来脂質（EPA + DHA）と肉由来脂質（AA）の比率**を信号機で判定するWebアプリ。
-EPA/AA比（血中脂肪酸の指標）の食事面の目安として活用できます。
+食事の写真から **魚由来脂質（EPA + DHA）と肉由来脂質（AA）のバランス**を分析する Web アプリ。
 
-**v0.3.0 (2026-05-03):** タンパク質ベースの proxy 計算から、実際の脂肪酸成分
-（MEXT 食品成分表 脂肪酸成分表編 2020 由来）を使った計算にメジャーアップグレード。
+ただ数字を見せるだけではなく、世界の食習慣との比較で**自分の現在地を直感把握**し、AI コーチが**目標食習慣に近づくレシピ**を提案して**行動変容**を促すプロダクトを目指しています。
 
-## なにを測るか
+🌐 **本番**: <https://epaaa.mymt.casa> （独自ドメイン） / <https://eaa-scorer.vercel.app> （Vercel）
 
-EPA・DHAは主に魚由来の omega-3 脂肪酸（抗炎症性）、AA（アラキドン酸）は主に肉・卵・乳由来の omega-6 脂肪酸。
-本来のEPA/AA比は血液検査でしか分かりませんが、食事写真からの食事面の目安として
-**(EPA + DHA) / (EPA + DHA + AA) の割合**を計算しています（share form）。
+![ホーム画面 + オンボーディング + 注意書き + footer](./docs/screenshots/01-home-onboarding.png)
 
-| 信号 | 魚由来脂質割合 | 意味 |
+---
+
+## 🎯 このアプリでできること
+
+このセクションは「**このツールを採用すべきか / 試すべきか**」を判断するための機能紹介です。
+
+### 1. 食事写真から脂肪酸を計算
+最大 **9 枚 / 1 リクエスト**で、複数日分の食事をまとめて分析できます。
+
+写真をアップロードすると:
+- Google Gemini Vision API が食材と概算量を識別
+- MEXT「食品成分表 脂肪酸成分表編 2020」由来のデータベースで EPA / DHA / AA の mg を集計
+- **魚由来脂質割合**を信号機（緑 / 黄 / 赤 / 灰）で判定
+
+### 2. 世界の食習慣との比較 (WOW 体験)
+あなたの食事を 5 つの代表的な食習慣と並べ、現在地を直感的に把握できます:
+
+| 食習慣 | EPA+DHA mg/日 | 特徴 |
 |---|---|---|
-| 🟢 緑 | ≥ 30% | 魚由来脂肪酸が多め（EPA/DHA リッチ） |
+| 標準的アメリカ食 | 150 | 魚は週 1 回未満 |
+| 地中海食 | 600 | 週 2-3 回の魚介、オリーブオイル中心 |
+| 日本伝統食 | 1,200 | 青魚を週 3-4 回（戦後〜70 年代の標準） |
+| ノルウェー食 | 1,700 | 鮭・鯖中心 + 肝油サプリ普及 |
+| イヌイット伝統食 | 14,000 | アザラシ・クジラの脂で 90% 以上が魚介由来 |
+
+「あなたはここ 👉」マーカーで位置を表示し、「次の食習慣まであと +N mg」と具体食材アクション（例: サバ缶 1 つ追加）を併記。
+
+### 3. WHO / AHA 公的推奨値の達成度
+科学的根拠の強い**絶対 mg 摂取量**ベースの公的推奨値との達成度をチップで表示:
+
+- **WHO 一般推奨** 250 mg/日 (FAO/WHO 2010 専門家委員会)
+- **AHA 一般推奨** 500 mg/日 (週 2 回の oily fish 相当)
+- **AHA CVD 二次予防** 1,000 mg/日 (心血管疾患既往者向け)
+
+### 4. AI コーチング
+あなたが「次に近づける食習慣」を自動算出し、Gemini が**ギャップを埋めるレシピ**を 3 件提案します。
+和食寄り / コンビニ / 20分以内 などのチップで提案を絞り込み可。
+
+### 5. 透明性のあるオンボーディング
+初回訪問時に以下を 30 秒で説明:
+- このアプリで何が分かるか
+- **食事写真からの計算は血液検査の代わりではない**こと（プロキシ性）
+- 抗凝固薬服用者・手術予定者向けの医師相談推奨
+
+リピート訪問時は折りたたみで邪魔にならない設計。
+
+---
+
+## 🔬 何を測るか・何を測らないか
+
+このセクションは「**このツールの限界と科学的位置付け**」を理解するためのもの。
+
+### 主指標 (信号機)
+**魚由来脂質割合 (lipidPct)** = (EPA + DHA) / (EPA + DHA + AA) × 100
+
+| 信号 | 割合 | 意味 |
+|---|---|---|
+| 🟢 緑 | ≥ 30% | 魚由来脂肪酸が多め（EPA / DHA リッチ） |
 | 🟡 黄 | 15-29% | 混在 |
 | 🔴 赤 | < 15% | 魚由来脂肪酸が少ない |
 | ⚪ 灰 | データ不足 | 全食材で脂肪酸データ欠損、判定不能 |
 
-閾値は v0.3.0 暫定値（MVP）。WHO/AHA 推奨の EPA+DHA 摂取量ベースのエビデンス再評価は v0.4.0 で予定。
-`lib/standards.ts` の `LIPID_RATIO_THRESHOLDS` を差し替えればすべての判定に反映されます。
+> **位置付け**: 30% / 15% は「魚に偏ってるか」を直感把握する**ヒューリスティック**で、血中 EPA/AA 比への直接マッピングは存在しません（AA は内因性合成支配）。閾値の数値そのものに強い科学的アンカーは無いため、当面は維持。詳細は [`lib/standards.ts`](./lib/standards.ts) のコメント参照。
 
-## 動かし方
+### エビデンスベース指標 (絶対 mg)
+心血管疾患リスク低減で**強いエビデンスがあるのは絶対摂取量**です。WHO/AHA 達成チップで併記表示しています。
 
+二指標を併記する設計: lipidPct = 食事傾向把握 / 絶対 mg = エビデンスベース判定。
+
+### プロキシ性（食事 → 血中 → 健康効果のチェーン）
+食事中の脂肪酸組成 → 血中 → 健康効果 のチェーンには:
+- 8〜12 週間の遅延
+- 個人差（FADS1/2 多型等）
+- 内因性合成（AA はリノール酸由来が支配的）
+
+があるため、**食事写真からの計算は血液検査の代わりではありません**。あくまで食習慣の傾向把握用です。
+
+### 安全性
+食事だけで EPA+DHA を取りすぎることはほぼ不可能です（3 g/日 にサバ缶 15 個必要）。
+AHA 2002/2017、EFSA 2012、REDUCE-IT 試験 (2018)、Cochrane Review 2018 (79 RCTs) のいずれも **食品由来の通常摂取で出血リスク増加なし**と結論しています。
+
+**ただし以下の方は念のため医師にご相談ください**:
+- 抗凝固薬・抗血小板剤を服用中
+- 出血性疾患の既往あり
+- 手術予定がある（1〜2 週間前から）
+- サプリメントで 3 g/日を超える摂取を継続している
+
+詳細は [`lib/safety-notes.ts`](./lib/safety-notes.ts) で一元管理しています。
+
+---
+
+## 🚀 使う
+
+### すぐ試す
+<https://epaaa.mymt.casa> を開いて、食事の写真をアップロードするだけ。
+**認証・登録不要**。
+
+### 自分でホストする
 ```bash
 bun install
 cp .env.example .env.local
-# .env.local の GEMINI_API_KEY を埋める（https://aistudio.google.com/apikey で無料取得）
+# .env.local の GEMINI_API_KEY を埋める (https://aistudio.google.com/apikey 無料取得)
 bun dev
 ```
 
-## テスト
+### 環境変数
+| 変数 | 必須 | 説明 |
+|---|---|---|
+| `GEMINI_API_KEY` | ✅ | Google AI Studio で無料取得 |
+| `CLOUDFLARE_ACCOUNT_ID` | ⚠ | フィードバック・rate limit 機能を使う場合 |
+| `CLOUDFLARE_D1_DATABASE_ID` | ⚠ | 同上 |
+| `CLOUDFLARE_API_TOKEN` | ⚠ | 同上 (D1 Edit 権限) |
+| `FEEDBACK_ADMIN_TOKEN` | ⚠ | `/admin` GET エンドポイント認証 (32 文字以上推奨) |
+| `ADMIN_BASIC_AUTH` | ⚠ | `/admin` ページ Basic Auth (`user:pass` 形式) |
+| `IP_HASH_SECRET` | 推奨 | rate limit IP ハッシュの secret (`openssl rand -hex 32`) |
+| `COACH_RATE_LIMIT` | 任意 | `/api/coach` 上限 (デフォルト 10 req/h/IP) |
+| `ANALYZE_RATE_LIMIT` | 任意 | `/api/analyze` 上限 (デフォルト 10 req/h/IP) |
+| `FEEDBACK_ADMIN_RATE_LIMIT` | 任意 | `GET /api/feedback` 上限 (デフォルト 30 req/h/IP) |
 
-```bash
-bun test
-```
+⚠ = D1 連携機能（フィードバック保存、rate limit、admin）を使う場合のみ。`GEMINI_API_KEY` だけでもコア機能（写真解析）は動きます。
 
-スコア計算ロジック (`lib/scoring.test.ts`)、食材データ schema (`data/foods.test.ts`)、D1 マイグレーションランナー (`scripts/migrate-d1.test.ts`) にユニットテスト計 49 件。
+---
 
-## アーキテクチャ
+## 🛠 アーキテクチャ
 
+### ファイル構成
 ```
 app/
-  page.tsx                  # アップロードUI（client）
-  api/analyze/route.ts      # メインパイプライン（maxDuration: 45）
-  api/feedback/route.ts     # 精度フィードバック収集（D1 保存、calculation_version 付与）
-  admin/page.tsx            # フィードバック閲覧 (HTTP Basic Auth)
-lib/
-  vision.ts                 # Google Gemini 2.5 Flash で食材抽出
-  food-db.ts                # data/foods.json ルックアップ（exact → substring → category fallback）
-  analyzer.ts               # 食材リスト → AnalysisResult (lipidPct/lipidRatio/EPA/DHA/AA mg)
-  scoring.ts                # 脂質ベース計算 + 信号機判定（純関数）
-  scoring.test.ts           # 12 ケースの単体テスト (5 fixture meals + edge cases)
-  standards.ts              # 閾値・カテゴリ定義
-  session.ts                # 複数食事 aggregate
-data/
-  foods.json                # 食品DB（57品目、各品目に protein_g + epa_mg/dha_mg/aa_mg/total_lipid_g）
-  foods.test.ts             # schema 検証 (8 ケース)
+  page.tsx                            # メイン画面（client、onboarding + upload + result）
+  api/analyze/route.ts                # Vision 解析パイプライン（rate limit + telemetry 付）
+  api/coach/route.ts                  # AI コーチ提案 (Gemini 2.5 Flash Lite)
+  api/feedback/route.ts               # フィードバック収集 + admin GET (rate limit)
+  admin/page.tsx                      # フィードバックダッシュボード (Basic Auth)
+  layout.tsx                          # RootLayout + Footer
+
 components/
-  TrafficLight.tsx          # 信号機UI（中央に lipidPct% 表示、unknown グレー対応）
-  LipidSourceBar.tsx        # スタックドバー（EPA/DHA/AA mg 内訳）
-  ResultPanel.tsx           # 結果まとめ
-  UploadZone.tsx            # 画像アップロード（HEIC自動変換対応）
+  OnboardingCard.tsx                  # 初回展開・リピート折りたたみ (localStorage)
+  UploadZone.tsx                      # 画像アップロード (HEIC 自動変換)
+  ResultPanel.tsx                     # 結果まとめ (aggregate + meals grid)
+  TrafficLight.tsx                    # 信号機 UI (lipidPct% 中央表示)
+  LipidSourceBar.tsx                  # EPA/DHA/AA mg 内訳スタックドバー
+  DietPatternComparison.tsx           # 食習慣 5 パターン比較 + WHO/AHA 達成バッジ
+  CoachSection.tsx                    # AI コーチ section (5 states + 目標自動算出)
+  RecipeCard.tsx                      # レシピ表示
+  Footer.tsx                          # GitHub + Q&A グローバルフッター
+
+lib/
+  vision.ts                           # Gemini Vision で食材抽出
+  food-db.ts                          # 1,971 品目ルックアップ (4 段階 fallback)
+  analyzer.ts                         # 食材リスト → AnalysisResult
+  scoring.ts                          # 脂質ベース計算 + 信号機判定 (純関数)
+  standards.ts                        # 閾値・カテゴリ定義
+  session.ts                          # 複数食事 aggregate
+  coach.ts                            # AI コーチ prompt + Gemini 呼び出し + バリデーション
+  diet-patterns.ts                    # 5 食習慣パターンデータ + 位置算出
+  recommendations.ts                  # WHO / AHA 推奨値 + 達成判定
+  onboarding.ts                       # localStorage state ヘルパ (SSR セーフ)
+  safety-notes.ts                     # 安全性注意事項の中央集権 (出典コメント付)
+  d1.ts                               # 共有 D1 REST クライアント
+  rate-limit.ts                       # IP ハッシュ + sliding window レート制限
+  timing-safe.ts                      # constant-time 文字列比較 (auth 用)
+  feedback-validation.ts              # /api/feedback POST バリデーション
+  auth.ts                             # /admin Basic Auth ヘルパ
+
+data/
+  foods.json                          # 食品 DB 1,971 品目 (MEXT 由来)
+
 migrations/
-  0003_add_calculation_version.sql  # D1 schema migration
+  0003_add_calculation_version.sql    # feedback テーブル v1/v2 区別
+  0004_add_request_log.sql            # rate limit + telemetry テーブル
+
 scripts/
-  migrate-d1.ts             # REST API ベースの migration ランナー
-  migrate-d1.test.ts        # PRAGMA mock テスト (6 ケース)
+  ingest-mext-foods.ts                # MEXT Excel → foods.json (build-time only)
+  migrate-d1.ts                       # REST API ベース migration ランナー (冪等)
 ```
 
-## パイプライン
-
+### パイプライン
 ```
-[1] 写真アップロード
+[1] 初回訪問
+    └─ OnboardingCard 展開 (localStorage で初回判定)
+       → EPA/DHA + プロキシ性 + 抗凝固薬注意を 30 秒で説明
+
+[2] 写真アップロード
     ├─ HEIC → JPEG 自動変換（クライアント側、heic2any）
-    └─ POST /api/analyze（multipart/form-data、最大10MB）
+    └─ POST /api/analyze (multipart/form-data, 最大 10MB × 9 枚)
+       → rate limit check (10 req/h/IP) → Gemini Vision
 
-[2] 食材・分量の特定（Gemini 2.5 Flash）
-    └─ JSON Schema強制出力で具体食材名を抽出
-       例: [{"name":"サバ","grams":150}, {"name":"白米","grams":200}, ...]
+[3] 食材・分量の特定（Gemini 2.5 Flash）
+    └─ JSON Schema 強制出力で具体食材名を抽出
+       例: [{"name":"サバ","grams":150}, ...]
 
-[3] 食材ルックアップ
-    └─ exact match → substring match → category fallback の3段階
-       (fallback は脂肪酸データ無し扱いで除外)
+[4] 食材ルックアップ (lib/food-db.ts)
+    └─ 4 段階 fallback:
+       1. exact match
+       2. rendaku-aware variant alias.endsWith match
+       3. bidirectional substring match
+       4. category fallback (脂肪酸データ無し扱い)
 
-[4] 脂肪酸集計
+[5] 脂肪酸集計
     └─ 各食材 epa_mg × grams/100 を合計 → meal 全体の EPA / DHA / AA mg
 
-[5] 信号機判定
-    └─ lipidPct = (EPA+DHA) / (EPA+DHA+AA) × 100
-       ≥ 30% → 緑 / 15-29% → 黄 / < 15% → 赤 / 全食材 null → unknown
+[6] 信号機判定 + 結果表示
+    ├─ lipidPct = (EPA+DHA) / (EPA+DHA+AA) × 100
+    ├─ ≥ 30% → 緑 / 15-29% → 黄 / < 15% → 赤 / 全 null → unknown
+    └─ ResultPanel: aggregate → DietPatternComparison → CoachSection → meals grid
+
+[7] AI コーチ (任意)
+    ├─ 自動目標算出: findPatternPosition で「次に近づくパターン」を選定
+    ├─ POST /api/coach (target patternName + gapMg を含む)
+    └─ Gemini が「ギャップを埋める」3 レシピを返す
 ```
 
-## 食品データベース
-
-`data/foods.json` に57品目を収録。各エントリは：
+### 食品データベース
+`data/foods.json` に **1,971 品目**を収録（MEXT 食品成分表 脂肪酸成分表編 2020 由来）。
+各エントリ:
 
 ```json
 {
-  "name": "サバ",
-  "aliases": ["鯖", "さば", "塩サバ", "焼きサバ"],
-  "protein_g": 20.7,
+  "name": "さば",
+  "aliases": ["鯖", "さば", "塩サバ", "焼きサバ", "まさば"],
   "category": "fish",
   "epa_mg": 690,
   "dha_mg": 970,
@@ -114,40 +242,68 @@ scripts/
 }
 ```
 
-脂肪酸値の出典: MEXT 食品成分表 脂肪酸成分表編 2020 (可食部100g当たり)。
 `Tr` (検出限界以下) → `0 mg`、`—` / 空欄 → `null` (no data) として保存。
+カテゴリ: `fish` / `meat` / `egg_dairy` / `plant` / `other`。
 
-カテゴリ：
-- `fish` — 魚介類（EPA源、numerator）
-- `meat` — 獣鳥肉類（AA寄与）
-- `egg_dairy` — 卵・乳製品（AA寄与）
-- `plant_protein` — 豆類・味噌
-- `other` — 野菜・穀類・果物等
+ルックアップは正書法・カタカナ / ひらがな・連濁・漢字・複合語の表記揺れに対応（[`lib/food-db.ts`](./lib/food-db.ts)）。
 
-データ精度を上げたい場合は文部科学省「日本食品標準成分表」をパースして差し替えるのが本命の打ち手。
+---
 
-## 既知の限界
+## 🧪 テスト
+```bash
+bun test
+```
+**175 ケース**（13 ファイル、`bun:test`）。スコア計算 / バリデーション / D1 マイグレーション / coach prompt / 食品 DB schema / 食パターン位置算出 / WHO/AHA 達成判定 / safety-notes 整合性 / 認証 / rate limit ヘルパ等を網羅。
 
-- **食品DBはサンプル**: 57品目。和食の典型的な家庭料理は概ねカバーするが、外食や複雑な料理は category_fallback に落ちる
-- **画像認識の揺れ**: temperature=0 + JSON Schema で安定化済みだが、暗い・遠い写真では精度が落ちる
-- **EPA/AA比そのものではない**: 魚タンパク質割合はあくまで実用プロキシ。本来の血中EPA/AA比はサプリメントや個人の代謝で変わる
-- **MVPの閾値**: 50%/25%は仮置き。栄養学的エビデンスに基づく値が出れば差し替え可能
+---
 
-## デプロイ
+## 🚀 デプロイ
 
-Vercelに直接デプロイ。`maxDuration: 45` を指定しているためHobby tier（10秒上限）では不十分、Pro必須。
+**Vercel Hobby tier** で本番運用中。`maxDuration: 45` を `/api/analyze` と `/api/coach` で指定（Hobby tier の上限内）。
 
-環境変数：
-- `GEMINI_API_KEY` — Google AI Studio で無料取得
+D1 マイグレーションは初回 + スキーマ変更時のみ手動実行:
+```bash
+bun --env-file=.env.local run scripts/migrate-d1.ts
+```
+冪等。既に適用済みなら SKIP される。
 
-## 開発履歴・設計ドキュメント
+---
 
-このプロジェクトは [gstack](https://github.com/garrytan/gstack) の `/office-hours` スキルで設計されました。
+## 🔒 セキュリティ
 
-- 📄 [`docs/design-v2-epa-aa.md`](./docs/design-v2-epa-aa.md) — **現在の実装の根拠**（EPA/AA比プロキシ、魚タンパク質割合）
-- 📄 [`docs/design.md`](./docs/design.md) — 当初設計（EAAスコア）。仕様変更後に廃止、設計プロセスの記録として保存
+`/cso` 監査済み（[`SKILL.md`](https://github.com/garrytan/gstack) ベース）。実装済み対策:
 
-## ライセンス
+- **rate limit**: D1 ベース、IP per/hour 制限。`/api/coach` 10/h、`/api/analyze` 10/h、`/api/feedback` GET (admin) 30/h
+- **IP ハッシュ化**: SHA-256 + `IP_HASH_SECRET` で 16 hex に short hash、生 IP は永続化しない
+- **request_log telemetry**: 全リクエスト記録（429 含む）→ brute-force 検知可
+- **Timing-safe credential compare**: Basic Auth と admin token に Node 標準 `crypto.timingSafeEqual` を使用
+- **Basic Auth**: `/admin` ページを Next.js Proxy 層で保護
+- **D1 環境変数未設定時**: rate limit / telemetry を自動 disable（local dev で機能制限なし）
+- **xlsx CVE**: devDep + 信頼入力 (MEXT) のみで実害ゼロと判断、受容（[`scripts/ingest-mext-foods.ts`](./scripts/ingest-mext-foods.ts) ヘッダ参照）
+
+---
+
+## 📝 既知の限界
+
+- **画像認識の揺れ**: temperature=0 + JSON Schema で安定化済みだが、暗い・遠い写真や複雑な料理（多層パスタ等）では精度低下
+- **lipidPct はプロキシ**: 血液検査ではなく食事傾向の代理指標。8〜12 週間の遅延 + 個人差あり
+- **lipidPct 閾値はヒューリスティック**: 30% / 15% に強い科学的アンカーは無い。エビデンスベースは絶対 mg + WHO/AHA 達成チップ側で表現
+- **Gemini 無料枠**: AI コーチは Gemini 2.5 Flash Lite (1,000 req/day 無料枠) を使用。混雑時は 503 (QUOTA_EXCEEDED) 返却
+
+---
+
+## 🗓 バージョン履歴
+
+詳細は [`CHANGELOG.md`](./CHANGELOG.md) 参照。主要マイルストーン:
+
+- **v0.4.x** (2026-05-04): WOW 体験 3 ステップ + WHO/AHA バッジ + AI コーチ + 安全性配慮 + footer
+- **v0.3.x** (2026-05-03): 脂質ベース計算移行 + MEXT 1,971 品目 + ルックアップ強化 (kanji/rendaku/kuromoji)
+- **v0.2.0** (2026-05-02): フィードバック収集 + admin ダッシュボード + Basic Auth
+- **v0.1.x** (2026-04-30): MVP（EAA → EPA/AA proxy への移行含む）
+
+---
+
+## 📄 ライセンス
 
 [Apache License 2.0](./LICENSE) で公開しています。
 
@@ -157,3 +313,14 @@ Vercelに直接デプロイ。`maxDuration: 45` を指定しているためHobby
 - 改変版を配布する場合は [`NOTICE`](./NOTICE) ファイルと変更履歴を含めてください
 
 Copyright 2026 eaa-scorer contributors. See [`NOTICE`](./NOTICE) for details.
+
+---
+
+## 🛠 開発ツール
+
+このプロジェクトの設計・実装には [gstack](https://github.com/garrytan/gstack) のスキル群を活用しています:
+- `/office-hours` で初期設計
+- `/plan-eng-review` でアーキテクチャレビュー
+- `/cso` でセキュリティ監査
+- `/design-review` でデザイン QA
+- `/ship` で PR 化・デプロイ
