@@ -48,17 +48,17 @@ export const INTAKE_RECOMMENDATIONS: readonly IntakeRecommendation[] = [
   },
   {
     id: "aha_primary",
-    label: "AHA 一般推奨",
+    label: "AHA 一般推奨 (2002/2017)",
     thresholdMgPerDay: 500,
     description:
-      "AHA: 健康成人で週 2 回の oily fish (脂質豊富な魚) ≒ EPA+DHA 500 mg/日。",
+      "AHA Scientific Statement (2002, 再確認 2017): 健康成人で週 2 回の oily fish (脂質豊富な魚) を推奨、≒ EPA+DHA 500 mg/日。",
   },
   {
     id: "aha_cvd",
-    label: "AHA CVD 二次予防",
+    label: "AHA CVD 二次予防 (2017 年版)",
     thresholdMgPerDay: 1000,
     description:
-      "AHA: 心血管疾患の既往ある人は EPA+DHA 1000 mg/日 を推奨 (主に EPA 由来の効果)。",
+      "AHA Scientific Advisory 2017: 心血管疾患の既往者に EPA+DHA 1000 mg/日 を「妥当 (Reasonable)」と位置付け。なお高用量補充の効果については STRENGTH 試験 (2020) 等で慎重な見解も示されています。",
   },
 ] as const;
 

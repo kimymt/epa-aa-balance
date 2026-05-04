@@ -18,10 +18,12 @@ const SIGNAL_CHIP: Record<string, string> = {
   red: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800",
   unknown: "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
 };
+// v0.4.18: 医学判定ニュアンス (良好/改善推奨) を排除し、
+// 「食事傾向の描写」に統一。「赤」は「不健康」を意味しない。
 const SIGNAL_LABEL: Record<string, string> = {
-  green: "良好",
-  yellow: "中程度",
-  red: "改善推奨",
+  green: "魚多めの傾向",
+  yellow: "混在傾向",
+  red: "魚少なめの傾向",
   unknown: "判定不能",
 };
 
@@ -269,9 +271,10 @@ export function ResultPanel({
           <div
             className={`mt-4 inline-flex items-center px-3 py-1 rounded-md border text-base font-semibold ${SIGNAL_CHIP[aggregate.signal]}`}
           >
-            {aggregate.signal === "green" ? "良好 ✓"
-              : aggregate.signal === "yellow" ? "中程度"
-              : aggregate.signal === "red" ? "改善推奨"
+            {/* v0.4.18: 描写的ラベル統一。✓ も削除 (医学的成功印象を排除)。 */}
+            {aggregate.signal === "green" ? "魚多めの傾向"
+              : aggregate.signal === "yellow" ? "混在傾向"
+              : aggregate.signal === "red" ? "魚少なめの傾向"
               : "判定不能"}
           </div>
           <p className="mt-4 text-sm text-emerald-700 dark:text-emerald-300">

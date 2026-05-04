@@ -58,9 +58,12 @@ export const DIET_PATTERNS: readonly DietPattern[] = [
   },
   {
     id: "inuit_traditional",
-    name: "イヌイット伝統食",
+    name: "イヌイット伝統食 (1970 年代以前)",
     epaDhaMgPerDay: 14000,
-    caption: "アザラシ・クジラの脂で 90% 以上が魚介由来",
+    // v0.4.18: 時代背景を明示。現代イヌイットの食事は欧米化が進んでおり、
+    // この値はあくまで歴史的な極端値。Bang & Dyerberg 研究当時のレベル。
+    caption:
+      "1970 年代以前の伝統食。アザラシ・クジラの脂で 90% 以上が魚介由来。現代イヌイット食は欧米化が進み、この値は歴史的な極端値",
   },
 ] as const;
 

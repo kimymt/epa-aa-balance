@@ -114,8 +114,15 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
             <span className="text-2xl">🍳</span>
             <span className="font-medium">AI コーチに提案してもらう</span>
           </div>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-2 leading-relaxed">
             EPA・DHA を増やすレシピを 3 件、AI が提案します。
+          </p>
+          {/* v0.4.18: 薬機法・医師法配慮の免責文を 1 行追加。AI の「ギャップを埋める」
+              表現が食事療法に近いニュアンスを持つため、健康増進の参考であり医学的
+              指導ではないことを明示する。 */}
+          <p className="text-xs text-slate-500 dark:text-slate-500 mb-4 leading-relaxed">
+            ※ 提案は栄養計算に基づく参考情報です。特定の疾患の予防・診断・治療や、
+            医師・管理栄養士による食事療法を代替するものではありません。
           </p>
           {/* v0.4.10: 自動算出された目標食習慣を inline 表示。
               ユーザーが「何を目指すレシピが返ってくるのか」を事前に把握できる。 */}
