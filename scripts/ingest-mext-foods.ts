@@ -17,18 +17,12 @@
 // 注意: protein_g フィールドは v0.3.1 で削除 (lipid migration 完了で unused)。
 //       既存 57 食材からも protein_g を除去する。
 //
-// セキュリティ注記 (v0.4.6, /cso 監査時に評価):
-//   xlsx@0.18.5 には HIGH 級 CVE 2 件 (Prototype Pollution + ReDoS) がある。
-//   修正は xlsx@0.19.3+ だが、SheetJS は npm 配布を停止しており CDN 経由のみ。
-//   本スクリプトは:
-//     - devDependency (production bundle に乗らない)
-//     - メンテナが手動実行する build-time only
-//     - 入力は信頼できる MEXT 公開 Excel のみ (攻撃者が差し替える経路なし)
-//   よって実害ゼロと判断し、CVE は受容する。
-//   将来的に xlsx を脱却するなら exceljs への置換が候補 (TODOS.md 参照)。
+// v0.5.0: xlsx@0.18.5 → exceljs@4.x に置換。
+// xlsx の HIGH CVE 2 件 (Prototype Pollution + ReDoS) を解消する hygiene 移行。
+// xlsx@0.19.3+ は SheetJS が npm 配布停止、CDN 経由のみのため実用的に更新困難
+// だった。exceljs は active maintenance + npm 配布あり + 同等機能。
 
-// @ts-ignore
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 // @ts-ignore
 import kuromoji from "kuromoji";
 import * as fs from "node:fs";
@@ -147,9 +141,22 @@ const tokenizer: any = await new Promise((resolve, reject) => {
 });
 console.error("Kuromoji tokenizer ready.");
 
-const wb = XLSX.readFile(MEXT_FILE);
-const sheet = wb.Sheets["表全体"];
-const data = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: "" });
+// v0.5.0: exceljs ベース。xlsx の sheet_to_json({header:1}) と同じ「2D 配列、
+// 0-indexed、行内も 0-indexed」になるよう手動構築する。これで _mext_row 等の
+// 既存 row index 参照が壊れない。
+const wb = new ExcelJS.Workbook();
+await wb.xlsx.readFile(MEXT_FILE);
+const sheet = wb.getWorksheet("表全体");
+if (!sheet) {
+  throw new Error('Worksheet "表全体" not found in MEXT file');
+}
+const data: any[][] = [];
+for (let r = 1; r <= sheet.rowCount; r++) {
+  const row = sheet.getRow(r);
+  // exceljs の row.values は 1-indexed (index 0 は undefined)、slice(1) で
+  // 0-indexed に揃える (xlsx sheet_to_json の出力と同じ shape)
+  data.push(((row.values as unknown as unknown[]) ?? []).slice(1));
+}
 
 const existingFoodsRaw = JSON.parse(fs.readFileSync(FOODS_FILE, "utf8"));
 const existingFoods = existingFoodsRaw.foods as any[];

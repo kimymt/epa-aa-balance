@@ -25,10 +25,10 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "exceljs": "^4.4.0",
     "kuromoji": "^0.1.2",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "xlsx": "^0.18.5"
+    "typescript": "^5"
   },
   "ignoreScripts": [
     "sharp",

@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-05-05 — xlsx → exceljs 置換 (HIGH CVE 解消)
+
+### Security
+- **`xlsx@0.18.5` → `exceljs@4.x`** に置換。`scripts/ingest-mext-foods.ts` でのみ
+  使用される build-time only スクリプトの hygiene 移行。
+- `bun audit` の HIGH 級 CVE 2 件 (Prototype Pollution + ReDoS) を完全解消:
+  - Before: `3 vulnerabilities (2 high, 1 moderate)`
+  - After: `2 vulnerabilities (0 high, 2 moderate)` ← uuid + postcss、両方
+    transitive + build-time のみで実用的影響なし
+
+### Background
+xlsx の修正版 (0.19.3+) は SheetJS が npm 配布停止しており CDN 経由のみで実用的に
+更新困難だった。exceljs は active maintenance + npm 配布あり + 同等機能 + 同程度の
+ファイルサイズで、純粋な代替候補として最有力だった。
+
+### API change
+`scripts/ingest-mext-foods.ts` の Excel 読み込み 3 行のみリファクタ:
+- 旧: `XLSX.readFile()` + `sheet_to_json({header:1, defval:""})` で 2D 配列取得
+- 新: `new ExcelJS.Workbook().xlsx.readFile()` + 手動 `slice(1)` で 2D 配列構築
+  (exceljs の `row.values` は 1-indexed、`slice(1)` で xlsx と同じ 0-indexed shape に)
+- `_mext_row` 等の既存 row index 参照は壊れない設計
+
+### Tests
+- `bun test` → 179 pass / 1 skip / 0 fail (変更なし)
+- `bun build scripts/ingest-mext-foods.ts` → 2.13 MB bundle 成功 (型エラーなし)
+
 ## [0.4.19] - 2026-05-05 — `/qa-only` 検出 issue 2 件の修正
 
 ### Fixed
