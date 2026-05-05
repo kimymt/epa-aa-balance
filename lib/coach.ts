@@ -328,6 +328,10 @@ export function getCoachErrorCode(
  * "RESOURCE_EXHAUSTED" は Google API 共通の quota 超過コードなので最も信頼できる。
  * fallback として "quota" / "rate limit" の文字列マッチも入れて、SDK 側の文言
  * 揺らぎに強くしておく（HTTP 429 は自前 rate limit と紛らわしいので使わない）。
+ *
+ * v0.4.19: per-minute throttling のキャッチ漏れ対応 (QA Issue #1)。
+ * 連続呼び出しで Gemini が per-minute RPM 上限に達した時、SDK が異なる文言
+ * (RESOURCE_EXHAUSTED 含まない) を返すケースを観測したため検出強化。
  */
 export function isGeminiQuotaError(message: string): boolean {
   if (!message) return false;
@@ -335,7 +339,13 @@ export function isGeminiQuotaError(message: string): boolean {
   return (
     message.includes("RESOURCE_EXHAUSTED") ||
     m.includes("quota exceeded") ||
-    m.includes("exceeded your current quota")
+    m.includes("exceeded your current quota") ||
+    // v0.4.19: 以下は per-minute 系の検出 (HTTP 429 単独は依然除外、自前 rate
+    // limit と区別するため)
+    m.includes("rate limit exceeded") ||
+    m.includes("rate_limit_exceeded") ||
+    m.includes("requests per minute") ||
+    m.includes("requests per day")
   );
 }
 
