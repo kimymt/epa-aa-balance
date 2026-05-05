@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.19] - 2026-05-05 — `/qa-only` 検出 issue 2 件の修正
+
+### Fixed
+- **Issue #1 (medium)**: `lib/coach.ts:isGeminiQuotaError` に per-minute throttling
+  検出を追加。連続呼び出しで Gemini が per-minute RPM 上限に達した時、SDK が
+  `RESOURCE_EXHAUSTED` を含まない異なる文言を返すケースを観測したため検出強化。
+  - 追加マッチ: `"rate limit exceeded"`、`"rate_limit_exceeded"`、
+    `"requests per minute"`、`"requests per day"`
+  - HTTP 429 単独は引き続き除外 (自前 rate limit と区別)
+  - 効果: per-minute throttling 時に `LLM_ERROR (500)` ではなく
+    `QUOTA_EXCEEDED (503)` を返し、UI が ⏳「本日分が尽きました」誤表示
+    する代わりに正しい文脈を出せる
+- **Issue #2 (low)**: `OnboardingCard` の dismiss / re-expand ボタンに
+  `type="button"` 明示。HTML default の `type="submit"` を排除し、将来 form
+  内に配置されても意図しない form submission が発生しないように。
+
+### Tests
+- `lib/coach.test.ts` に 4 ケース追加 (rate limit / per-minute / per-day 検出)
+- 175 → 179 pass
+
+### Documentation
+- `TODOS.md` の v0.5.x backlog から **F-011 (PR #27) と F-012 (PR #28)** を
+  Completed セクションに移動。既に shipped 済の項目が backlog に残ったままだった
+  cleanup。
+
 ## [0.4.18] - 2026-05-04 — 医学的レビュー対応 (用語精緻化 + 安全性数値訂正 + 免責)
 
 ### Background

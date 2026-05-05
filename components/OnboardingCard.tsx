@@ -48,6 +48,7 @@ export function OnboardingCard() {
   if (!expanded) {
     return (
       <button
+        type="button"
         onClick={handleReExpand}
         className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400 dark:hover:bg-slate-800"
         aria-expanded="false"
@@ -97,6 +98,7 @@ export function OnboardingCard() {
 
       <div className="mt-4 flex justify-end">
         <button
+          type="button"
           onClick={handleDismiss}
           className="rounded-md bg-sky-100 px-4 py-2 text-sm font-medium text-sky-900 hover:bg-sky-200 active:bg-sky-300 dark:bg-sky-900/60 dark:text-sky-100 dark:hover:bg-sky-900"
         >

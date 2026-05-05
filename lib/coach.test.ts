@@ -341,6 +341,28 @@ describe("isGeminiQuotaError", () => {
     // 自前 rate limit (429 + RATE_LIMITED) と紛らわしいので、429 単独では検出しない
     expect(isGeminiQuotaError("HTTP 429 Too Many Requests")).toBe(false);
   });
+
+  // v0.4.19: per-minute throttling 検出強化 (QA Issue #1 対応)
+  it("detects 'rate limit exceeded' phrase (case-insensitive)", () => {
+    expect(isGeminiQuotaError("Rate limit exceeded for project gen-lang-client")).toBe(true);
+    expect(isGeminiQuotaError("RATE LIMIT EXCEEDED")).toBe(true);
+  });
+
+  it("detects 'rate_limit_exceeded' API error code variant", () => {
+    expect(isGeminiQuotaError('{"code":"rate_limit_exceeded","message":"..."}')).toBe(true);
+  });
+
+  it("detects 'requests per minute' phrase (per-minute quota)", () => {
+    expect(
+      isGeminiQuotaError("Quota exceeded: 15 requests per minute limit reached")
+    ).toBe(true);
+  });
+
+  it("detects 'requests per day' phrase (per-day quota fallback)", () => {
+    expect(
+      isGeminiQuotaError("API requests per day exceeded for free tier")
+    ).toBe(true);
+  });
 });
 
 describe("getCoachErrorCode", () => {
