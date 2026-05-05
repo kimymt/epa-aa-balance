@@ -44,6 +44,13 @@
 
 ## ✅ Completed (アーカイブ — 履歴目的で残す)
 
+### xlsx → exceljs 置換 ✅ Shipped v0.5.0 (PR #36)
+**What:** `scripts/ingest-mext-foods.ts` の xlsx@0.18.5 を exceljs@4.x に置換。
+**Resolution:** `XLSX.readFile()` + `sheet_to_json({header:1})` → `new ExcelJS.Workbook().xlsx.readFile()`
++ 手動 `slice(1)` で 2D 配列構築 (xlsx の sheet_to_json と同じ shape)。
+**Effect:** `bun audit` の HIGH CVE 2 件 (Prototype Pollution + ReDoS) を完全解消
+(Before: 3 vulns / 2 high → After: 2 vulns / 0 high)。
+
 ### F-011: 「判定不能」カードの空セクションが余白を取る ✅ Shipped v0.4.11 (PR #27)
 **What:** signal=unknown のカードでも他のカードと同じ高さで描画される問題。
 **Resolution:** 個別食事グリッドに `items-start` を追加 (CSS grid デフォルトの
@@ -60,21 +67,6 @@ ResultPanel 経由で `app/page.tsx` の files state がカードまで伝搬。
 ---
 
 ## v0.5.x Security backlog
-
-### xlsx → exceljs 置換（または CDN tarball pin）
-**What:** `scripts/ingest-mext-foods.ts` の `xlsx@0.18.5` を `exceljs` に置換、
-または SheetJS CDN tarball (`xlsx-0.20.3.tgz` 等) に URL pin。
-
-**Why:** xlsx@0.18.5 には HIGH CVE 2 件 (Prototype Pollution + ReDoS)。
-v0.4.6 時点では devDep + build-only + 信頼入力で実害ゼロと判断し受容。
-ただし `bun audit` 警告が消えないのでメンテ感が悪い。
-
-**Pros:** audit 通る、将来的な exploit 経路もゼロ。
-**Cons:** API 書き換え 30 分 (exceljs)、または URL pin のメンテ性悪化 (CDN)。
-**Trigger:** `scripts/ingest-mext-foods.ts` を再度触る機会、または audit 警告を CI で
-fail させたくなったとき。
-
----
 
 ### CSP ヘッダー追加
 **What:** `next.config.ts` の `headers()` で `Content-Security-Policy` を設定。
