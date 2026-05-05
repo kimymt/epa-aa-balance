@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.2] - 2026-05-05 — コンポーネントテスト導入 (happy-dom + Testing Library)
+
+### Added
+- **テストインフラ**: `happy-dom` + `@testing-library/react` を bun:test に統合
+  - `test/setup.ts`: `GlobalRegistrator.register()` で window/document を globalThis に注入
+  - `bunfig.toml`: `[test] preload = ["./test/setup.ts"]` で全テスト起動時に DOM 注入
+  - `beforeEach` で localStorage + DOM クリア (テスト間状態漏れ防止)
+- **17 件のコンポーネントテスト**:
+  - `RecipeCard.test.tsx` (4): name/cookTime/mealType/description 各レンダリング
+  - `OnboardingCard.test.tsx` (3): 描画 + 安全性注意 + プロキシ性 disclaimer + button type
+  - `Footer.test.tsx` (3): branding / GitHub URL / Q&A active link
+  - `DietPatternComparison.test.tsx` (8): ヘッダー数値 / 5 パターン名 / マーカー位置 /
+    WHO/AHA チップ + 達成判定 / イヌイット時代註記 / null/0 ガード / 6 食 = 2 日換算
+
+### Tests
+- 179 → **196 pass** / 1 skip / 0 fail
+- 14 → 18 test files
+
+### Background
+前 retro で「コンポーネントテスト不在」を growth area として指摘されていた件への対応。
+これまで 175 tests 全てが lib/script 層のみ。React 描画ロジックの regression を
+catch する仕組みが無かった。
+
+### Design notes
+- **OnboardingCard の localStorage state machine** はコンポーネントテストでは
+  描画 + 構造のみ検証。状態遷移 (setItem → render → 再 read) の網羅は
+  `lib/onboarding.test.ts` 側で行う設計。理由: bun:test + happy-dom + React 19
+  useEffect の組み合わせで multi-file 並行実行時に timing 起因で flaky 化する
+  ケースを観測したため。`hasSeenOnboarding`/`markOnboardingSeen` の振る舞いは
+  lib テストで担保済みなので二重投資せず。
+
 ## [0.5.1] - 2026-05-05 — セキュリティヘッダー (CSP + 4 種)
 
 ### Security

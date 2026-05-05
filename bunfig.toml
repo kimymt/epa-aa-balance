@@ -1,0 +1,6 @@
+# bun config
+# v0.5.2: コンポーネントテスト用に happy-dom globals を test 起動時に register。
+# 既存 lib/scripts のテストには影響なし (DOM 使わないので preload しても無害)。
+
+[test]
+preload = ["./test/setup.ts"]
