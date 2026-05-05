@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1] - 2026-05-05 — セキュリティヘッダー (CSP + 4 種)
+
+### Security
+- **`next.config.ts` で全ルートにセキュリティヘッダーを付与** (defense in depth):
+  - **Content-Security-Policy**: default-src 'self' ベース。許可:
+    - `script-src 'self' 'unsafe-inline'` (Next.js ハイドレーション)、dev mode のみ `'unsafe-eval'` 追加 (React HMR)
+    - `style-src 'self' 'unsafe-inline'` (Tailwind + Next 自動 style)
+    - `img-src 'self' data: blob:` (アップロード画像 thumbnail は blob: URL)
+    - `frame-src https://www.youtube-nocookie.com` (v0.4.3 フィッシュ啓蒙動画のみ許可)
+    - `connect-src 'self'` (API は同一オリジン)
+    - `frame-ancestors 'none'` (clickjacking 防止)
+    - `object-src 'none'` (Flash/plugin 不要)
+  - **X-Frame-Options: DENY** (古いブラウザ向け clickjacking 対策、frame-ancestors と冗長)
+  - **X-Content-Type-Options: nosniff** (MIME sniffing 抑止)
+  - **Referrer-Policy: strict-origin-when-cross-origin** (外部リンクへ referrer 制限)
+  - **Permissions-Policy**: camera/microphone/geolocation/interest-cohort を全 disable
+
+### Why
+`/cso` 監査の informational #5 として TODOS.md に記録されていた CSP ヘッダー追加に対応。React のデフォルト XSS 防御のみだった状態に defense-in-depth 層を追加。XSS / clickjacking / MIME sniffing / 不要 API 権限の各リスクを軽減。
+
+### Notes
+- 'unsafe-eval' は dev mode のみ (React 開発時の eval 使用に対応)、本番は strict
+- 本番デプロイ時 (Vercel) は `NODE_ENV=production` で自動的に 'unsafe-eval' 除外
+- 既存機能 (onboarding / upload / coach UI / footer) すべて動作確認済 (localhost dev で console clean)
+
 ## [0.5.0] - 2026-05-05 — xlsx → exceljs 置換 (HIGH CVE 解消)
 
 ### Security

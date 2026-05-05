@@ -44,6 +44,13 @@
 
 ## ✅ Completed (アーカイブ — 履歴目的で残す)
 
+### CSP ヘッダー追加 ✅ Shipped v0.5.1 (PR #37)
+**What:** `next.config.ts` の `headers()` で security headers を設定。
+**Resolution:** `Content-Security-Policy` (default-src 'self' ベース、youtube-nocookie
+だけ frame-src 許可、`'unsafe-eval'` は dev mode のみ) + X-Frame-Options DENY +
+X-Content-Type-Options nosniff + Referrer-Policy strict-origin-when-cross-origin
++ Permissions-Policy (camera/mic/geolocation 全 disable)。
+
 ### xlsx → exceljs 置換 ✅ Shipped v0.5.0 (PR #36)
 **What:** `scripts/ingest-mext-foods.ts` の xlsx@0.18.5 を exceljs@4.x に置換。
 **Resolution:** `XLSX.readFile()` + `sheet_to_json({header:1})` → `new ExcelJS.Workbook().xlsx.readFile()`
@@ -68,12 +75,7 @@ ResultPanel 経由で `app/page.tsx` の files state がカードまで伝搬。
 
 ## v0.5.x Security backlog
 
-### CSP ヘッダー追加
-**What:** `next.config.ts` の `headers()` で `Content-Security-Policy` を設定。
-**Why:** 現状 React のデフォルト XSS 防御のみ。defense in depth として CSP を追加。
-**Notes:** YouTube nocookie iframe (v0.4.3 洗脳動画) を許可するため `frame-src` に
-`https://www.youtube-nocookie.com` を含める必要あり。
-**Effort:** 30 分 (慎重に reload 検証)。
+(empty — `xlsx → exceljs` も `CSP ヘッダー追加` も v0.5.0 / v0.5.1 で完了)
 
 ---
 
