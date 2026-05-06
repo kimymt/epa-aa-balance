@@ -11,6 +11,7 @@ import {
   aggregateFromAnalysis,
   isGeminiQuotaError,
   getCoachErrorCode,
+  detectRequestedCookingMethods,
   CHIP_LABELS,
   type CoachRequest,
   type Recipe,
@@ -248,15 +249,89 @@ describe("buildPrompt", () => {
     expect(p).toContain("和食");
     expect(p).toContain("日本伝統食");
   });
+
+  // v0.6.0: chip-conditional food candidates
+  it("includes chip-specific food candidates section for convenience_store", () => {
+    const p = buildPrompt({
+      ...baseReq,
+      refinement: { type: "chip", value: "convenience_store" },
+    });
+    expect(p).toContain("コンビニで");
+    expect(p).toContain("サバ缶");
+    expect(p).toContain("ツナ缶");
+    expect(p).toContain("食材リストから優先的に選んで");
+  });
+
+  it("includes chip-specific food candidates for kid_friendly (no サバ・サンマ・イワシ アンカー)", () => {
+    const p = buildPrompt({
+      ...baseReq,
+      refinement: { type: "chip", value: "kid_friendly" },
+    });
+    expect(p).toContain("鮭");
+    expect(p).toContain("はんぺん");
+    expect(p).toContain("子ども向け");
+  });
+
+  it("omits target's generic 4-fish anchor list when chip is set (avoids dilution)", () => {
+    const p = buildPrompt({
+      ...baseReq,
+      refinement: { type: "chip", value: "convenience_store" },
+      target: { patternName: "地中海食", gapMg: 200 },
+    });
+    // chip-specific 食材リストが優先される。target section に汎用「サバ ~1500mg/100g」が
+    // 重複列挙されるとプロンプトが矛盾するため、target 側では food list を省略する。
+    expect(p).not.toContain("サバ ~1500mg/100g、サンマ ~1300mg/100g、イワシ ~1200mg/100g、鮭 ~600mg/100g");
+    expect(p).toContain("【目標食習慣】"); // section 自体は残る
+  });
+
+  it("appends explicit cookingMethod constraint when freetext contains '生魚'", () => {
+    const p = buildPrompt({
+      ...baseReq,
+      refinement: { type: "freetext", value: "生魚を中心にお願いします" },
+    });
+    expect(p).toContain("【絶対遵守の調理法制約】");
+    expect(p).toContain("raw");
+  });
+
+  it("appends explicit cookingMethod constraint when freetext contains '焼き'", () => {
+    const p = buildPrompt({
+      ...baseReq,
+      refinement: { type: "freetext", value: "焼き魚で 3 つ" },
+    });
+    expect(p).toContain("【絶対遵守の調理法制約】");
+    expect(p).toContain("grilled");
+  });
+
+  it("does NOT append cookingMethod constraint when freetext has no method keyword", () => {
+    const p = buildPrompt({
+      ...baseReq,
+      refinement: { type: "freetext", value: "塩分控えめで" },
+    });
+    expect(p).not.toContain("【絶対遵守の調理法制約】");
+  });
+
+  it("includes few-shot examples covering raw / grilled / simmered / no_cook", () => {
+    const p = buildPrompt(baseReq);
+    expect(p).toContain("【参考例】");
+    expect(p).toContain('"cookingMethod":"raw"');
+    expect(p).toContain('"cookingMethod":"grilled"');
+    expect(p).toContain('"cookingMethod":"simmered"');
+    expect(p).toContain('"cookingMethod":"no_cook"');
+  });
+
+  it("instructs Gemini to vary cookingMethod across the 3 recipes", () => {
+    const p = buildPrompt(baseReq);
+    expect(p).toContain("調理法 (cookingMethod) を散らす");
+  });
 });
 
 describe("filterFishRecipes", () => {
   it("keeps fish/shellfish/fish_product, removes others", () => {
     const recipes: Recipe[] = [
-      { name: "サバ焼き", mealType: "breakfast", cookTime: "5分", description: "焼く", fishType: "fish" },
+      { name: "サバ焼き", mealType: "breakfast", cookTime: "5分", description: "焼く", fishType: "fish", cookingMethod: "grilled" },
       // @ts-expect-error testing wrong type
-      { name: "ステーキ", mealType: "dinner", cookTime: "20分", description: "焼く", fishType: "meat" },
-      { name: "ホタテバター", mealType: "dinner", cookTime: "10分", description: "焼く", fishType: "shellfish" },
+      { name: "ステーキ", mealType: "dinner", cookTime: "20分", description: "焼く", fishType: "meat", cookingMethod: "grilled" },
+      { name: "ホタテバター", mealType: "dinner", cookTime: "10分", description: "焼く", fishType: "shellfish", cookingMethod: "fried" },
     ];
     const r = filterFishRecipes(recipes);
     expect(r.ok.length).toBe(2);
@@ -266,12 +341,49 @@ describe("filterFishRecipes", () => {
 
   it("returns all when all are fish-type", () => {
     const recipes: Recipe[] = [
-      { name: "a", mealType: "breakfast", cookTime: "1", description: "x", fishType: "fish" },
-      { name: "b", mealType: "lunch", cookTime: "1", description: "x", fishType: "shellfish" },
-      { name: "c", mealType: "dinner", cookTime: "1", description: "x", fishType: "fish_product" },
+      { name: "a", mealType: "breakfast", cookTime: "1", description: "x", fishType: "fish", cookingMethod: "grilled" },
+      { name: "b", mealType: "lunch", cookTime: "1", description: "x", fishType: "shellfish", cookingMethod: "raw" },
+      { name: "c", mealType: "dinner", cookTime: "1", description: "x", fishType: "fish_product", cookingMethod: "no_cook" },
     ];
     expect(filterFishRecipes(recipes).removed).toBe(0);
     expect(filterFishRecipes(recipes).ok.length).toBe(3);
+  });
+});
+
+// v0.6.0: 調理法キーワード検出
+describe("detectRequestedCookingMethods", () => {
+  it("returns empty array for undefined / empty input", () => {
+    expect(detectRequestedCookingMethods(undefined)).toEqual([]);
+    expect(detectRequestedCookingMethods("")).toEqual([]);
+  });
+
+  it("detects raw from 生魚 / 刺身 / カルパッチョ", () => {
+    expect(detectRequestedCookingMethods("生魚で")).toContain("raw");
+    expect(detectRequestedCookingMethods("刺身が食べたい")).toContain("raw");
+    expect(detectRequestedCookingMethods("カルパッチョ風で")).toContain("raw");
+  });
+
+  it("detects grilled from 焼き / 塩焼", () => {
+    expect(detectRequestedCookingMethods("焼き魚で")).toContain("grilled");
+    expect(detectRequestedCookingMethods("塩焼で")).toContain("grilled");
+  });
+
+  it("detects simmered / steamed / fried / deep_fried / no_cook", () => {
+    expect(detectRequestedCookingMethods("煮物で")).toContain("simmered");
+    expect(detectRequestedCookingMethods("蒸し料理")).toContain("steamed");
+    expect(detectRequestedCookingMethods("ソテーで")).toContain("fried");
+    expect(detectRequestedCookingMethods("唐揚げで")).toContain("deep_fried");
+    expect(detectRequestedCookingMethods("調理不要なもの")).toContain("no_cook");
+  });
+
+  it("can return multiple methods when multiple kw present", () => {
+    const got = detectRequestedCookingMethods("生魚か焼き魚で");
+    expect(got).toContain("raw");
+    expect(got).toContain("grilled");
+  });
+
+  it("returns empty when no cooking-method keyword present", () => {
+    expect(detectRequestedCookingMethods("子ども向けにお願い")).toEqual([]);
   });
 });
 
