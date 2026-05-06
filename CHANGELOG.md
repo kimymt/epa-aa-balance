@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.3] - 2026-05-06 — browserslist 縮小で legacy polyfill 削除 (-14 KiB JS)
+
+### Changed
+- **`package.json` に `browserslist` 追加**: `chrome >= 109` / `firefox >= 115` /
+  `safari >= 16.4` / `edge >= 109` (全て 2023 年以降リリースの modern browser)。
+  Next.js / SWC のデフォルト targets が古いブラウザを含んでいたため、
+  `Array.prototype.at` / `flat` / `flatMap`、`Object.fromEntries` / `hasOwn`、
+  `String.prototype.trimStart` / `trimEnd` の polyfill が bundle に混入していた。
+  これらは指定ターゲットでは全て baseline-supported なので不要。
+
+### Performance
+- **PSI mobile (https://epaaa.mymt.casa) 計測値 (改善前)**:
+  Performance 96/100、LCP 0.5s、FCP 0.3s、TBT 10ms、CLS 0.15、Speed Index 0.8s
+- PSI Diagnostics: "Legacy JavaScript Est savings of 14 KiB" を解消する施策
+- LCP は既に target (<2.0s) を大幅クリアしていたため LCP 自体には効かないが、
+  bundle size 削減 (=低速回線環境での体感速度) には寄与する
+
+### Background
+F-008 「LCP 2.27s → <2.0s」TODO を再評価。実測 LCP は 0.5s で当初前提が無効、
+当初対策 (font-display: swap、画像 preload、critical CSS inline) も全て
+Next.js 16 / `next/font/google` のデフォルトで適用済 / 該当なしと判明。
+代わりに PSI Diagnostics で実検出された改善余地を data-driven に対応した。
+
+### TODOS.md
+- F-008 を Completed セクションへアーカイブ (v0.5.3 で解決の経緯付き)
+- 新タスク **F-013: CLS 改善 (0.15 → <0.1)** を追加
+  (Web Vitals "Needs Improvement" 圏。font swap 由来の text reflow が主因と推定)
+
 ## [0.5.2] - 2026-05-05 — コンポーネントテスト導入 (happy-dom + Testing Library)
 
 ### Added
