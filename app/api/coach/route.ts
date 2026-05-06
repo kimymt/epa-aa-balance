@@ -7,7 +7,7 @@
 // Vercel maxDuration 45 秒以内 (実測 5-15 秒)。
 //
 // v0.4.2: D1 ベースのレート制限を追加。
-//   - 1 IP あたり 1 時間に COACH_RATE_LIMIT 回（デフォルト 10）まで。
+//   - 1 IP あたり 1 時間に COACH_RATE_LIMIT 回（デフォルト 5、v0.5.5 で 10 → 5 に引き下げ）まで。
 //   - 全リクエストを request_log に記録（429 含む）→ telemetry first。
 //   - D1 環境変数が無い環境（local dev 等）では rate limit を無効化。
 
@@ -24,7 +24,7 @@ export const runtime = "nodejs";
 export const maxDuration = 45;
 
 const ENDPOINT = "/api/coach";
-const RATE_LIMIT = Number(process.env.COACH_RATE_LIMIT ?? "10"); // req / window
+const RATE_LIMIT = Number(process.env.COACH_RATE_LIMIT ?? "5"); // req / window (v0.5.5: 10 → 5)
 const RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 /** D1 が設定されているか（local dev で disable するため） */

@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.5] - 2026-05-06 — `/api/coach` レート制限を 10/h → 5/h に引き下げ
+
+### Changed
+- **`COACH_RATE_LIMIT` のデフォルト値を 10 → 5** に変更
+  ([app/api/coach/route.ts:27](app/api/coach/route.ts:27))。
+  チャット AI による提案 (Gemini レシピ生成) の 1 IP あたり 1 時間の上限。
+  env var `COACH_RATE_LIMIT` で override 可能 (Vercel 未設定なのでコード値が
+  そのまま本番に反映される)。
+- README.md の env var 表 + セキュリティ一覧を 5/h に更新。
+
+### Background
+方針として AI コール頻度を保守側に寄せる調整。`/api/analyze` は 10/h のまま
+(画像解析、平均使用の 2〜3 倍バッファ設計)、`/api/feedback` admin GET は 30/h
+で据え置き。
+
+### Tests / Build
+- 196 pass / 1 skip / 0 fail (no test hardcoded the previous value)
+- `bun run build` ✓
+
 ## [0.5.4] - 2026-05-06 — `scripts/ingest-mext-foods.ts` の TypeScript 型強化
 
 ### Changed
