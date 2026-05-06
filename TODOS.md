@@ -23,10 +23,21 @@
 **Effort:** SVG icon 選定 + 配色合わせ、〜1h。
 **Trigger:** ブランドアイデンティティ方針が決まってから。
 
-### F-008: LCP 改善 (2.27s → <2.0s)
-**What:** font-display: swap、画像 preload、critical CSS inlining。
-**Effort:** Next.js 16 の最適化機能で 30 分。
-**Trigger:** 実ユーザーから遅さの指摘があったとき。
+### F-013: CLS 改善 (0.15 → <0.1)
+**What:** PSI mobile (2026-05-06 計測) で CLS = 0.15、"Needs Improvement" 圏。
+LCP element はテキスト (`<p>`) なので web font swap (Geist) によるテキスト
+再レイアウトが主因の可能性が高い。`next/font/google` の `adjustFontFallback`
+は default true のはずだが効きが弱い。
+**対策候補:**
+- LCP/Hero テキスト要素に `min-height` または明示的 line-height を割り当てて
+  font swap 時の高さ変化を吸収
+- フォールバック metric を手動指定 (`Geist({ adjustFontFallback: 'Arial' })`)
+- 画像/iframe (YouTube embed) の `width`/`height` 属性確認
+- Footer 等の遅延レンダー要素を CLS に含めない (`content-visibility: auto`)
+**Effort:** 原因切り分け 30 分 + 修正 30〜60 分。
+**Trigger:** PSI で CLS > 0.1 が継続している間 (Web Vitals 圏内)。
+**Why LCP より優先:** LCP は既に 0.5s で十分速い (F-008 参照)。CLS は
+ユーザー体感に直結する Core Web Vital。
 
 ### F-009: スピナーをブランド化
 **What:** 解析中の generic 円形ボーダースピナーを on-brand なアニメーション
@@ -63,6 +74,19 @@ X-Content-Type-Options nosniff + Referrer-Policy strict-origin-when-cross-origin
 **Resolution:** 個別食事グリッドに `items-start` を追加 (CSS grid デフォルトの
 `align-items: stretch` を解除)。各カードが自然な高さで並ぶように。
 **Commit:** 0727720
+
+### F-008: LCP 改善 (2.27s → <2.0s) ✅ Resolved (旧 TODO の前提が無効) v0.5.3
+**What (旧):** font-display: swap、画像 preload、critical CSS inlining。
+**実態:** 2026-05-06 PSI mobile 再計測で **LCP = 0.5s** (target 2.0s 大幅クリア)、
+Performance score = 96/100。LCP element はテキスト `<p>` で画像ではない。
+TODO に書かれた 2.27s は古い計測値 (恐らく v0.4.x 初期)。当初対策案も:
+- `font-display: swap` → `next/font/google` がデフォルト適用済
+- 画像 preload → LCP element が画像でないので効かない
+- critical CSS inlining → Next.js 16 が自動 inline
+**実際に実施 (v0.5.3):** PSI Diagnostics で検出された Legacy JS polyfill
+(14 KiB、Array.prototype.at/flat/flatMap、Object.fromEntries/hasOwn 等)
+を browserslist 縮小で削除。直接 LCP には効かないが bundle size の
+データ駆動最適化。CLS=0.15 (Needs Improvement 圏) は新タスク F-013 に分離。
 
 ### F-012: 個別食事カードに、アップロードした画像のサムネイル表示 ✅ Shipped v0.4.12 (PR #28)
 **What:** MealResultCard 上部にアップロード画像のサムネイル表示。
