@@ -23,8 +23,7 @@
 // だった。exceljs は active maintenance + npm 配布あり + 同等機能。
 
 import ExcelJS from "exceljs";
-// @ts-ignore
-import kuromoji from "kuromoji";
+import kuromoji, { type Tokenizer as KuromojiTokenizer } from "kuromoji";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -35,6 +34,30 @@ const KUROMOJI_DICT = path.join(process.cwd(), "node_modules/kuromoji/dict");
 const COL = { group: 0, name: 3, fat: 6, aa: 53, epa: 54, dha: 60 };
 
 type Category = "fish" | "meat" | "egg_dairy" | "plant" | "other";
+
+// MEXT 由来の食材エントリ。hand-curated の旧 protein_g は v0.3.1 cleanup で削除済み。
+type Food = {
+  name: string;
+  aliases: string[];
+  category: Category;
+  epa_mg: number | null;
+  dha_mg: number | null;
+  aa_mg: number | null;
+  total_lipid_g: number | null;
+  protein_g?: number; // legacy: hand-curated に残存している場合があり、cleanup で除去する
+  _mext_row?: number;
+  _mext_name?: string;
+  _mext_group?: string;
+};
+
+type FoodsFile = {
+  _note?: string;
+  _categories?: unknown;
+  foods: Food[];
+  category_fallbacks?: Food[];
+};
+
+// kuromoji の最小型定義は kuromoji.d.ts に置いてある (npm 公式 typings 不在のため)。
 
 // 食品群コード → category マッピング
 const GROUP_TO_CATEGORY: Record<string, Category> = {
@@ -47,7 +70,7 @@ const GROUP_TO_CATEGORY: Record<string, Category> = {
   //                  油脂, 菓子, し好飲料, 調味料, 調理済み流通食品
 };
 
-function parseValue(v: any): number | null {
+function parseValue(v: unknown): number | null {
   if (v === "" || v === "-" || v === "−" || v == null) return null;
   if (typeof v === "string" && v.trim() === "Tr") return 0; // Cross-Model 2A
   if (typeof v === "string" && (v.includes("(") || v.includes("（"))) {
@@ -110,7 +133,7 @@ function deriveAliases(primaryName: string): string[] {
  *      する case が大半なので、kuromoji 由来 alias は補助的。
  *   - 漢字含まない primary (純 kana) は kuromoji 不要、skip。
  */
-function deriveKuromojiAlias(tokenizer: any, primaryName: string): string | null {
+function deriveKuromojiAlias(tokenizer: KuromojiTokenizer, primaryName: string): string | null {
   if (!/[一-鿿]/.test(primaryName)) return null; // 漢字なし → skip
   try {
     const tokens = tokenizer.tokenize(primaryName);
@@ -133,8 +156,8 @@ function deriveKuromojiAlias(tokenizer: any, primaryName: string): string | null
 // === Main ingestion ===
 
 // Kuromoji tokenizer ビルド (非同期、約 2-3 秒)
-const tokenizer: any = await new Promise((resolve, reject) => {
-  kuromoji.builder({ dicPath: KUROMOJI_DICT }).build((err: any, t: any) => {
+const tokenizer = await new Promise<KuromojiTokenizer>((resolve, reject) => {
+  kuromoji.builder({ dicPath: KUROMOJI_DICT }).build((err, t) => {
     if (err) reject(err);
     else resolve(t);
   });
@@ -150,7 +173,7 @@ const sheet = wb.getWorksheet("表全体");
 if (!sheet) {
   throw new Error('Worksheet "表全体" not found in MEXT file');
 }
-const data: any[][] = [];
+const data: unknown[][] = [];
 for (let r = 1; r <= sheet.rowCount; r++) {
   const row = sheet.getRow(r);
   // exceljs の row.values は 1-indexed (index 0 は undefined)、slice(1) で
@@ -158,8 +181,8 @@ for (let r = 1; r <= sheet.rowCount; r++) {
   data.push(((row.values as unknown as unknown[]) ?? []).slice(1));
 }
 
-const existingFoodsRaw = JSON.parse(fs.readFileSync(FOODS_FILE, "utf8"));
-const existingFoods = existingFoodsRaw.foods as any[];
+const existingFoodsRaw = JSON.parse(fs.readFileSync(FOODS_FILE, "utf8")) as FoodsFile;
+const existingFoods: Food[] = existingFoodsRaw.foods;
 
 // hand-curated 57 = source-order の先頭 57 件 (v0.3.1 で固定)。
 // それ以外 (auto-ingested 1,914) は今回再生成して alias 強化する (rendaku)。
@@ -171,12 +194,12 @@ const skipRows = new Set<number>(
 console.error(`Hand-curated entries preserved: ${handCurated.length}, skipping their MEXT rows: ${skipRows.size}`);
 
 // hand-curated から protein_g を削除 (v0.3.1 schema cleanup)
-const cleanedExisting = handCurated.map((f) => {
-  const { protein_g, ...rest } = f;
-  return rest;
+const cleanedExisting: Food[] = handCurated.map((f) => {
+  const { protein_g: _protein_g, ...rest } = f;
+  return rest as Food;
 });
 
-const newFoods: any[] = [];
+const newFoods: Food[] = [];
 let totalRows = 0, skipped = 0, addedRows = 0, noDataRows = 0;
 
 for (let i = 6; i < data.length; i++) {
@@ -240,9 +263,9 @@ const output = {
 
 // category_fallbacks も protein_g 削除
 if (output.category_fallbacks) {
-  output.category_fallbacks = output.category_fallbacks.map((f: any) => {
-    const { protein_g, ...rest } = f;
-    return rest;
+  output.category_fallbacks = output.category_fallbacks.map((f: Food) => {
+    const { protein_g: _protein_g, ...rest } = f;
+    return rest as Food;
   });
 }
 

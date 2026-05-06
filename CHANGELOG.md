@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.4] - 2026-05-06 — `scripts/ingest-mext-foods.ts` の TypeScript 型強化
+
+### Changed
+- **`scripts/ingest-mext-foods.ts` から `any` を全削除** (8 箇所 → 0)。`Food` /
+  `FoodsFile` 型を追加し、Excel cell は `unknown` に narrowing、protein_g 削除の
+  destructure は `_protein_g` で unused-var rule に対応。
+- **`kuromoji.d.ts` を新規追加**: kuromoji は npm 公式 typings 不在のため、
+  `scripts/ingest-mext-foods.ts` が使う最小 surface (`builder` / `Tokenizer` /
+  `Token`) のみ宣言。これにより `// @ts-ignore` を除去し、`tokenizer.tokenize()`
+  の戻り値が `Token[]` として補完・型チェックされるようになった。
+
+### Background
+v0.5.3 引き継ぎ時の「未追跡 low-priority debt」項目。本番ランタイムには乗らない
+build-time only スクリプトだが、`bun run build` が v0.5.3 で type-check 通過する
+ようになり、`any` を残しておく理由がなくなった。
+
+### Tests / Build
+- 196 pass / 1 skip / 0 fail (no behavioral change)
+- `bun run build` ✓ TypeScript phase passes
+
 ## [0.5.3] - 2026-05-06 — browserslist 縮小で legacy polyfill 削除 (-14 KiB JS)
 
 ### Changed
