@@ -14,6 +14,7 @@ const sampleRecipe: Recipe = {
   cookTime: "20分",
   description: "サバを味噌・砂糖・生姜で煮込んだ和食の定番。EPA・DHA 豊富。",
   fishType: "fish",
+  cookingMethod: "simmered",
 };
 
 describe("RecipeCard", () => {

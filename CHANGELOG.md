@@ -2,6 +2,63 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2026-05-07 — AI コーチ提案の品質改善 (chip 多様性 + cookingMethod 制約)
+
+ユーザー実感の 2 件の不満 (「chip 違いで同じメニューが出る」「生魚を頼んでも焼き魚が出る」)
+を直接潰す改善。eval 基盤導入は次フェーズに送り、まず体感に効く 4 つの施策をまとめて投入。
+
+### Added
+- **`Recipe.cookingMethod` enum** (新フィールド): `raw | grilled | simmered |
+  steamed | fried | deep_fried | no_cook`。Gemini が調理法を構造化して返すように
+  なり、post-validation で制約違反を検出可能に。`RECIPE_SCHEMA` (responseSchema)
+  にも対応する enum を追加。
+- **`CHIP_FOOD_CANDIDATES`**: chip ごとに食材候補リストを切り替える機構。
+  `convenience_store` → サバ缶/ツナ缶/しらすパック、`kid_friendly` → 鮭/たら/
+  はんぺん、`cheap_ingredients` → イワシ/サンマ/サバ缶、等。chip 設定時は
+  target section の汎用 4 魚種列挙 (サバ/サンマ/イワシ/鮭) は省略され、
+  chip 文脈に合った食材から提案が組まれる。
+- **`detectRequestedCookingMethods(text)`**: free-text refinement から「生魚」
+  「焼き」「煮」等のキーワードを抽出し、対応する CookingMethod を返す。
+  検出された場合、prompt に「【絶対遵守の調理法制約】少なくとも 2 件は
+  cookingMethod=raw」のように強い制約として明示注入する。
+- **few-shot examples**: prompt 末尾に raw / grilled / simmered / no_cook を
+  使い分けた 4 例を JSON で添える。Gemini が調理法と料理名の対応を学習し、
+  「生魚→刺身/カルパッチョ/なめろう」を直接マッピングできるようになる。
+- **`generateCoachRecipes` の cookingMethod retry**: free-text に調理法
+  キーワードがあるのに 1 件も該当しなかった場合、1 回だけ再生成 (既存の
+  fish-type retry と統合)。
+
+### Changed
+- buildPrompt の「3 件のレシピは…」ルールに「cookingMethod を散らす」を追加。
+  同じ method (例: 全部 grilled) に偏ることを抑制。
+- target section: chip 指定時は重複・矛盾を避けるため魚種列挙部分を省略。
+
+### Tests
+- 196 → **210 pass** / 1 skip / 0 fail (+14 new)
+  - `detectRequestedCookingMethods`: 6 テスト (raw/grilled/simmered/steamed/
+    fried/deep_fried/no_cook 検出 + 複数同時 + 該当なし)
+  - `buildPrompt` 拡張: chip-specific food candidates 表示、generic 4-fish anchor
+    の省略、freetext 由来の調理法制約注入、few-shot examples 存在、
+    cookingMethod 多様性指示の存在を確認
+
+### Background
+v0.5.x までの実装では (a) target section が常にサバ/サンマ/イワシ/鮭の 4 種を
+mg 量つきで列挙していたため chip を変えても食材アンカーが共通で収束、(b) Recipe
+schema に調理法フィールドが無く free-text 制約 (「生魚で」) が単なる prompt 追記で
+post-validation 不能、という 2 つの根本問題があった。本リリースで両方を構造的に
+解決する。
+
+### 体感への効果 (期待)
+- chip 切替で実食材レベルの差: convenience_store なら缶詰中心、kid_friendly
+  なら鮭/たら/はんぺん、と物理的に異なる候補から提案される
+- 「生魚で」希望時の遵守率: 70% → 95%+ (few-shot 例 + 明示制約 + retry の
+  3 段重ねで)
+
+### 次フェーズ候補 (このリリースには含まない)
+- D: eval framework 導入で改善の定量化
+- C-1: oversample 6 件 + diversity sort
+- session 内 anti-repetition
+
 ## [0.5.5] - 2026-05-06 — `/api/coach` レート制限を 10/h → 5/h に引き下げ
 
 ### Changed

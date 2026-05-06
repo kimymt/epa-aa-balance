@@ -44,12 +44,66 @@ const CHIP_PROMPT_HINTS: Record<ChipKey, string> = {
   kid_friendly: "子ども (5-10 歳) でも食べやすい味付け。骨が多い魚、苦味の強いものは避ける。",
 };
 
+// v0.6.0: chip ごとに「使うべき食材リスト」を chip-specific に切り替える。
+// 従来は target section が固定で「サバ/サンマ/イワシ/鮭」を列挙してたため、
+// chip を変えても 3 件中の魚種が収束していた。chip 文脈に整合する食材を渡すことで
+// 同じ aggregate でも chip 違いで実食材レベルの差が出るようにする。
+const CHIP_FOOD_CANDIDATES: Record<ChipKey, string> = {
+  japanese_style:
+    "サバ ~1500mg、サンマ ~1300mg、真鯵 ~600mg、ぶり ~900mg、真鯛 ~250mg、しらす ~580mg (mg/100g、出汁・煮魚・焼き魚向き)",
+  convenience_store:
+    "サバ缶 ~1500mg、ツナ缶 (油漬) ~700mg、しらすパック ~580mg、鮭フレーク ~600mg、いわし蒲焼缶 ~1100mg、刺身パック (まぐろ赤身 / 鮭) (mg/100g、調理不要 or 和えるだけ)",
+  quick:
+    "サバ缶 ~1500mg、ツナ缶 ~700mg、しらす ~580mg、刺身パック (まぐろ赤身 / サーモン)、ぶり (切り身) ~900mg、たらこ ~500mg (mg/100g、火を使わない or 火 5 分以内)",
+  cheap_ingredients:
+    "イワシ ~1200mg、サンマ ~1300mg、サバ ~1500mg、アジ ~600mg、サバ缶 ~1500mg、いわし蒲焼缶 ~1100mg、ちくわ ~50mg (mg/100g、庶民魚と缶詰中心)",
+  kid_friendly:
+    "鮭 ~600mg、たら ~70mg、はんぺん ~20mg、ちくわ ~50mg、ツナ缶 ~700mg、しらす ~580mg、サーモン (刺身) ~600mg (mg/100g、骨が少なく味が穏やかな食材)",
+};
+
+/** v0.6.0: 調理法 enum。Recipe.cookingMethod と post-validation で使用。 */
+export type CookingMethod =
+  | "raw"          // 刺身、なめろう、カルパッチョ、ユッケ、セビーチェ
+  | "grilled"      // 焼き、塩焼き、ホイル焼き、炙り
+  | "simmered"     // 煮物、煮付け、味噌煮、煮込み
+  | "steamed"      // 蒸し、酒蒸し
+  | "fried"        // 炒め、ソテー、ムニエル (浅い油)
+  | "deep_fried"   // 揚げ、唐揚げ、天ぷら、フライ
+  | "no_cook";     // 缶を開けるだけ、和えるだけ、サラダ
+
+/**
+ * v0.6.0: free-text refinement から「生」「焼」「煮」等のキーワードを検出し、
+ * 該当 CookingMethod を返す。chip にはマッピングしない (chip は調理法を指定しないため)。
+ * 1 つの文に複数の方法が含まれる可能性もあるので array を返す。
+ */
+const COOKING_METHOD_KEYWORDS: Record<CookingMethod, string[]> = {
+  raw: ["生魚", "生で", "生の", "刺身", "カルパッチョ", "なめろう", "ユッケ", "セビーチェ", "タルタル"],
+  grilled: ["焼き", "焼く", "塩焼", "ホイル焼", "炙り", "西京焼", "蒲焼"],
+  simmered: ["煮物", "煮付け", "味噌煮", "煮込み", "煮る"],
+  steamed: ["蒸し", "蒸す", "酒蒸"],
+  fried: ["炒め", "ソテー", "ムニエル"],
+  deep_fried: ["揚げ", "唐揚", "天ぷら", "フライ"],
+  no_cook: ["調理不要", "そのまま", "和えるだけ", "缶を開ける"],
+};
+
+export function detectRequestedCookingMethods(refinementText: string | undefined): CookingMethod[] {
+  if (!refinementText) return [];
+  const found: CookingMethod[] = [];
+  for (const [method, keywords] of Object.entries(COOKING_METHOD_KEYWORDS)) {
+    if (keywords.some((kw) => refinementText.includes(kw))) {
+      found.push(method as CookingMethod);
+    }
+  }
+  return found;
+}
+
 export interface Recipe {
   name: string;
   mealType: "breakfast" | "lunch" | "dinner";
   cookTime: string;          // "5分", "20分", "調理不要" など
   description: string;       // 1-2 文
   fishType: "fish" | "shellfish" | "fish_product";
+  cookingMethod: CookingMethod; // v0.6.0: 調理法を構造化、post-validation 可能に
 }
 
 export interface CoachRequest {
@@ -119,8 +173,15 @@ const RECIPE_SCHEMA = {
             enum: ["fish", "shellfish", "fish_product"],
             description: "魚カテゴリ。3 件全て魚系であること",
           },
+          cookingMethod: {
+            type: Type.STRING,
+            enum: ["raw", "grilled", "simmered", "steamed", "fried", "deep_fried", "no_cook"],
+            description:
+              "調理法。raw=刺身/カルパッチョ等、grilled=焼き、simmered=煮、" +
+              "steamed=蒸し、fried=炒め/ソテー、deep_fried=揚げ/天ぷら、no_cook=缶を開けるだけ等",
+          },
         },
-        required: ["name", "mealType", "cookTime", "description", "fishType"],
+        required: ["name", "mealType", "cookTime", "description", "fishType", "cookingMethod"],
       },
     },
   },
@@ -172,6 +233,41 @@ export function validateCoachBody(input: unknown): { ok: true; body: CoachReques
 }
 
 /**
+ * v0.6.0: chip-conditional food list を含む chip section を組む。
+ * chip が指定された場合、target section の汎用魚種列挙を上書きする想定で並ぶ。
+ */
+function buildChipSection(chip: ChipKey): string {
+  const candidates = CHIP_FOOD_CANDIDATES[chip];
+  return `
+
+【「${CHIP_LABELS[chip]}」要望に合う食材候補】
+${candidates}
+
+3 件のレシピは、上記の食材リストから優先的に選んでください。`;
+}
+
+/**
+ * v0.6.0: free-text に「生」「焼」等が含まれる場合、強い遵守制約を付ける。
+ */
+function buildCookingMethodConstraintHint(methods: CookingMethod[]): string {
+  if (methods.length === 0) return "";
+  const list = methods.join(", ");
+  return `
+
+【絶対遵守の調理法制約】
+ユーザーは ${list} を希望しています。3 件のレシピのうち **少なくとも 2 件は cookingMethod が ${methods[0]}** であること。残り 1 件も ${list} のいずれかを優先。「${methods[0]}」と矛盾するレシピ名 (例: raw 希望なのに「焼き〜」「煮〜」) は禁止。`;
+}
+
+/** v0.6.0: 調理法多様性の few-shot 参考例。出力形式と method の使い分けを示す。 */
+const FEW_SHOT_EXAMPLES = `
+
+【参考例】(出力ではなく、調理法の使い分けを学ぶための例)
+1. {"name":"鯵のなめろう丼", "mealType":"lunch", "cookTime":"10分", "description":"鯵を細かく叩いて味噌・薬味と和え、ご飯に乗せる。", "fishType":"fish", "cookingMethod":"raw"}
+2. {"name":"サバ缶トマト煮", "mealType":"dinner", "cookTime":"15分", "description":"サバ水煮缶とカットトマト・玉ねぎを 10 分煮る。", "fishType":"fish", "cookingMethod":"simmered"}
+3. {"name":"鮭のホイル焼き", "mealType":"dinner", "cookTime":"20分", "description":"鮭切身に塩、きのこを乗せホイルで包んで 15 分焼く。", "fishType":"fish", "cookingMethod":"grilled"}
+4. {"name":"しらすパック朝定食", "mealType":"breakfast", "cookTime":"調理不要", "description":"パックしらすをご飯に乗せ、味噌汁と添える。", "fishType":"fish", "cookingMethod":"no_cook"}`;
+
+/**
  * Gemini に投げる prompt を組み立てる。
  */
 export function buildPrompt(req: CoachRequest): string {
@@ -184,26 +280,42 @@ export function buildPrompt(req: CoachRequest): string {
       : recentFoods.map((f) => `${f.name} ${f.grams}g`).join(", ");
 
   let refinementHint = "";
+  let chipSection = "";
+  let methodConstraint = "";
   if (refinement) {
     if (refinement.type === "chip") {
-      refinementHint = "\n\n【追加要望】" + (CHIP_PROMPT_HINTS[refinement.value as ChipKey] ?? "");
+      const chipKey = refinement.value as ChipKey;
+      refinementHint = "\n\n【追加要望】" + (CHIP_PROMPT_HINTS[chipKey] ?? "");
+      // v0.6.0: chip ごとに食材候補を切り替えて多様性を出す
+      if (chipKey in CHIP_FOOD_CANDIDATES) {
+        chipSection = buildChipSection(chipKey);
+      }
     } else {
       refinementHint = `\n\n【ユーザーからの追加要望】\n${refinement.value}`;
+      // v0.6.0: free-text から調理法を抽出して明示制約に
+      const detectedMethods = detectRequestedCookingMethods(refinement.value as string);
+      methodConstraint = buildCookingMethodConstraintHint(detectedMethods);
     }
   }
 
   // v0.4.10: 目標食習慣セクション。設定があれば prompt にギャップ情報を埋め込み、
   // Gemini が「ギャップを埋める設計」のレシピを優先するよう誘導。
+  // v0.6.0: chip が指定された場合は CHIP_FOOD_CANDIDATES が food guidance を担うので、
+  // target section では魚種列挙を省略 (重複・矛盾を避ける)。
   let targetSection = "";
   if (target) {
+    const omitFoodList = !!chipSection;
     targetSection = `
 
 【目標食習慣】
 ユーザーは「${target.patternName}」に近づきたい食習慣傾向にあります。
 1 日換算で **あと +${Math.round(target.gapMg)} mg/日** の EPA+DHA 摂取で目標水準に到達します。
-3 件のレシピで合計 ${Math.round(target.gapMg)} mg 程度の EPA+DHA を上乗せできるよう、
-含有量の多い食材 (サバ ~1500mg/100g、サンマ ~1300mg/100g、イワシ ~1200mg/100g、
-鮭 ~600mg/100g 等) を中心に組み立ててください。`;
+3 件のレシピで合計 ${Math.round(target.gapMg)} mg 程度の EPA+DHA を上乗せできるよう設計してください。${
+      omitFoodList
+        ? ""
+        : `
+含有量の多い食材 (サバ ~1500mg/100g、サンマ ~1300mg/100g、イワシ ~1200mg/100g、鮭 ~600mg/100g 等) を中心に組み立ててください。`
+    }`;
   }
 
   return `あなたは栄養士です。直近の食事から、EPA・DHA を増やすためのレシピを 3 件提案してください。
@@ -213,16 +325,17 @@ export function buildPrompt(req: CoachRequest): string {
 - EPA 合計: ${Math.round(aggregate.epaMg)} mg
 - DHA 合計: ${Math.round(aggregate.dhaMg)} mg
 - AA 合計: ${Math.round(aggregate.aaMg)} mg
-- 識別された食材: ${foodsSummary}${targetSection}
+- 識別された食材: ${foodsSummary}${targetSection}${chipSection}${methodConstraint}
 
 【提案ルール】
 1. 必ず 3 件、全て魚介類 (fish / shellfish / fish_product) を使うレシピ
 2. 朝食・昼食・夕食 でバランスを取り、1 件ずつ別の時間帯にする (理想)
 3. 直近の食事と被らない食材を選ぶ (例: サバを既に食べていれば別の魚)
 4. 一般家庭で入手可能な食材
-5. レシピ名は 10-20 文字、説明は 1-2 文 (50-100 文字)${refinementHint}
+5. レシピ名は 10-20 文字、説明は 1-2 文 (50-100 文字)
+6. **3 件は調理法 (cookingMethod) を散らす**: 例えば 1 件 raw、1 件 grilled、1 件 simmered のように同じ method に偏らせない${refinementHint}${FEW_SHOT_EXAMPLES}
 
-各レシピは name, mealType, cookTime, description, fishType (fish/shellfish/fish_product) を含む JSON で返してください。`;
+各レシピは name, mealType, cookTime, description, fishType, cookingMethod を含む JSON で返してください。`;
 }
 
 /**
@@ -253,6 +366,12 @@ export async function generateCoachRecipes(req: CoachRequest): Promise<CoachResp
   const ai = new GoogleGenAI({ apiKey });
   const prompt = buildPrompt(req);
 
+  // v0.6.0: free-text に調理法キーワードがあれば、retry 判定で使う。
+  const requestedMethods =
+    req.refinement?.type === "freetext"
+      ? detectRequestedCookingMethods(req.refinement.value as string)
+      : [];
+
   async function callOnce(): Promise<Recipe[]> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -280,8 +399,13 @@ export async function generateCoachRecipes(req: CoachRequest): Promise<CoachResp
   try {
     recipes = await callOnce();
     const filtered = filterFishRecipes(recipes);
-    if (filtered.removed > 0 && filtered.ok.length < 3) {
-      // 1 回だけ再生成
+    const fishCheckFailed = filtered.removed > 0 && filtered.ok.length < 3;
+    // v0.6.0: cooking-method 制約違反の検出
+    const methodCheckFailed =
+      requestedMethods.length > 0 &&
+      filtered.ok.filter((r) => requestedMethods.includes(r.cookingMethod)).length === 0;
+    if (fishCheckFailed || methodCheckFailed) {
+      // 1 回だけ再生成 (prompt に既に制約が入っているので、温度違いの再 sample になる)
       retried = true;
       recipes = await callOnce();
     }
