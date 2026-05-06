@@ -128,13 +128,13 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
               ユーザーが「何を目指すレシピが返ってくるのか」を事前に把握できる。 */}
           {target && (
             <div className="mb-4 rounded-lg bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
-              <span className="font-semibold">目標:</span>{" "}
+              <span className="font-semibold">今のあなたより魚を食べていたのは</span>{" "}
               <strong>{target.patternName}</strong>{" "}
               <span className="text-sky-700 dark:text-sky-300">
                 (あと +{Math.round(target.gapMg).toLocaleString("en-US")} mg/日)
               </span>
               <div className="mt-1 text-xs text-sky-700 dark:text-sky-300">
-                このギャップを埋めるレシピを優先して提案します。
+                これからも美味しく魚を食べてください
               </div>
             </div>
           )}
@@ -272,7 +272,7 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
             戻る
           </button>
           <p className="mt-3 text-xs text-slate-400 text-center">
-            ※ AI 提案は 1 時間あたり 10 回までです。少し時間を置いてから再試行してください。
+            ※ AI 提案は 1 時間あたり 5 回までです。少し時間を置いてから再試行してください。
           </p>
         </div>
       )}
