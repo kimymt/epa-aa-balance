@@ -135,7 +135,7 @@ bun dev
 | `FEEDBACK_ADMIN_TOKEN` | ⚠ | `/admin` GET エンドポイント認証 (32 文字以上推奨) |
 | `ADMIN_BASIC_AUTH` | ⚠ | `/admin` ページ Basic Auth (`user:pass` 形式) |
 | `IP_HASH_SECRET` | 推奨 | rate limit IP ハッシュの secret (`openssl rand -hex 32`) |
-| `COACH_RATE_LIMIT` | 任意 | `/api/coach` 上限 (デフォルト 10 req/h/IP) |
+| `COACH_RATE_LIMIT` | 任意 | `/api/coach` 上限 (デフォルト 5 req/h/IP、v0.5.5 で 10 → 5 引き下げ) |
 | `ANALYZE_RATE_LIMIT` | 任意 | `/api/analyze` 上限 (デフォルト 10 req/h/IP) |
 | `FEEDBACK_ADMIN_RATE_LIMIT` | 任意 | `GET /api/feedback` 上限 (デフォルト 30 req/h/IP) |
 
@@ -281,7 +281,7 @@ bun --env-file=.env.local run scripts/migrate-d1.ts
 
 `/cso` 監査済み（[`SKILL.md`](https://github.com/garrytan/gstack) ベース）。実装済み対策:
 
-- **rate limit**: D1 ベース、IP per/hour 制限。`/api/coach` 10/h、`/api/analyze` 10/h、`/api/feedback` GET (admin) 30/h
+- **rate limit**: D1 ベース、IP per/hour 制限。`/api/coach` 5/h (v0.5.5)、`/api/analyze` 10/h、`/api/feedback` GET (admin) 30/h
 - **IP ハッシュ化**: SHA-256 + `IP_HASH_SECRET` で 16 hex に short hash、生 IP は永続化しない
 - **request_log telemetry**: 全リクエスト記録（429 含む）→ brute-force 検知可
 - **Timing-safe credential compare**: Basic Auth と admin token に Node 標準 `crypto.timingSafeEqual` を使用
