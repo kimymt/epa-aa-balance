@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.2] - 2026-05-07 — モバイルで UploadZone の枠が画面幅を超える問題の修正
+
+### Fixed
+- `components/UploadZone.tsx` のファイルリストカードで、長いファイル名が
+  iOS Safari 等で overflow して body 横スクロールが起き、ドロップゾーンの
+  枠まで画面幅より広く見える問題を修正。
+  - カード `<div>` に `overflow-hidden` を追加(safety belt)。
+  - filename の `truncate` を `break-all` に変更し、長いファイル名は折り返して
+    全体を見せる(UX 改善も兼ねる)。
+
 ## [0.6.1] - 2026-05-06 — UI 文言修正 (rate-limit 表示 + AI コーチ目標表示)
 
 ### Fixed
