@@ -2,6 +2,72 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - 2026-05-09 — レシピを「実装図面」に格上げ (F-015)
+
+ユーザーから「提案の質が高くない」と指摘されていた 3 軸 (入力解像度 / 出力粒度 /
+ループ不在) のうち **出力粒度** を本リリースで全面強化。レシピが name + 50-100 字
+description だけだった状態から、ingredients / steps / equipment / tips /
+safetyNote を伴う「そのまま作れる」粒度へ。
+
+### Added
+- **`Ingredient` 型** (新): `{ name, amount }`。amount は日本語料理の表現の幅
+  ("190g" / "1 缶" / "大さじ 1" / "1/2 個") を許容する string。
+- **Recipe 拡張** (新規 6 フィールド、全て required):
+  - `servings: number` (1-4 の整数、人数)
+  - `ingredients: Ingredient[]` (3-7 件、最初は主要な魚介)
+  - `steps: string[]` (1-5 件、各 30-80 文字。no_cook なら 1-2 件可)
+  - `equipment: string[]` (鍋/フライパン/魚焼きグリル等。不要なら空配列)
+  - `tips: string` (1 文のコツ、なければ空文字列)
+  - `safetyNote: string` (生魚等で必要、それ以外は空文字列)
+- **RECIPE_SCHEMA** (Gemini responseSchema) を上記 6 フィールドに合わせて更新。
+- **few-shot examples** を full-detail に書き直し: raw / simmered / grilled /
+  no_cook の 4 例、それぞれ実際の材料・手順・道具・コツ・安全注意付き。
+  Gemini が「鯵のなめろう丼」を出すときに包丁の叩き回数や生食安全注意も
+  添えられるように。
+
+### UI
+- **`RecipeCard` を expandable に**: 折りたたみ時は従来通り (name + meal/cookTime
+  + description) の見た目、底部に "材料 N つ・手順 M ステップ ▾" の affordance。
+  タップで全詳細展開、再タップで折りたたむ。
+- 展開エリアの構造:
+  - 材料 (人数表記つき): 名前と分量を 2 列で
+  - 手順 (番号付きリスト)
+  - 道具 (空配列なら非表示)
+  - コツ (💡 アイコン付き、amber テーマ、空文字列なら非表示)
+  - 安全注意 (⚠ アイコン付き、rose テーマ、生魚等で表示)
+- `aria-expanded` を button に付与、折りたたみ時のラベルは情報量予告として
+  件数を表示することで「タップする価値」を伝える設計 (UX 軸 C1 + 案 3)。
+
+### Tests
+- 210 → **227 pass** / 1 skip / 0 fail (+17 new)
+  - `RecipeCard.test.tsx` (+11): 折りたたみ初期状態、affordance 件数表示、
+    展開で ingredients/steps/equipment 表示、tips/safetyNote の条件付き表示
+    (空文字列なら非表示)、aria-expanded toggle、再タップで折りたたみ
+  - `lib/coach.test.ts` (+6): description 30-60 文字 / ingredients 3-7 件 /
+    steps 1-5 件 ルールの prompt 反映、few-shot に servings/ingredients/steps/
+    equipment/safetyNote が含まれていること、no_cook 例の equipment が空配列、
+    raw 例の safetyNote に「当日中」が入っていること、closing line に
+    全 12 フィールド指示が含まれること
+
+### Background
+v0.6.0 で chip 多様性 + cookingMethod 構造化を導入したが、ユーザー実感としては
+「依然作れる粒度に達していない」状態 (description 50-100 字では実装図面に届かず、
+結局 Google で検索してしまう)。本リリースで **アイデア帳 → 実装図面** の格上げ。
+
+### 体感への効果 (期待)
+- ユーザーが「これ作る」と決断できる: 材料の g 量・道具・3-5 ステップが揃い、
+  Google 検索なしで作れる
+- 期待値設定が UI 上で完結: カードを開く前に「材料 4 つ・手順 3 ステップ」と
+  分かるので、忙しい朝には軽量レシピを選べる
+- 安全な提案: 生魚レシピには「刺身用 (生食可) と表示のあるものを当日中に」が
+  自動付与され、コーチとして責任ある提案になる
+
+### 残課題 (本 PR 範囲外)
+- F-014: 入力解像度 (時間帯/人数/在庫食材/予算等の構造化) の追加
+- F-016: 提案ループ (作った/保留/スルーの記録 + 履歴注入)
+- 出力レイテンシ: 6 フィールド追加で Gemini 出力 ~2-3x、現状 5-15s が
+  10-25s 程度になる見込み (Vercel maxDuration 45s 内には収まる)
+
 ## [0.6.2] - 2026-05-07 — モバイルで UploadZone の枠が画面幅を超える問題の修正
 
 ### Fixed
