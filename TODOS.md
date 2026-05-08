@@ -53,6 +53,65 @@ LCP element はテキスト (`<p>`) なので web font swap (Geist) によるテ
 
 ---
 
+## AI コーチ品質改善 (2026-05-08 言語化、3 軸別 PR)
+
+ユーザーが「提案の質が高くない」と感じる体感を 3 レイヤーに分解した結果。
+独立した 3 PR で攻める想定。
+
+### F-014: AI コーチ「あなた」の解像度を上げる (= 入力レイヤー)
+**What:** 現状の入力は aggregate 数値 + chip 5 種 + free-text 200 字のみで、
+「いつの食事」「人数」「在庫食材」「予算」「料理スキル」「アレルギー / 苦手食材」
+等の生活文脈ゼロ。chip × aggregate でペルソナ 5 種類しか分岐しない。
+**対策候補:**
+- free-text 200 → 800 字に拡張、ヒント例を多めに表示
+- 「何時の何食」「人数」「在庫食材」「予算」「苦手食材」を別フィールドで構造化
+  (chips の上にコンパクトな小フォーム or expandable section)
+- analyze 結果の食材リストをユーザーが「これ余ってる/消費したい」マークし
+  prompt に流す
+**Why:** 「私のための提案」感を出す根幹。今は「直近の魚摂取量に応じた一般論」。
+**Effort:** UX デザイン 2-4h + 実装 1 日 (CoachRequest 拡張、UI 追加)。
+**Trigger:** F-015 完了後 or 並行。
+**Depends on:** v0.6.0 の prompt builder 構造を活かす。
+
+### F-015: レシピを「インスピレーション」から「実装図面」へ (= 出力レイヤー)
+**What:** 現状の Recipe は description 50-100 文字で、ingredients (g 量)、
+steps (具体手順)、equipment (道具)、tips (コツ) すべて欠落。「鯵のなめろう丼」
+を作ろうとすると Google で検索が必要 → アプリの提案価値が「アイデア帳」
+止まり。
+**対策候補:**
+- Recipe スキーマに `ingredients: {name, amount}[]`、`steps: string[]` (3-5 件)、
+  `equipment?: string[]`、`tips?: string`、`servings: number`、`safetyNote?: string`
+  (生魚扱い注意等) を追加
+- responseSchema で構造化、Gemini が「材料リスト + 手順」をまとめて返す
+- buildPrompt の few-shot を full-detail 例に差し替え
+- UI: RecipeCard を expandable に (要約 → タップで full レシピ展開)、
+  または full レシピ縦スクロール
+- (代替) 短い summary list + tap → 第 2 LLM 呼び出しで full レシピ生成 (lazy load)
+**Why:** ユーザーが「これ作ろう」と決断できる粒度に到達するため。
+"コーチ" を名乗るに足る出力品質。
+**Effort:** schema 設計 + prompt 書き換え + UI expand + tests = 1〜2 日 (+ Gemini
+コスト・レイテンシ要評価)。
+**Trigger:** 詳細議論済み (2026-05-08)、次着手候補 #1。
+
+### F-016: 提案の「ループ」を作る (= 継続レイヤー、最大価値)
+**What:** 現状は提案 → 終わりで、過去提案の記憶も実行追跡もフィードバック取り込み
+もない。同じ aggregate で 1 週間後に chip 押すと毎回似た 3 件が並ぶ → 「私のコーチ」感
+が育たない。
+**対策候補:**
+- 提案ごとに「作った / 保留 / スルー」3 択ボタン (D1 user-keyed で記録、
+  IP_HASH ベース or 軽量認証)
+- 次回 prompt に直近 N 件の「先週: ◎X / △Y / ×Z」を注入、Gemini が
+  「Z は刺さらなかったので別系統で」と動ける
+- 4-8 週単位の「あなたの傾向 + 改善曲線」ダッシュボード
+- (前提) 認証システム or 軽量 user identifier 導入
+**Why:** "コーチ" の本質はループ。これがないと「毎回新人」体験。
+**Effort:** 認証 + state 設計 + D1 schema + UI 状態管理 = 2〜3 日 (前提 dep が重い)。
+**Trigger:** F-014 + F-015 で単発の質を上げきった後、ループでスケールさせる時。
+**Depends on:** 軽量ユーザー識別 (Clerk / Supabase Auth 等) 導入判断、
+v1.x 認証議論と共有。
+
+---
+
 ## ✅ Completed (アーカイブ — 履歴目的で残す)
 
 ### CSP ヘッダー追加 ✅ Shipped v0.5.1 (PR #37)

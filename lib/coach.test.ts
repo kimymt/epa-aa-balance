@@ -313,25 +313,86 @@ describe("buildPrompt", () => {
   it("includes few-shot examples covering raw / grilled / simmered / no_cook", () => {
     const p = buildPrompt(baseReq);
     expect(p).toContain("【参考例】");
-    expect(p).toContain('"cookingMethod":"raw"');
-    expect(p).toContain('"cookingMethod":"grilled"');
-    expect(p).toContain('"cookingMethod":"simmered"');
-    expect(p).toContain('"cookingMethod":"no_cook"');
+    expect(p).toContain('"cookingMethod": "raw"');
+    expect(p).toContain('"cookingMethod": "grilled"');
+    expect(p).toContain('"cookingMethod": "simmered"');
+    expect(p).toContain('"cookingMethod": "no_cook"');
   });
 
   it("instructs Gemini to vary cookingMethod across the 3 recipes", () => {
     const p = buildPrompt(baseReq);
     expect(p).toContain("調理法 (cookingMethod) を散らす");
   });
+
+  // v0.7.0: full-detail スキーマの prompt 反映を確認
+  it("includes per-field粒度 rules for full-detail schema (description / ingredients / steps)", () => {
+    const p = buildPrompt(baseReq);
+    expect(p).toContain("【出力スキーマと粒度の絶対ルール】");
+    expect(p).toContain("description: 30-60 文字");
+    expect(p).toContain("ingredients: 3-7 件");
+    expect(p).toContain("steps: 1-5 件");
+  });
+
+  it("few-shot examples carry servings + ingredients + steps fields (full-detail format)", () => {
+    const p = buildPrompt(baseReq);
+    expect(p).toContain('"servings"');
+    expect(p).toContain('"ingredients"');
+    expect(p).toContain('"steps"');
+    expect(p).toContain('"equipment"');
+    expect(p).toContain('"safetyNote"');
+  });
+
+  it("few-shot includes a no_cook example with empty equipment array (zero道具対応)", () => {
+    const p = buildPrompt(baseReq);
+    // しらすパック朝定食 例: "equipment": []
+    expect(p).toMatch(/"cookingMethod":\s*"no_cook"[\s\S]*?"equipment":\s*\[\s*\]/);
+  });
+
+  it("few-shot includes a raw example with non-empty safetyNote (生食安全注意)", () => {
+    const p = buildPrompt(baseReq);
+    // 鯵のなめろう丼 例: 刺身用…当日中に
+    expect(p).toMatch(/"cookingMethod":\s*"raw"[\s\S]*?"safetyNote":\s*"[^"]*?当日中/);
+  });
+
+  it("instructs all 12 required fields in the closing line", () => {
+    const p = buildPrompt(baseReq);
+    // 末尾「全フィールドを含む JSON」指示
+    expect(p).toContain("全フィールドを含む JSON");
+    expect(p).toContain("ingredients");
+    expect(p).toContain("steps");
+    expect(p).toContain("equipment");
+    expect(p).toContain("tips");
+    expect(p).toContain("safetyNote");
+  });
 });
+
+// v0.7.0: full-detail Recipe を作るための test helper。
+// fishType と cookingMethod は呼び元で上書き可能 (filterFishRecipes 等の検証用)。
+function makeRecipe(overrides: Partial<Recipe> = {}): Recipe {
+  return {
+    name: "テストレシピ",
+    mealType: "dinner",
+    cookTime: "10分",
+    description: "テスト用の短い要約。",
+    fishType: "fish",
+    cookingMethod: "grilled",
+    servings: 1,
+    ingredients: [{ name: "サバ", amount: "1 切れ" }],
+    steps: ["焼く。"],
+    equipment: [],
+    tips: "",
+    safetyNote: "",
+    ...overrides,
+  };
+}
 
 describe("filterFishRecipes", () => {
   it("keeps fish/shellfish/fish_product, removes others", () => {
     const recipes: Recipe[] = [
-      { name: "サバ焼き", mealType: "breakfast", cookTime: "5分", description: "焼く", fishType: "fish", cookingMethod: "grilled" },
+      makeRecipe({ name: "サバ焼き", fishType: "fish" }),
       // @ts-expect-error testing wrong type
-      { name: "ステーキ", mealType: "dinner", cookTime: "20分", description: "焼く", fishType: "meat", cookingMethod: "grilled" },
-      { name: "ホタテバター", mealType: "dinner", cookTime: "10分", description: "焼く", fishType: "shellfish", cookingMethod: "fried" },
+      makeRecipe({ name: "ステーキ", fishType: "meat" }),
+      makeRecipe({ name: "ホタテバター", fishType: "shellfish" }),
     ];
     const r = filterFishRecipes(recipes);
     expect(r.ok.length).toBe(2);
@@ -341,9 +402,9 @@ describe("filterFishRecipes", () => {
 
   it("returns all when all are fish-type", () => {
     const recipes: Recipe[] = [
-      { name: "a", mealType: "breakfast", cookTime: "1", description: "x", fishType: "fish", cookingMethod: "grilled" },
-      { name: "b", mealType: "lunch", cookTime: "1", description: "x", fishType: "shellfish", cookingMethod: "raw" },
-      { name: "c", mealType: "dinner", cookTime: "1", description: "x", fishType: "fish_product", cookingMethod: "no_cook" },
+      makeRecipe({ name: "a", fishType: "fish" }),
+      makeRecipe({ name: "b", fishType: "shellfish", cookingMethod: "raw" }),
+      makeRecipe({ name: "c", fishType: "fish_product", cookingMethod: "no_cook" }),
     ];
     expect(filterFishRecipes(recipes).removed).toBe(0);
     expect(filterFishRecipes(recipes).ok.length).toBe(3);

@@ -97,13 +97,36 @@ export function detectRequestedCookingMethods(refinementText: string | undefined
   return found;
 }
 
+/** v0.7.0: 材料 1 件分 (name + amount のシンプルな構造)。
+ *  amount は日本語料理の表現の幅 (g / ml / 大さじ / 1 缶 / 1/2 個 等) を許容するため string。 */
+export interface Ingredient {
+  name: string;
+  amount: string;
+}
+
 export interface Recipe {
   name: string;
   mealType: "breakfast" | "lunch" | "dinner";
   cookTime: string;          // "5分", "20分", "調理不要" など
-  description: string;       // 1-2 文
+  /** 1 行要約 (30-60 文字)。カード折りたたみ時に表示。詳細は ingredients/steps へ。 */
+  description: string;
   fishType: "fish" | "shellfish" | "fish_product";
-  cookingMethod: CookingMethod; // v0.6.0: 調理法を構造化、post-validation 可能に
+  cookingMethod: CookingMethod;
+  // v0.7.0 追加: full-detail フィールド
+  /** 何人前か (1-4)。1 人前なら 1。 */
+  servings: number;
+  /** 材料リスト (3-7 件)。最初は主要食材 (魚介) を置く慣習。 */
+  ingredients: Ingredient[];
+  /** 調理手順 (1-5 ステップ)。各 30-80 文字、料理初心者でも追える粒度。
+   *  no_cook (缶詰だけ等) では 1-2 ステップでも可。 */
+  steps: string[];
+  /** 必要な道具 (鍋・フライパン・電子レンジ・包丁・魚焼きグリル 等)。
+   *  道具不要なら空配列で OK。 */
+  equipment: string[];
+  /** 1 文のコツ (例: "皮目から焼くと崩れにくい")。なければ空文字列。 */
+  tips: string;
+  /** 安全注意 (例: "鮮度の良いものを当日中に")。生魚や半生で必要、それ以外は空文字列。 */
+  safetyNote: string;
 }
 
 export interface CoachRequest {
@@ -167,7 +190,7 @@ const RECIPE_SCHEMA = {
             description: "想定する食事の時間帯",
           },
           cookTime: { type: Type.STRING, description: '"5分" "20分" "調理不要" 等' },
-          description: { type: Type.STRING, description: "1-2 文の作り方説明 (50-100 文字)" },
+          description: { type: Type.STRING, description: "1 行要約 30-60 文字。カード折りたたみ時に表示" },
           fishType: {
             type: Type.STRING,
             enum: ["fish", "shellfish", "fish_product"],
@@ -180,8 +203,51 @@ const RECIPE_SCHEMA = {
               "調理法。raw=刺身/カルパッチョ等、grilled=焼き、simmered=煮、" +
               "steamed=蒸し、fried=炒め/ソテー、deep_fried=揚げ/天ぷら、no_cook=缶を開けるだけ等",
           },
+          // v0.7.0: full-detail フィールド
+          servings: {
+            type: Type.NUMBER,
+            description: "何人前か (1-4 の整数、デフォルト 1)",
+          },
+          ingredients: {
+            type: Type.ARRAY,
+            description: "材料リスト 3-7 件、最初に主要な魚介を置く",
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                name: { type: Type.STRING, description: "食材名 (例: サバ缶、トマト、長ねぎ)" },
+                amount: {
+                  type: Type.STRING,
+                  description: "分量 (例: '190g' '1 缶' '大さじ 1' '1/2 個')",
+                },
+              },
+              required: ["name", "amount"],
+            },
+          },
+          steps: {
+            type: Type.ARRAY,
+            description: "手順 1-5 件、各ステップ 30-80 文字。no_cook なら 1-2 件でも可",
+            items: { type: Type.STRING },
+          },
+          equipment: {
+            type: Type.ARRAY,
+            description: "必要な道具 (鍋/フライパン/電子レンジ/包丁/魚焼きグリル 等)。不要なら空配列",
+            items: { type: Type.STRING },
+          },
+          tips: {
+            type: Type.STRING,
+            description: "1 文のコツ (~80 文字以内)。特になければ空文字列",
+          },
+          safetyNote: {
+            type: Type.STRING,
+            description:
+              "安全注意 (~80 文字)。生魚なら『鮮度の良いものを当日中に』等、" +
+              "半生なら中心温度等。不要なら空文字列",
+          },
         },
-        required: ["name", "mealType", "cookTime", "description", "fishType", "cookingMethod"],
+        required: [
+          "name", "mealType", "cookTime", "description", "fishType", "cookingMethod",
+          "servings", "ingredients", "steps", "equipment", "tips", "safetyNote",
+        ],
       },
     },
   },
@@ -258,14 +324,117 @@ function buildCookingMethodConstraintHint(methods: CookingMethod[]): string {
 ユーザーは ${list} を希望しています。3 件のレシピのうち **少なくとも 2 件は cookingMethod が ${methods[0]}** であること。残り 1 件も ${list} のいずれかを優先。「${methods[0]}」と矛盾するレシピ名 (例: raw 希望なのに「焼き〜」「煮〜」) は禁止。`;
 }
 
-/** v0.6.0: 調理法多様性の few-shot 参考例。出力形式と method の使い分けを示す。 */
+/** v0.7.0: 出力スキーマと粒度を学ばせる full-detail 参考例 (4 件、調理法多様)。
+ *  ingredients/steps/equipment/tips/safetyNote のリアルな使い方を示す。
+ *  ※ 出力ではなく、形式と粒度の参考。 */
 const FEW_SHOT_EXAMPLES = `
 
-【参考例】(出力ではなく、調理法の使い分けを学ぶための例)
-1. {"name":"鯵のなめろう丼", "mealType":"lunch", "cookTime":"10分", "description":"鯵を細かく叩いて味噌・薬味と和え、ご飯に乗せる。", "fishType":"fish", "cookingMethod":"raw"}
-2. {"name":"サバ缶トマト煮", "mealType":"dinner", "cookTime":"15分", "description":"サバ水煮缶とカットトマト・玉ねぎを 10 分煮る。", "fishType":"fish", "cookingMethod":"simmered"}
-3. {"name":"鮭のホイル焼き", "mealType":"dinner", "cookTime":"20分", "description":"鮭切身に塩、きのこを乗せホイルで包んで 15 分焼く。", "fishType":"fish", "cookingMethod":"grilled"}
-4. {"name":"しらすパック朝定食", "mealType":"breakfast", "cookTime":"調理不要", "description":"パックしらすをご飯に乗せ、味噌汁と添える。", "fishType":"fish", "cookingMethod":"no_cook"}`;
+【参考例】(出力ではなく、出力形式と各フィールドの粒度を学ぶための例)
+例 1 (raw, 朝食、火を使わない):
+{
+  "name": "鯵のなめろう丼",
+  "mealType": "lunch",
+  "cookTime": "10分",
+  "description": "鯵と味噌・薬味で作るなめろうをご飯に乗せた丼。EPA・DHA をそのまま摂取。",
+  "fishType": "fish",
+  "cookingMethod": "raw",
+  "servings": 1,
+  "ingredients": [
+    {"name": "鯵 (刺身用)", "amount": "1 尾分 (約 80g)"},
+    {"name": "白米 (温かいもの)", "amount": "1 杯 (180g)"},
+    {"name": "味噌", "amount": "小さじ 1"},
+    {"name": "青ねぎ (小口切り)", "amount": "5g"},
+    {"name": "生姜 (すりおろし)", "amount": "小さじ 1/2"},
+    {"name": "大葉", "amount": "2 枚"}
+  ],
+  "steps": [
+    "鯵を 5mm 角に切り、まな板の上で味噌・生姜・青ねぎを乗せて包丁で軽く叩いて混ぜる (15 回程度)。",
+    "丼に温かい白米を盛り、なめろうを乗せる。",
+    "千切りにした大葉を散らして完成。"
+  ],
+  "equipment": ["包丁", "まな板"],
+  "tips": "刺身用の柵で買うと骨抜き不要で楽。叩きすぎるとペースト状になるので粗目で止める。",
+  "safetyNote": "刺身用 (生食可) と表示のあるものを当日中に使い切ってください。"
+}
+
+例 2 (simmered, 夕食、缶詰活用):
+{
+  "name": "サバ缶トマト煮",
+  "mealType": "dinner",
+  "cookTime": "15分",
+  "description": "サバ水煮缶とカットトマトを煮るだけの一皿。EPA+DHA 約 1500mg/缶。",
+  "fishType": "fish",
+  "cookingMethod": "simmered",
+  "servings": 2,
+  "ingredients": [
+    {"name": "サバ水煮缶", "amount": "1 缶 (190g)"},
+    {"name": "カットトマト缶", "amount": "1/2 缶 (200g)"},
+    {"name": "玉ねぎ (薄切り)", "amount": "1/2 個 (100g)"},
+    {"name": "にんにく (みじん切り)", "amount": "1 片"},
+    {"name": "オリーブオイル", "amount": "大さじ 1"},
+    {"name": "塩・こしょう", "amount": "適量"}
+  ],
+  "steps": [
+    "鍋にオリーブオイルとにんにくを入れ、弱火で香りが立つまで炒める (1 分)。",
+    "玉ねぎを加えて中火で透き通るまで炒める (3 分)。",
+    "サバ水煮缶を汁ごと、カットトマトを加え、軽く崩しながら 8 分煮込む。",
+    "塩・こしょうで味を整えて完成。"
+  ],
+  "equipment": ["鍋", "包丁", "まな板"],
+  "tips": "サバ缶の汁には EPA/DHA が溶け出しているので捨てずに使う。",
+  "safetyNote": ""
+}
+
+例 3 (grilled, 夕食、家庭定番):
+{
+  "name": "鮭のホイル焼き",
+  "mealType": "dinner",
+  "cookTime": "20分",
+  "description": "きのこと一緒に蒸し焼きにする鮭料理。バターでコクを足す。",
+  "fishType": "fish",
+  "cookingMethod": "grilled",
+  "servings": 1,
+  "ingredients": [
+    {"name": "生鮭 (切り身)", "amount": "1 切れ (80g)"},
+    {"name": "しめじ", "amount": "1/3 株 (30g)"},
+    {"name": "玉ねぎ (薄切り)", "amount": "1/4 個 (50g)"},
+    {"name": "バター", "amount": "5g"},
+    {"name": "塩・こしょう", "amount": "少々"},
+    {"name": "醤油", "amount": "小さじ 1"}
+  ],
+  "steps": [
+    "鮭の両面に塩・こしょうを振る。しめじは石づきを取りほぐす。",
+    "アルミホイルに玉ねぎ → 鮭 → しめじ → バターの順に乗せ、醤油をかけて包む。",
+    "魚焼きグリルまたはトースター 220℃ で 12-15 分焼く。",
+    "ホイルを開けて湯気が落ち着いたら完成。"
+  ],
+  "equipment": ["魚焼きグリル または オーブントースター", "アルミホイル"],
+  "tips": "ホイルを開けたとき鮭中心が透明感ある桜色なら火が通っている。",
+  "safetyNote": ""
+}
+
+例 4 (no_cook, 朝食、調理不要):
+{
+  "name": "しらすパック朝定食",
+  "mealType": "breakfast",
+  "cookTime": "調理不要",
+  "description": "パックしらす + ご飯 + 味噌汁の即席朝食。EPA+DHA が手軽に。",
+  "fishType": "fish",
+  "cookingMethod": "no_cook",
+  "servings": 1,
+  "ingredients": [
+    {"name": "しらす (パック)", "amount": "30g"},
+    {"name": "白米 (温かいもの)", "amount": "1 杯 (180g)"},
+    {"name": "味噌汁 (即席)", "amount": "1 杯"},
+    {"name": "刻みのり", "amount": "少々"}
+  ],
+  "steps": [
+    "ご飯にしらすと刻みのりを乗せ、味噌汁を温めて添える。"
+  ],
+  "equipment": [],
+  "tips": "卵黄を 1 個落とすとタンパク質も補える。",
+  "safetyNote": ""
+}`;
 
 /**
  * Gemini に投げる prompt を組み立てる。
@@ -332,10 +501,19 @@ export function buildPrompt(req: CoachRequest): string {
 2. 朝食・昼食・夕食 でバランスを取り、1 件ずつ別の時間帯にする (理想)
 3. 直近の食事と被らない食材を選ぶ (例: サバを既に食べていれば別の魚)
 4. 一般家庭で入手可能な食材
-5. レシピ名は 10-20 文字、説明は 1-2 文 (50-100 文字)
-6. **3 件は調理法 (cookingMethod) を散らす**: 例えば 1 件 raw、1 件 grilled、1 件 simmered のように同じ method に偏らせない${refinementHint}${FEW_SHOT_EXAMPLES}
+5. **3 件は調理法 (cookingMethod) を散らす**: 例えば 1 件 raw、1 件 grilled、1 件 simmered のように同じ method に偏らせない${refinementHint}
 
-各レシピは name, mealType, cookTime, description, fishType, cookingMethod を含む JSON で返してください。`;
+【出力スキーマと粒度の絶対ルール】
+- name: 10-20 文字
+- description: 30-60 文字の 1 行要約 (カード折りたたみ時に表示するため簡潔に)
+- servings: 1-4 の整数。デフォルト 1
+- ingredients: 3-7 件、最初は主要な魚介を置く。各 amount は実際に作れる粒度 ("190g" "1 缶" "大さじ 1" "1/2 個" 等)
+- steps: 1-5 件、各 30-80 文字。料理初心者でも追える具体性 (火加減・時間・分量を含む)。no_cook なら 1-2 件でも可
+- equipment: 必要な道具のみ列挙。道具不要なら空配列 []
+- tips: 1 文 (~80 文字以内) のコツ。なければ空文字列 ""
+- safetyNote: 生魚 (raw) や半生では必須 (例: "鮮度の良いものを当日中に")。それ以外の調理法では空文字列 ""${FEW_SHOT_EXAMPLES}
+
+上記の例の粒度・形式に厳密に従い、name, mealType, cookTime, description, fishType, cookingMethod, servings, ingredients, steps, equipment, tips, safetyNote の全フィールドを含む JSON で返してください。`;
 }
 
 /**
