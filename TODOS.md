@@ -93,6 +93,40 @@ steps (具体手順)、equipment (道具)、tips (コツ) すべて欠落。「�
 コスト・レイテンシ要評価)。
 **Trigger:** 詳細議論済み (2026-05-08)、次着手候補 #1。
 
+### F-017: チップ体感差の弱さ対策 (議論保留中、F-014 / F-016 後に再開予定)
+**What:** ユーザー体験として「chip をタップしても提案変化を感じにくい」課題。
+2026-05-09 議論で 3 つの選択肢を比較した:
+
+- **案 1-A (chip 数を 5 → 10)**: 実装 1-2h、体感差は低〜中。UX 圧迫 + 軸混在
+  (cuisine / scene / time / cost / audience の 5 軸混在) が悪化、Pareto 効果で
+  上位 3-4 chip に集中して ROI 低い。
+- **案 1-B (prompt 強化: negative examples / persona swap / chip-specific
+  cookingMethod constraint / temperature ramp)**: 実装半日〜1 日、体感差 中-高。
+  Gemini の「和食定番収束」根本攻撃に近い。persona swap は副作用 (栄養士ブランド
+  からの逸脱) リスク。
+- **案 2 (multi-select chips)**: 実装 1-2 日、体感差 中-高 だが要検証。
+  CHIP_FOOD_CANDIDATES 合成 (intersection / union / precedence) の設計判断、
+  constraint 衝突 (例: 「コンビニで」+「20 分以内」redundant、「和食」+
+  「コンビニで」緊張)、UI 状態管理、テスト surface 爆発 (5C2 + 5C3 + … = 26 組合)
+  の課題あり。
+
+**根本仮説:** Gemini 2.5 Flash Lite が日本語の魚料理 corpus に強くアンカーされて
+おり、「サバの味噌煮」「サンマの塩焼き」「鮭のホイル焼き」あたりへの収束力が
+極めて強い。chip 弄りでは脱出できない可能性。
+
+**深掘り提案 (議論済、未決):**
+- **F-016 の小さい一部 (履歴ベース negative examples)** が同じ規模で体感への効き
+  が大きいかもしれない → F-016 と統合検討
+- **モデル切替** (gemini-2.5-flash-lite → gemini-2.5-pro) は品質高、コスト 5-10x、
+  無料枠激減のため運用判断必要
+
+**Trigger / Depends on:** F-014 (入力解像度) と F-016 (ループ、特に履歴) の進展次第。
+F-016 で履歴を持てるようになったら、negative examples の動的注入と組み合わせて
+chip 体感差問題に再挑戦するのが本筋。
+
+**Effort 概算:** 案 1-B のみなら 半日〜1 日、案 2 を含めるなら 1-2 日。
+合成ロジック設計含めると 2-3 日。
+
 ### F-016: 提案の「ループ」を作る (= 継続レイヤー、最大価値)
 **What:** 現状は提案 → 終わりで、過去提案の記憶も実行追跡もフィードバック取り込み
 もない。同じ aggregate で 1 週間後に chip 押すと毎回似た 3 件が並ぶ → 「私のコーチ」感
