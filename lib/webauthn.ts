@@ -23,7 +23,6 @@ import type {
   RegistrationResponseJSON,
   AuthenticationResponseJSON,
 } from "@simplewebauthn/server";
-import { PRF_SALT_BASE64URL } from "./prf-salt";
 
 const RP_NAME = "EPA/AAバランス";
 
@@ -157,14 +156,17 @@ export async function buildAuthenticationOptions(
   });
 
   // PRF eval をリクエスト (auth 時に対称鍵を派生するための salt)。
-  // salt は lib/prf-salt.ts で 1 箇所に集約 (server / client 共有、
-  // 鍵ローテーション時はバージョン suffix を bump)。
+  // salt は固定 (app-level)、version suffix で将来 rotation 余地を残す。
+  // 注: 実際の PRF salt 値は client 側でも同じ値を使う必要があるため、
+  //     共通の lib に定数化する方が安全 (lib/crypto-prf.ts は次フェーズで作成)。
   (options as PublicKeyCredentialRequestOptionsJSON & {
     extensions?: Record<string, unknown>;
   }).extensions = {
     prf: {
       eval: {
-        first: PRF_SALT_BASE64URL,
+        // salt: SHA-256("eaa-scorer/v1/encryption-key") の最初の 32 bytes
+        // ここではプレースホルダ; client 側で同じ値を使う前提で v0.8.2 で確定
+        first: "ZWFhLXNjb3Jlci92MS9lbmNyeXB0aW9uLWtleQ", // base64url, "eaa-scorer/v1/encryption-key"
       },
     },
   };
