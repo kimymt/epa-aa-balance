@@ -12,7 +12,6 @@ import {
   issueLoginToken,
   verifyLoginToken,
   readBearerSession,
-  requireSession,
 } from "./jwt";
 
 describe("issueSessionToken / verifySessionToken", () => {
@@ -123,55 +122,5 @@ describe("readBearerSession", () => {
   it("returns null for invalid token in Bearer", async () => {
     const result = await readBearerSession("Bearer invalid-jwt");
     expect(result).toBeNull();
-  });
-});
-
-describe("requireSession", () => {
-  function makeReq(headers: Record<string, string>): Request {
-    return new Request("https://example.com/test", { headers });
-  }
-
-  it("returns session when valid Bearer header is present", async () => {
-    const token = await issueSessionToken("user-42");
-    const result = await requireSession(makeReq({ authorization: `Bearer ${token}` }));
-    expect("session" in result).toBe(true);
-    if ("session" in result) {
-      expect(result.session.userId).toBe("user-42");
-    }
-  });
-
-  it("returns 401 Response when no Authorization header", async () => {
-    const result = await requireSession(makeReq({}));
-    expect("response" in result).toBe(true);
-    if ("response" in result) {
-      expect(result.response.status).toBe(401);
-      const body = await result.response.json();
-      expect(body.code).toBe("UNAUTHORIZED");
-    }
-  });
-
-  it("returns 401 Response when Authorization is malformed", async () => {
-    const result = await requireSession(makeReq({ authorization: "NotBearer abc" }));
-    expect("response" in result).toBe(true);
-    if ("response" in result) {
-      expect(result.response.status).toBe(401);
-    }
-  });
-
-  it("returns 401 Response when token is invalid", async () => {
-    const result = await requireSession(
-      makeReq({ authorization: "Bearer not-a-valid-jwt" })
-    );
-    expect("response" in result).toBe(true);
-    if ("response" in result) {
-      expect(result.response.status).toBe(401);
-    }
-  });
-
-  it("returns 401 with JSON Content-Type for protected route fallback", async () => {
-    const result = await requireSession(makeReq({}));
-    if ("response" in result) {
-      expect(result.response.headers.get("content-type")).toBe("application/json");
-    }
   });
 });

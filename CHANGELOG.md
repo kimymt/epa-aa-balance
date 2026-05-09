@@ -2,52 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.8.2] - 2026-05-09 — Passkey 認証 API + 保護ルート helper
-
-E2E 暗号化履歴機能 Phase 1 のサブフェーズ 2: 認証パス。**まだ UI 露出なし**。
-登録 (v0.8.1) と認証 (v0.8.2) が揃ったので、これ以降のサブフェーズで
-クライアント実装に進める。
-
-### Added
-- **API endpoints**:
-  - `POST /api/auth/login/start` — discoverable credential を使う認証 options
-    生成 + 5min JWT (challenge 保持) 発行。allowCredentials は空のため、
-    browser/OS が登録済の Passkey を一覧から選ばせる UI を出す。
-    PRF Extension の eval salt は `lib/webauthn.ts` 側で固定値設定済。
-  - `POST /api/auth/login/finish` — login token 検証 → response.id で
-    `user_credentials` を引いて public_key + counter 取得 → WebAuthn assertion
-    検証 (signature / challenge / origin / rpID) → counter 更新 (replay 防止) →
-    24h session token 発行。未登録 credential は privacy 配慮で「登録なし」を
-    明示せず汎用 401 で返却。
-  - `GET /api/auth/me` — 認証済ユーザー確認用の軽量エンドポイント。
-    `Authorization: Bearer <session>` で `{ userId }` を返す。v0.8.5 の
-    history 表示前 auth 確認 + 保護ルートの reference 実装。
-- **`requireSession(req)`** in `lib/jwt.ts`: 保護ルート用ヘルパ。Bearer header
-  検証 → success なら `{ session }`、failure なら `{ response: 401 }` を返す
-  discriminated union 型。今後 `/api/history` `/api/analyses` 等の保護ルートで
-  共通利用。
-
-### Tests
-- 267 → **272 pass** / 1 skip / 0 fail (+5 new)
-  - `requireSession` × 5: 有効 Bearer / Authorization なし / malformed / 無効 JWT /
-    エラー時の Content-Type=application/json
-  - login/start, login/finish, me 自体は実認証器なしで E2E テスト不可。
-    内部で利用する `verifyLoginToken` `verifyAuthentication` `readBearerSession`
-    は既存テストでカバー済 (lib/jwt.test.ts × 14、lib/webauthn.test.ts × 15)
-
-### Background
-[F-016 Phase 1 サブフェーズ計画](TODOS.md F-017 セクション参照) に従う。
-v0.8.2 単独では UI 露出なし。次フェーズ:
-- v0.8.3: クライアント側 AES-GCM 暗号化 lib + PRF 鍵 in-memory 管理
-- v0.8.4: 「この記録を残す」CTA + 暗号化保存
-- v0.8.5: `/history` page (auth 状態判定 + 復号 + lipidPct bar +
-  DietPatternComparison)
-- v0.8.6: 削除 / export + プライバシーポリシー更新
-
-### マイグレーション / 環境変数
-- D1 schema: 変更なし (v0.8.1 で揃済)
-- 新環境変数: なし (`JWT_SECRET` は v0.8.1 で設定済)
-
 ## [0.8.1] - 2026-05-09 — 履歴機能の基盤 (Passkey 登録 API + D1 schema)
 
 E2E 暗号化された履歴機能 (Phase 1) のサブフェーズ 1: 登録パスのみ。UI 露出はまだなし。
