@@ -59,6 +59,15 @@ export const MIGRATIONS: Migration[] = [
       return cols.length > 0;
     },
   },
+  {
+    // v0.8.4: coach_proposals テーブル削除 (利用しないデータは取らない方針確定)。
+    // テーブルが既に存在しなくなっていれば適用済みと判定。
+    file: "0006_drop_coach_proposals.sql",
+    isAlreadyApplied: async (api) => {
+      const cols = await api.tableInfo("coach_proposals");
+      return cols.length === 0; // テーブル消滅 = 適用済
+    },
+  },
 ];
 
 // ---------- D1 REST API client (app/api/feedback/route.ts と同じ pattern) ----------

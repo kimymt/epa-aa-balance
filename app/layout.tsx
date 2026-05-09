@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 // v0.4.14: グローバルフッター (GitHub + Q&A)
 import { Footer } from "@/components/Footer";
+// v0.8.4: 認証済みユーザー向けの右上 floating メニュー (履歴 ON 表示 + 停止)
+import { HistoryHeaderButton } from "@/components/HistoryHeaderButton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,6 +33,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-slate-50 dark:bg-slate-950">
+        <HistoryHeaderButton />
         {children}
         <Footer />
       </body>

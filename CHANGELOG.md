@@ -2,6 +2,91 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.4] - 2026-05-09 — 履歴機能 UI debut (Passkey 登録 + 自動保存 + 停止トグル)
+
+E2E 暗号化履歴機能 Phase 1 サブフェーズ 4: **UI 統合** — v0.8.1〜v0.8.3 で
+構築した building blocks (登録/認証 API、AES-GCM 暗号化、memory session) を
+画面に繋ぎ込み、ユーザーが履歴機能を **使える** ようになる初リリース。
+
+### Added (server)
+- **`POST /api/analyses`** — 暗号化済み解析結果を D1 に保存する保護ルート。
+  `requireSession` で認証必須、ciphertext のみ保存 (サーバーは内容を復号できない)。
+  ペイロード上限 256 KB、UUID v7 で id 採番。
+- **`migrations/0006_drop_coach_proposals.sql`** — `coach_proposals` テーブル削除。
+  「コーチ提案を DB に保存しない」方針確定 (2026-05-09) に基づき、
+  使わないテーブルをスキーマから除去。誤って 1 行追加されていた既存データも削除。
+
+### Added (client)
+- **`lib/webauthn-client.ts`**: `@simplewebauthn/browser` をラップ。
+  - `registerPasskey()`: 新規登録 → 直後に `loginWithPasskey()` を呼んで
+    PRF 鍵を派生 (registration 時は capability discovery のみで eval 不可のため、
+    login 経由で鍵取得が必要)
+  - `loginWithPasskey()`: 既存 Passkey で auth → `clientExtensionResults.prf.results.first`
+    から 32 bytes 抽出 → `importPrfKey` → `setSession`
+  - `registerOrLogin()`: ログイン優先 fallback to 登録の統合フロー (CTA 用)
+  - PRF 非対応端末は `PasskeyError("PRF_UNSUPPORTED")` で完全無効化
+    (技術負債最小、philosophy 整合)
+- **`lib/history-save.ts`**: `saveAnalysis(payload)` ヘルパ。
+  - 認証済 → `encryptJson(prfKey, payload)` → `POST /api/analyses` (Bearer 認証)
+  - 未認証 → no-op
+  - `SaveState` を callback で進捗報告 (idle / saving / saved / error)
+- **`lib/use-session.ts`**: React hook で auth-session 状態を reactive に取得
+- **`lib/auth-session.ts`** に `subscribeSession` 追加 (use-session の基盤)
+
+### Added (UI components)
+- **`components/PasskeyRegisterModal.tsx`**: 結果画面 CTA からトリガーされる
+  モーダル。2 行説明 + 「使う」「今は使わない」の二択。
+  「使う」 → `registerOrLogin()` (login 優先)。USER_CANCELLED は静かに閉じる。
+  PRF 非対応はエラー表示。
+- **`components/SavingIndicator.tsx`**: 右下の transient toast。
+  `保存中...` (spinner) → `✓ 保存しました` (緑、2s 後消失) → エラー時 (rose、5s)。
+- **`components/HistoryHeaderButton.tsx`**: 認証済の場合のみ右上に floating
+  ボタン。クリックで小メニュー: 「履歴 ON」表示 + 「今後の保存を停止する」
+  トグル (= `clearSession`)。再開は次回解析時に CTA から再認証。
+
+### Integrated
+- **`components/ResultPanel.tsx`**:
+  - 未認証時のみ表示する CTA カード「📒 この記録を残しますか?」+ 「履歴を始める」
+    ボタン (`PasskeyRegisterModal` を開く)
+  - `useEffect` で auto-save: 認証済 + 解析結果あり → `saveAnalysis` 自動実行。
+    `useRef` で (session × result) の dedup (同じ組み合わせは二重保存しない)
+  - 末尾に `<PasskeyRegisterModal>` + `<SavingIndicator>` を mount
+- **`app/layout.tsx`**: `<HistoryHeaderButton>` を body 直下に配置 (fixed top-right)
+
+### Tests
+- 294 pass / 1 skip / 0 fail (v0.8.3 から変化なし)
+- 新規 UI コンポーネントは WebAuthn モック必要のため CI ユニットテスト省略。
+  既存の lib (`crypto.test.ts`, `auth-session.test.ts`, `webauthn.test.ts`,
+  `jwt.test.ts`) で基盤レイヤーはカバー済。
+- 動作確認は本番 deploy 後の手動 smoke testing で実施 (Passkey 対応端末必須)。
+
+### マイグレーション (要実行、本 PR merge 後)
+```bash
+cd ~/Documents/eaa-scorer
+bun --env-file=.env.local run scripts/migrate-d1.ts
+```
+期待: `APPLY 0006_drop_coach_proposals.sql (1 statements)`。
+誤って追加された 1 行も含めて `coach_proposals` 完全削除。
+
+### 動作確認チェックリスト (deploy 後)
+- [ ] 写真 1 枚解析 → 結果画面下部に「📒 この記録を残しますか?」CTA 表示
+- [ ] CTA タップ → モーダル「2 行説明 + 使う/今は使わない」
+- [ ] 「使う」タップ → Passkey 登録プロンプト (FaceID / Touch ID / Hello)
+- [ ] 登録成功 → 右下に「保存中...」 → 数秒後「✓ 保存しました」
+- [ ] 右上に履歴 ON 表示の floating ボタン (緑ドット)
+- [ ] 別の写真をもう 1 回解析 → 自動的に「保存中...」→「保存しました」(CTA 出ず)
+- [ ] 右上ボタン → 「今後の保存を停止する」 → クリック → 再度 CTA カードが出る状態に戻る
+- [ ] tab 閉じる → 再度開く → 認証情報がメモリだけだったので未認証状態 (CTA カード復活)
+- [ ] 解析完了 → CTA タップ → モーダル「使う」 → 既存 Passkey で login (登録は自動 fallback)
+
+### 既知の制約
+- **PRF 非対応ブラウザ** (Firefox の一部、古い Android Chrome、Linux Firefox 等) は
+  「履歴機能 (暗号化) に対応していません」エラー後 modal 閉じる。CTA カードはそのまま。
+  履歴機能を使えないだけで、解析・コーチ機能は通常通り使える。
+- **iCloud / Google Passkey 同期** が無効な端末で登録すると、別端末からの履歴閲覧不可。
+  単一端末ローカル履歴になる (philosophy: 紛失耐性は端末側の Passkey 同期に委ねる)。
+- 履歴 **閲覧 UI は v0.8.5 で実装**。現状は保存だけで、振り返り画面はまだない。
+
 ## [0.8.3] - 2026-05-09 — クライアント側 AES-GCM 暗号化 + PRF 鍵 in-memory ストア
 
 E2E 暗号化履歴機能 Phase 1 サブフェーズ 3: **暗号化レイヤー**。クライアント側で

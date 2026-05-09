@@ -1,11 +1,19 @@
 import { LipidSourceBar } from "./LipidSourceBar";
 import { CoachSection } from "./CoachSection";
 import { DietPatternComparison } from "./DietPatternComparison";
+import { PasskeyRegisterModal } from "./PasskeyRegisterModal";
+import { SavingIndicator } from "./SavingIndicator";
 import { MEAL_TYPES } from "@/lib/session";
 import type { AnalysisResult } from "@/lib/analyzer";
 import type { AnalysisSessionResult } from "@/lib/session";
 import type { VisionFood } from "@/lib/vision";
-import { useEffect, useState } from "react";
+import { useSession } from "@/lib/use-session";
+import {
+  saveAnalysis,
+  type SaveState,
+  type AnalysisHistoryPayload,
+} from "@/lib/history-save";
+import { useEffect, useRef, useState } from "react";
 
 // 信号機色 → CSS class マッピング
 // v0.3.0: unknown=グレー追加
@@ -252,6 +260,39 @@ export function ResultPanel({
   const failedMeals = result.failed;
   const aggregate = result.aggregate;
 
+  // v0.8.4: 履歴 auto-save 統合
+  const session = useSession();
+  const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
+  const [modalOpen, setModalOpen] = useState(false);
+  // 同じ (session × result) の組み合わせで二重保存しないための dedup
+  const savedFor = useRef<{ userId: string; result: AnalysisSessionResult } | null>(null);
+
+  // 認証済 + 解析結果あり → 自動保存 (1 度限り、再 render では save しない)
+  useEffect(() => {
+    if (!session) return;
+    if (successfulMeals.length === 0) return;
+    if (
+      savedFor.current?.userId === session.userId &&
+      savedFor.current?.result === result
+    ) {
+      return; // この session × result の組合せは保存済
+    }
+    savedFor.current = { userId: session.userId, result };
+
+    const payload: AnalysisHistoryPayload = {
+      v: 1,
+      results: successfulMeals.map((m) => m.result),
+      aggregate: {
+        lipidPct: aggregate.lipidPct,
+        epaMg: aggregate.totalEpaMg,
+        dhaMg: aggregate.totalDhaMg,
+        aaMg: aggregate.totalAaMg,
+      },
+      analyzedAt: Date.now(),
+    };
+    void saveAnalysis(payload, setSaveState);
+  }, [session, result, successfulMeals, aggregate]);
+
   return (
     <div className="flex flex-col gap-8 sm:gap-10">
       {/* Aggregate Stats - Primary */}
@@ -372,6 +413,30 @@ export function ResultPanel({
         </div>
       )}
 
+      {/* v0.8.4: 「この記録を残す」CTA — 未認証時のみ表示 */}
+      {!session && successfulMeals.length > 0 && (
+        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 p-5 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <div className="text-base sm:text-lg text-slate-700 dark:text-slate-200 mb-1 flex items-center gap-2">
+                <span className="text-2xl">📒</span>
+                <span className="font-medium">この記録を残しますか?</span>
+              </div>
+              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                Passkey で暗号化して保存します。運営も中身を読めません。
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              className="shrink-0 px-5 py-2.5 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition"
+            >
+              履歴を始める
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* EPA/AA Explanation */}
       {/* v0.4.7: text-xs (12px) text-slate-500 → text-sm (14px) text-slate-600
           で本文のコントラストと可読性を改善 (F-006 対応)。
@@ -391,6 +456,19 @@ export function ResultPanel({
           エビデンスベース閾値は今後の改訂で再評価予定。
         </p>
       </div>
+
+      {/* v0.8.4: Passkey 登録モーダル + 保存中インジケータ */}
+      <PasskeyRegisterModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSuccess={() => {
+          // session が更新されると useSession() が再 render を triggered し、
+          // useEffect の auto-save が走る (savedFor の dedup は新 session.userId
+          // で false になるので保存される)。
+          // ここで明示的に何かする必要はない。
+        }}
+      />
+      <SavingIndicator state={saveState} />
     </div>
   );
 }
