@@ -148,3 +148,35 @@ export async function readBearerSession(
   const result = await verifySessionToken(m[1]);
   return result.ok ? result.payload : null;
 }
+
+/**
+ * 保護されたルート用のヘルパ (v0.8.2):
+ *   - リクエストの Authorization ヘッダを読んで session を返す
+ *   - 認証されていない場合は 401 Response を返す
+ *
+ * 使い方:
+ *   const auth = await requireSession(req);
+ *   if ("response" in auth) return auth.response;
+ *   const { userId } = auth.session;
+ *   // 以降 userId 使った処理
+ */
+export async function requireSession(
+  req: Request
+): Promise<{ session: SessionPayload } | { response: Response }> {
+  const session = await readBearerSession(req.headers.get("authorization"));
+  if (!session) {
+    return {
+      response: new Response(
+        JSON.stringify({
+          error: "認証が必要です。",
+          code: "UNAUTHORIZED",
+        }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        }
+      ),
+    };
+  }
+  return { session };
+}
