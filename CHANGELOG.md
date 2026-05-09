@@ -2,66 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.8.1] - 2026-05-09 — 履歴機能の基盤 (Passkey 登録 API + D1 schema)
-
-E2E 暗号化された履歴機能 (Phase 1) のサブフェーズ 1: 登録パスのみ。UI 露出はまだなし。
-
-### Added
-- **D1 マイグレーション 0005**: `users` / `user_credentials` / `analyses` /
-  `coach_proposals` の 4 テーブル。PII フィールドは無し。
-  `analyses.cipher_blob` `coach_proposals.cipher_blob` は AES-GCM 暗号化済み
-  base64 を保存する想定 (暗号化レイヤは v0.8.4 で実装)。
-  `user_credentials.prf_supported` で PRF Extension 対応 credential か記録。
-- **`lib/jwt.ts`**: `jose` ベースの JWT 発行 / 検証。3 種類:
-  - 24h session token (`Authorization: Bearer ...` 用)
-  - 5min registration token (start → finish の challenge 紐付け)
-  - 5min login token (将来 v0.8.2 で利用)
-- **`lib/webauthn.ts`**: `@simplewebauthn/server` ラッパ。
-  - `deriveRpInfo`: req URL から rpID 動的決定 (preview / local 対応)
-  - `buildRegistrationOptions`: PRF Extension (capability 検出) + 匿名 user
-    labels で options 生成
-  - `buildAuthenticationOptions`: PRF eval (salt = "eaa-scorer/v1/encryption-key"
-    の base64url) を組み込み — クライアント側の対称鍵派生用
-  - `verifyRegistration` / `verifyAuthentication`: 検証 + counter / PRF 状態返却
-  - `toBase64Url` / `fromBase64Url`: D1 TEXT 列向け encode helper
-- **API endpoints (registration only)**:
-  - `POST /api/auth/register/start` — UUID v7 発行 → registration options +
-    5min JWT を返す。D1 にはまだ書き込まない (中断時の孤児行を防ぐ)
-  - `POST /api/auth/register/finish` — JWT 検証 + WebAuthn 検証 → user 行 +
-    credential 行を D1 に作成 + 24h session token 返却
-- **依存追加**: `@simplewebauthn/server@13.3.0`, `@simplewebauthn/browser@13.3.0`,
-  `jose@6.2.3`
-
-### Tests
-- 238 → **267 pass** / 1 skip / 0 fail (+29 new)
-  - `lib/jwt.test.ts` × 14: 各 token roundtrip、issuer 分離、tampering 検出、
-    `readBearerSession` の Bearer prefix 互換性
-  - `lib/webauthn.test.ts` × 15: rpID 導出 (production / preview / localhost)、
-    PRF Extension 注入、anonymous user labels、resident key required、
-    base64url roundtrip と URL-safe 文字確認
-
-### 環境変数 (新規)
-- `JWT_SECRET` (必須、本番): 32+ 文字のランダム値。`openssl rand -hex 32` で生成。
-  Vercel の Production / Preview env に設定する必要あり。dev は fallback あり。
-
-### Background
-[F-016 / 履歴機能の Phase 1 実装計画](TODOS.md) に従う。**v0.8.1 単独では UI に
-露出しない**。後続フェーズ:
-- v0.8.2: 認証 (login) endpoint + JWT middleware
-- v0.8.3: クライアント側 AES-GCM 暗号化ライブラリ + PRF 鍵管理
-- v0.8.4: 「この記録を残す」CTA + 暗号化保存
-- v0.8.5: `/history` page + 復号 + lipidPct bar + DietPatternComparison
-- v0.8.6: 削除 / export + プライバシーポリシー更新
-
-### マイグレーション適用方法
-本 PR をデプロイした後、ローカルから以下を実行 (production 環境変数が必要):
-
-```bash
-bun --env-file=.env.local run scripts/migrate-d1.ts
-```
-
-冪等。既に適用済みなら `SKIP` 表示。
-
 ## [0.8.0] - 2026-05-09 — AI コーチのレイテンシ短縮 (streaming + skeleton + Tokyo region)
 
 v0.7.0 で出力 token が増えたことによる体感待ち時間 (15-25s) を、4 軸の組合せで

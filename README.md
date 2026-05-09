@@ -144,7 +144,6 @@ bun dev
 | `ADMIN_BASIC_AUTH` | ⚠ | `/admin` ページ Basic Auth (`user:pass` 形式) |
 | `IP_HASH_SECRET` | 推奨 | rate limit IP ハッシュの secret (`openssl rand -hex 32`) |
 | `COACH_RATE_LIMIT` | 任意 | `/api/coach` 上限 (デフォルト 5 req/h/IP、v0.5.5 で 10 → 5 引き下げ) |
-| `JWT_SECRET` | ⚠ (v0.8.1+) | session / registration token 署名用、32+ 文字ランダム値 (`openssl rand -hex 32`)。本番必須、開発は fallback あり |
 | `ANALYZE_RATE_LIMIT` | 任意 | `/api/analyze` 上限 (デフォルト 10 req/h/IP) |
 | `FEEDBACK_ADMIN_RATE_LIMIT` | 任意 | `GET /api/feedback` 上限 (デフォルト 30 req/h/IP) |
 

@@ -11,12 +11,9 @@
   },
   "dependencies": {
     "@google/genai": "^1.50.1",
-    "@simplewebauthn/browser": "^13.3.0",
-    "@simplewebauthn/server": "^13.3.0",
     "browser-image-compression": "^2.0.2",
     "form-data": "^4.0.5",
     "heic2any": "^0.0.4",
-    "jose": "^6.2.3",
     "next": "16.2.4",
     "partial-json": "^0.1.7",
     "react": "19.2.4",
