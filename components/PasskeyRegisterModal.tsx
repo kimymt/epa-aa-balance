@@ -45,17 +45,15 @@ export function PasskeyRegisterModal({ open, onClose, onSuccess }: Props) {
     } catch (err) {
       const e = err instanceof PasskeyError ? err : null;
       const code = e?.code;
-      let message = e?.message ?? "登録に失敗しました。";
+      const message = e?.message ?? "登録に失敗しました。";
       if (code === "USER_CANCELLED") {
         // ユーザーがキャンセルしただけなので静かに modal を閉じる
         setState({ kind: "idle" });
         onClose();
         return;
       }
-      if (code === "PRF_UNSUPPORTED") {
-        message =
-          "このブラウザ・端末では履歴機能 (暗号化) に対応していません。Chrome 116+ や iOS 17.4+ をお試しください。";
-      }
+      // PRF_UNSUPPORTED は server 側のメッセージをそのまま採用
+      // (OS ネイティブ Passkey 案内が含まれる)
       setState({ kind: "error", message, code });
     }
   }
@@ -83,15 +81,17 @@ export function PasskeyRegisterModal({ open, onClose, onSuccess }: Props) {
           className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2"
         >
           <span className="text-2xl">📒</span>
-          履歴を保存しますか?
+          履歴を残しておきますか?
         </h2>
         <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed mb-2">
-          解析履歴をこの端末の Passkey (FaceID 等) で暗号化して保存します。鍵は
-          端末から出ないため、運営を含め他人は中身を読めません。
+          スマートフォンの顔認証や指紋でロックをかけて履歴を保存します。
+          鍵はこの端末の中にしかないので、開発者でも中身を見ることはできません。
         </p>
-        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-5">
-          ※ Passkey を消すと履歴は復元できなくなります。
-        </p>
+        <div className="mb-5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 p-3 text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
+          <div className="font-semibold mb-1">⚠️ 注意して欲しいこと</div>
+          端末から認証情報を消したり、機種変更したりすると、
+          保存した履歴は二度と見れなくなります。
+        </div>
 
         {!passkeyAvailable && (
           <div className="mb-4 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 p-3 text-sm text-amber-900 dark:text-amber-200">

@@ -92,25 +92,27 @@ export async function registerPasskey(): Promise<{ userId: string }> {
     body: JSON.stringify({ registrationToken, credential }),
   });
   if (!finishRes.ok) {
-    const j = (await finishRes.json().catch(() => ({}))) as { error?: string };
+    const j = (await finishRes.json().catch(() => ({}))) as {
+      error?: string;
+      code?: string;
+    };
+    // v0.8.4: server が PRF 非対応を 400 で返す (orphan 防止のため D1 INSERT 前に判定)
+    if (j.code === "PRF_UNSUPPORTED") {
+      throw new PasskeyError(
+        "PRF_UNSUPPORTED",
+        j.error ?? "このブラウザ・端末では履歴機能 (暗号化) に対応していません。"
+      );
+    }
     throw new PasskeyError("REGISTER_FAILED", j.error ?? "登録の検証に失敗しました。");
   }
-  const { userId, prfSupported } = (await finishRes.json()) as {
+  const { userId } = (await finishRes.json()) as {
     userId: string;
-    prfSupported: boolean;
+    sessionToken: string;
   };
 
-  if (!prfSupported) {
-    // PRF 非対応 → 暗号化が成立しないので履歴機能は使えない
-    // 既に D1 に user 行が作られているが、この時点では孤児になるだけ (無害)。
-    // 将来 user 削除 API で消せる。
-    throw new PasskeyError(
-      "PRF_UNSUPPORTED",
-      "このブラウザ・端末では履歴機能 (暗号化) に対応していません。"
-    );
-  }
-
   // 4. すぐ login して PRF eval を取得 (=暗号鍵を派生させる)
+  // 注: register/finish が返す sessionToken は破棄。login で取り直す
+  //     (PRF 鍵を派生する必要があるため)
   await loginWithPasskey({ skipSessionCreate: false });
 
   return { userId };

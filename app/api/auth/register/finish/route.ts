@@ -76,13 +76,28 @@ export async function POST(req: Request) {
     );
   }
 
+  // v0.8.4: PRF 対応チェックを D1 INSERT より前に行う。
+  // 非対応 credential を保存しない (orphan 防止)。
+  // 暗号化が成立しない credential は機能上意味がないため、登録自体を成立させない。
+  if (!verifyResult.prfSupported) {
+    return NextResponse.json(
+      {
+        error:
+          "このブラウザ・端末では暗号化機能 (PRF Extension) に対応していません。" +
+          "iPhone (iCloud Keychain) や Android Chrome (Google Password Manager) " +
+          "など、OS ネイティブの Passkey をお試しください。",
+        code: "PRF_UNSUPPORTED",
+      },
+      { status: 400 }
+    );
+  }
+
   const regInfo = verifyResult.verified.registrationInfo;
   // SimpleWebAuthn v13: registrationInfo.credential.id は既に base64url string、
   // publicKey のみ Uint8Array なので変換が必要
   const credentialIdB64 = regInfo.credential.id;
   const publicKeyB64 = toBase64Url(regInfo.credential.publicKey);
   const counter = regInfo.credential.counter;
-  const prfSupported = verifyResult.prfSupported ? 1 : 0;
   const now = Date.now();
 
   // 3. D1 に user + credential を保存 (1 トランザクションが理想だが D1 REST API は
@@ -94,7 +109,8 @@ export async function POST(req: Request) {
     );
     await d1Query(
       "INSERT INTO user_credentials (user_id, credential_id, public_key, counter, device_label, prf_supported, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [userId, credentialIdB64, publicKeyB64, counter, "Device 1", prfSupported, now]
+      // prf_supported は常に 1 (上で非対応なら早期 return 済)
+      [userId, credentialIdB64, publicKeyB64, counter, "Device 1", 1, now]
     );
   } catch (err) {
     console.error("register/finish DB error:", err);
@@ -116,6 +132,6 @@ export async function POST(req: Request) {
   return NextResponse.json({
     sessionToken,
     userId,
-    prfSupported: Boolean(prfSupported),
+    prfSupported: true, // ここまで来たら PRF 対応 (上で早期 return 済)
   });
 }
