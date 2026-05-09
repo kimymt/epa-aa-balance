@@ -49,6 +49,16 @@ export const MIGRATIONS: Migration[] = [
       return cols.length > 0;
     },
   },
+  {
+    // v0.8.1: Anonymous user + Passkey credential + 暗号化履歴の基盤。
+    // 4 つの新規テーブル (users, user_credentials, analyses, coach_proposals)。
+    // users テーブルの存在で適用判定。
+    file: "0005_add_users_credentials_history.sql",
+    isAlreadyApplied: async (api) => {
+      const cols = await api.tableInfo("users");
+      return cols.length > 0;
+    },
+  },
 ];
 
 // ---------- D1 REST API client (app/api/feedback/route.ts と同じ pattern) ----------
