@@ -8,13 +8,12 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RecipeCard } from "./RecipeCard";
 import {
   CHIP_LABELS,
   type ChipKey,
   type CoachRequest,
-  type CoachResponse,
   type Recipe,
 } from "@/lib/coach";
 // v0.4.10: 目標食習慣を自動算出するため diet-patterns helpers を利用
@@ -22,7 +21,9 @@ import { dailyAverageMg, findPatternPosition } from "@/lib/diet-patterns";
 
 type State =
   | { kind: "initial" }
-  | { kind: "loading" }
+  // v0.8.0: streaming で recipe が 1 件確定するたびに partialRecipes に追加。
+  // partial.length が 1 なら「1 件届いた + 残り skeleton」を表示できる。
+  | { kind: "loading"; partialRecipes: Recipe[]; activeChip: ChipKey | null }
   | { kind: "result"; recipes: Recipe[]; activeChip: ChipKey | null; retried: boolean }
   // v0.4.3: 429 (自前 rate limit) 専用 state。AI 提案の上限に達したユーザーは
   // まだ「魚を食べる意識」が育っていないと解釈し、洗脳動画で啓蒙する。
@@ -31,6 +32,41 @@ type State =
   // 「自分のせい」ではなくユーザー側からは打つ手なし（明日待つ）。
   | { kind: "quota_exceeded" }
   | { kind: "error"; message: string };
+
+// v0.8.0: 進捗メッセージのローテーション (~5 秒ごとに次へ)。
+// 偽進捗ではあるが、固定スピナーよりは「進んでる感」が出る。
+// streaming で recipe が届けば実カードに置換されるので、メッセージは「あと N 件」
+// 系ではなく漠然とした「考え中...」系で揃える。
+const LOADING_STAGES = [
+  "材料を選定中...",
+  "手順を組み立て中...",
+  "コツと安全注意を確認中...",
+  "もう少しで完成します...",
+];
+
+/** v0.8.0: ストリーム NDJSON のイベント型。lib/coach.ts の RecipeStreamEvent と
+ *  対応するが、UI 側では error event も含める (server がストリーム内エラーを
+ *  embed するため)。 */
+type StreamEvent =
+  | { type: "recipe"; index: number; recipe: Recipe }
+  | { type: "complete"; retried: boolean }
+  | { type: "error"; code?: string; message: string };
+
+/** v0.8.0: skeleton カード。v0.7.0 RecipeCard の折りたたみ状態とほぼ同じ寸法で
+ *  shimmer (animate-pulse) する。recipes が届いていないスロット用。 */
+function SkeletonRecipeCard() {
+  return (
+    <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 p-4 animate-pulse">
+      <div className="flex items-start justify-between mb-2 gap-2">
+        <div className="h-5 w-2/3 bg-slate-200 dark:bg-slate-700 rounded" />
+        <div className="h-3 w-20 bg-slate-200 dark:bg-slate-700 rounded shrink-0" />
+      </div>
+      <div className="h-3 w-full bg-slate-200 dark:bg-slate-700 rounded mb-1.5" />
+      <div className="h-3 w-4/5 bg-slate-200 dark:bg-slate-700 rounded mb-3" />
+      <div className="h-3 w-1/3 bg-slate-200 dark:bg-slate-700 rounded ml-auto" />
+    </div>
+  );
+}
 
 interface Props {
   aggregate: CoachRequest["aggregate"];
@@ -42,6 +78,21 @@ interface Props {
 export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
   const [state, setState] = useState<State>({ kind: "initial" });
   const [freeText, setFreeText] = useState("");
+  // v0.8.0: 進捗メッセージのインデックス。loading 中だけ ~5 秒ごとに進む。
+  const [loadingStage, setLoadingStage] = useState(0);
+
+  // loading に入ったら 0 にリセット、5 秒ごとに次のメッセージへ (最後で停止)
+  useEffect(() => {
+    if (state.kind !== "loading") {
+      setLoadingStage(0);
+      return;
+    }
+    setLoadingStage(0);
+    const id = setInterval(() => {
+      setLoadingStage((s) => Math.min(s + 1, LOADING_STAGES.length - 1));
+    }, 5000);
+    return () => clearInterval(id);
+  }, [state.kind]);
 
   // v0.4.10: 目標食習慣を自動算出。次のパターン (= 現状を超えた直後のパターン) を狙う。
   // 全パターン超え or データ無しなら target = undefined (prompt に目標セクション出さない)。
@@ -58,18 +109,23 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
   }, [aggregate.epaMg, aggregate.dhaMg, mealsWithData]);
 
   async function fetchRecipes(refinement?: CoachRequest["refinement"]) {
-    setState({ kind: "loading" });
+    const activeChip =
+      refinement?.type === "chip" ? (refinement.value as ChipKey) : null;
+    setState({ kind: "loading", partialRecipes: [], activeChip });
+
     try {
       const res = await fetch("/api/coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ aggregate, recentFoods, refinement, target }),
       });
-      const json = await res.json();
+
+      // v0.8.0: ストリーム開始前のエラー (rate limit / validation) は従来通り JSON。
       if (!res.ok) {
-        // v0.4.3: エラーコード別に専用 UI を出す。
-        // - RATE_LIMITED (429): 自前レート制限 → 魚啓蒙動画
-        // - QUOTA_EXCEEDED (503): Gemini 側 quota → 「明日また」
+        let json: { code?: string; error?: string } = {};
+        try {
+          json = await res.json();
+        } catch {}
         if (res.status === 429 || json.code === "RATE_LIMITED") {
           setState({ kind: "rate_limited" });
           return;
@@ -81,13 +137,84 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
         setState({ kind: "error", message: json.error ?? "提案を取得できませんでした。" });
         return;
       }
-      const data = json as CoachResponse;
-      setState({
-        kind: "result",
-        recipes: data.recipes,
-        activeChip: refinement?.type === "chip" ? (refinement.value as ChipKey) : null,
-        retried: data.retried,
-      });
+
+      // v0.8.0: NDJSON ストリーミング — 1 行 = 1 イベント。
+      if (!res.body) {
+        setState({ kind: "error", message: "通信エラー: ストリームが取得できません。" });
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const collected: Recipe[] = [];
+      let retried = false;
+      // ストリーム内エラー event の最終遷移先。closure 内代入を TS が
+      // narrowing するのを避けるため、object 経由で参照する (ref-style wrapper)。
+      type StreamEnd =
+        | { kind: "ok" }
+        | { kind: "quota_exceeded" }
+        | { kind: "error"; message: string };
+      const endRef: { current: StreamEnd } = { current: { kind: "ok" } };
+
+      const handleEvent = (event: StreamEvent) => {
+        if (event.type === "recipe") {
+          collected[event.index] = event.recipe;
+          // partial を sparse array → dense array に変換して setState
+          const dense = collected.filter((r): r is Recipe => Boolean(r));
+          setState((s) => (s.kind === "loading" ? { ...s, partialRecipes: dense } : s));
+        } else if (event.type === "complete") {
+          retried = event.retried;
+        } else if (event.type === "error") {
+          if (event.code === "QUOTA_EXCEEDED") {
+            endRef.current = { kind: "quota_exceeded" };
+          } else {
+            endRef.current = { kind: "error", message: event.message };
+          }
+        }
+      };
+
+      const processLine = (raw: string) => {
+        const line = raw.trim();
+        if (!line) return;
+        try {
+          const ev = JSON.parse(line) as StreamEvent;
+          handleEvent(ev);
+        } catch {
+          // ストリーム途中の不完全行は捨てる (buffer 残しで次 chunk と結合される)
+        }
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const ln of lines) processLine(ln);
+      }
+      // 最終 buffer も flush (改行で締めてないケース対策)
+      if (buffer.trim()) processLine(buffer);
+
+      // ストリーム完結後の最終遷移
+      const finalEnd = endRef.current;
+      if (finalEnd.kind === "quota_exceeded") {
+        setState({ kind: "quota_exceeded" });
+        return;
+      }
+      if (finalEnd.kind === "error") {
+        setState({ kind: "error", message: finalEnd.message });
+        return;
+      }
+      const finalRecipes = collected.filter((r): r is Recipe => Boolean(r));
+      if (finalRecipes.length === 0) {
+        setState({
+          kind: "error",
+          message: "レシピを生成できませんでした。再度お試しください。",
+        });
+        return;
+      }
+      setState({ kind: "result", recipes: finalRecipes, activeChip, retried });
     } catch (err) {
       setState({
         kind: "error",
@@ -145,24 +272,39 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
             AI に提案してもらう
           </button>
           <p className="mt-3 text-xs text-slate-400 text-center">
-            ※ 5〜15 秒ほどかかります
+            ※ 1 件目は約 6〜10 秒で届きます (3 件揃うまで 15〜25 秒)
           </p>
         </div>
       )}
 
       {state.kind === "loading" && (
         <div>
-          <div className="text-base sm:text-lg text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+          <div className="text-base sm:text-lg text-slate-700 dark:text-slate-200 mb-1 flex items-center gap-2">
             <span className="text-2xl">🍳</span>
-            <span className="font-medium">AI が提案を考えています...</span>
+            <span className="font-medium">AI からの提案</span>
           </div>
+          <div className="text-xs text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
+            {state.activeChip && (
+              <span>✓ 「{CHIP_LABELS[state.activeChip]}」で再提案中</span>
+            )}
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block w-3 h-3 border-2 border-slate-300 dark:border-slate-600 border-t-slate-600 dark:border-t-slate-300 rounded-full animate-spin" />
+              {state.partialRecipes.length === 0
+                ? LOADING_STAGES[loadingStage]
+                : `${state.partialRecipes.length} / 3 件 届きました`}
+            </span>
+          </div>
+          {/* v0.8.0: 届いた recipe は実カードで、未到着は skeleton で表示。
+              streaming で先頭から順に届くので [...partial, ...skeletons] の構成。 */}
           <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 animate-pulse">
-                <div className="h-5 w-3/4 bg-slate-200 dark:bg-slate-700 rounded mb-2" />
-                <div className="h-4 w-full bg-slate-200 dark:bg-slate-700 rounded" />
-              </div>
+            {state.partialRecipes.map((r, i) => (
+              <RecipeCard key={`partial-${i}`} recipe={r} />
             ))}
+            {Array.from({ length: Math.max(0, 3 - state.partialRecipes.length) }).map(
+              (_, i) => (
+                <SkeletonRecipeCard key={`skel-${i}`} />
+              )
+            )}
           </div>
         </div>
       )}

@@ -12,6 +12,7 @@
 // 必要になったら v0.4.1 で追加。
 
 import { GoogleGenAI, Type } from "@google/genai";
+import { parse as parsePartialJson, Allow } from "partial-json";
 import type { AnalysisResult } from "./analyzer";
 
 // v0.4.4: gemini-2.5-flash (free tier 20 req/day) → gemini-2.5-flash-lite
@@ -531,11 +532,56 @@ export function filterFishRecipes(recipes: Recipe[]): { ok: Recipe[]; removed: n
   return { ok, removed };
 }
 
+/** v0.8.0: streaming 経路の event 型。recipe = 1 件確定、complete = ストリーム完結。 */
+export type RecipeStreamEvent =
+  | { type: "recipe"; index: number; recipe: Recipe }
+  | { type: "complete"; retried: boolean };
+
+/** v0.8.0: 受信した部分オブジェクトが Recipe として「揃った」かを判定。
+ *  全 12 必須フィールドが期待型を満たし、かつ array/string が空でないこと。
+ *  partial-json は途中の文字列も部分文字列として返すため、ここでは「空ではない」
+ *  程度の素朴チェックで OK (= 各 chunk で何度か false → そのうち true になる流れ)。 */
+export function isRecipeComplete(r: unknown): r is Recipe {
+  if (!r || typeof r !== "object") return false;
+  const rec = r as Record<string, unknown>;
+  if (typeof rec.name !== "string" || rec.name.length === 0) return false;
+  if (typeof rec.mealType !== "string" || rec.mealType.length === 0) return false;
+  if (typeof rec.cookTime !== "string" || rec.cookTime.length === 0) return false;
+  if (typeof rec.description !== "string" || rec.description.length === 0) return false;
+  if (typeof rec.fishType !== "string" || rec.fishType.length === 0) return false;
+  if (typeof rec.cookingMethod !== "string" || rec.cookingMethod.length === 0) return false;
+  if (typeof rec.servings !== "number") return false;
+  if (!Array.isArray(rec.ingredients) || rec.ingredients.length === 0) return false;
+  for (const ing of rec.ingredients) {
+    if (!ing || typeof ing !== "object") return false;
+    const i = ing as Record<string, unknown>;
+    if (typeof i.name !== "string" || typeof i.amount !== "string") return false;
+  }
+  if (!Array.isArray(rec.steps) || rec.steps.length === 0) return false;
+  for (const s of rec.steps) {
+    if (typeof s !== "string" || s.length === 0) return false;
+  }
+  if (!Array.isArray(rec.equipment)) return false;
+  if (typeof rec.tips !== "string") return false;
+  if (typeof rec.safetyNote !== "string") return false;
+  return true;
+}
+
 /**
- * Gemini を呼んで Recipe[] を取得。tax の検証 (fish-only) も実施。
- * non-fish 混入があれば 1 回まで再生成する。
+ * v0.8.0: Gemini からのレスポンスをストリーミングで受け取り、Recipe が確定するたびに
+ * yield する async generator。
+ *
+ * - partial-json で accumulated text を逐次パース
+ * - recipes[length-1] (= 最後の要素) は更新中の可能性があるので emit 保留
+ * - stream 完結後に最終パースして残りの recipe (最後の 1 件 等) を emit
+ * - 検証 (fish-type 等) は途中 emit を止めない方針 (UI 体験優先)。retry も streaming
+ *   経路では一旦 OFF (Phase 1 では体感優先、品質低下が観測されたら次フェーズで対応)
+ *
+ * v0.4.x の同期版 `generateCoachRecipes` も内部で本 generator を畳み込む実装に変更。
  */
-export async function generateCoachRecipes(req: CoachRequest): Promise<CoachResponse> {
+export async function* generateCoachRecipesStream(
+  req: CoachRequest
+): AsyncGenerator<RecipeStreamEvent, void, void> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY not set");
@@ -544,49 +590,88 @@ export async function generateCoachRecipes(req: CoachRequest): Promise<CoachResp
   const ai = new GoogleGenAI({ apiKey });
   const prompt = buildPrompt(req);
 
-  // v0.6.0: free-text に調理法キーワードがあれば、retry 判定で使う。
-  const requestedMethods =
-    req.refinement?.type === "freetext"
-      ? detectRequestedCookingMethods(req.refinement.value as string)
-      : [];
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-  async function callOnce(): Promise<Recipe[]> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const emittedIndexes = new Set<number>();
+  let accumulated = "";
+
+  function tryEmit(): RecipeStreamEvent[] {
+    if (!accumulated.trim()) return [];
+    let partial: unknown;
     try {
-      const response = await ai.models.generateContent({
-        model: MODEL,
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        config: {
-          temperature: 0.7,
-          responseMimeType: "application/json",
-          responseSchema: RECIPE_SCHEMA,
-          abortSignal: controller.signal,
-        },
-      });
-      const text = response.text ?? "";
-      const parsed = JSON.parse(text) as { recipes: Recipe[] };
-      return parsed.recipes ?? [];
-    } finally {
-      clearTimeout(timeout);
+      partial = parsePartialJson(accumulated, Allow.ALL);
+    } catch {
+      return []; // まだ JSON として解釈できない (chunk が小さすぎる等)
     }
+    const obj = partial as { recipes?: unknown[] } | null;
+    if (!obj || !Array.isArray(obj.recipes)) return [];
+
+    const events: RecipeStreamEvent[] = [];
+    // 「最後の要素」は更新中の可能性があるので除外。
+    // length=2 なら index 0 だけ emit OK (index 1 はまだ growing)
+    const closedCount = obj.recipes.length - 1;
+    for (let i = 0; i < closedCount; i++) {
+      if (emittedIndexes.has(i)) continue;
+      const r = obj.recipes[i];
+      if (isRecipeComplete(r)) {
+        emittedIndexes.add(i);
+        events.push({ type: "recipe", index: i, recipe: r as Recipe });
+      }
+    }
+    return events;
   }
 
-  let recipes: Recipe[] = [];
-  let retried = false;
-  try {
-    recipes = await callOnce();
-    const filtered = filterFishRecipes(recipes);
-    const fishCheckFailed = filtered.removed > 0 && filtered.ok.length < 3;
-    // v0.6.0: cooking-method 制約違反の検出
-    const methodCheckFailed =
-      requestedMethods.length > 0 &&
-      filtered.ok.filter((r) => requestedMethods.includes(r.cookingMethod)).length === 0;
-    if (fishCheckFailed || methodCheckFailed) {
-      // 1 回だけ再生成 (prompt に既に制約が入っているので、温度違いの再 sample になる)
-      retried = true;
-      recipes = await callOnce();
+  function finalEmit(): RecipeStreamEvent[] {
+    if (!accumulated.trim()) return [];
+    let partial: unknown;
+    try {
+      partial = parsePartialJson(accumulated, Allow.ALL);
+    } catch {
+      return [];
     }
+    const obj = partial as { recipes?: unknown[] } | null;
+    if (!obj || !Array.isArray(obj.recipes)) return [];
+
+    const events: RecipeStreamEvent[] = [];
+    // 終了時は全 index を確認 (最後の要素も含む)
+    for (let i = 0; i < obj.recipes.length; i++) {
+      if (emittedIndexes.has(i)) continue;
+      const r = obj.recipes[i];
+      if (isRecipeComplete(r)) {
+        emittedIndexes.add(i);
+        events.push({ type: "recipe", index: i, recipe: r as Recipe });
+      }
+    }
+    return events;
+  }
+
+  try {
+    const stream = await ai.models.generateContentStream({
+      model: MODEL,
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: {
+        temperature: 0.7,
+        responseMimeType: "application/json",
+        responseSchema: RECIPE_SCHEMA,
+        abortSignal: controller.signal,
+      },
+    });
+
+    for await (const chunk of stream) {
+      const t = chunk.text ?? "";
+      if (!t) continue;
+      accumulated += t;
+      for (const ev of tryEmit()) yield ev;
+    }
+
+    // ストリーム完結後の最終パスで「最後の recipe」を拾う
+    for (const ev of finalEmit()) yield ev;
+
+    // v0.8.0: streaming 経路では retry は実装せず (中断時の体感が複雑)。
+    // 既存 v0.6.0 の retry 機構は generateCoachRecipes (非streaming wrapper) 側で
+    // 残すか、別チャンネルで対応するか今後検討。
+    yield { type: "complete", retried: false };
   } catch (err) {
     const e = err as Error & { name?: string };
     if (e?.name === "AbortError") {
@@ -597,11 +682,32 @@ export async function generateCoachRecipes(req: CoachRequest): Promise<CoachResp
       throw Object.assign(new Error(`Coach quota exceeded: ${msg}`), { __code: "QUOTA_EXCEEDED" });
     }
     throw Object.assign(new Error(`Coach LLM error: ${msg}`), { __code: "LLM_ERROR" });
+  } finally {
+    clearTimeout(timeoutId);
   }
+}
 
-  const final = filterFishRecipes(recipes).ok;
+/**
+ * v0.4.x → v0.8.0: streaming generator を集約して 1 回の Promise<CoachResponse> を返す
+ * 互換 wrapper。プログラム側で「全件揃ってから処理したい」用途や既存 API consumers
+ * のための後方互換 (今後 streaming 経路に移行)。
+ *
+ * Gemini 検証 (fish-only filter) も最終的に適用。
+ */
+export async function generateCoachRecipes(req: CoachRequest): Promise<CoachResponse> {
+  const collected: Recipe[] = [];
+  let retried = false;
+  for await (const event of generateCoachRecipesStream(req)) {
+    if (event.type === "recipe") {
+      collected[event.index] = event.recipe;
+    } else if (event.type === "complete") {
+      retried = event.retried;
+    }
+  }
+  // 穴を取り除く (途中 chunk で抜け漏れた場合の防御)
+  const dense = collected.filter((r): r is Recipe => Boolean(r));
   return {
-    recipes: final,
+    recipes: filterFishRecipes(dense).ok,
     generatedAt: new Date().toISOString(),
     retried,
   };
