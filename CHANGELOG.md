@@ -2,167 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.8.3] - 2026-05-09 — クライアント側 AES-GCM 暗号化 + PRF 鍵 in-memory ストア
+## [0.8.5] - 2026-05-09 — Passkey スコープのロールバック (v0.8.0 機能まで巻き戻し)
 
-E2E 暗号化履歴機能 Phase 1 サブフェーズ 3: **暗号化レイヤー**。クライアント側で
-WebAuthn PRF 派生鍵を AES-256-GCM 鍵として import → JSON データを暗号化 →
-サーバーには ciphertext のみ保存できるようにする。**まだ UI 露出なし**。
+v0.8.1〜v0.8.3 で実装した Passkey 認証 + クライアント側 E2E 暗号化基盤、
+および v0.8.4 (PR #53、未 merge) の履歴 UI 統合を**全て破棄**する。
+ユーザーから見える機能は v0.8.0 (コーチ提案ストリーミング) と同等。
 
-### Added
-- **`lib/prf-salt.ts`**: PRF Extension の eval salt を 1 箇所に集約 (定数 `PRF_SALT_BASE64URL`)。
-  server (`lib/webauthn.ts`) と client (将来の暗号化呼び出し側) で同一値を共有する
-  必要があるため、ここに集約。バージョン suffix v1 を含めて将来の鍵 rotation 余地を残す。
-- **`lib/crypto.ts`** (Web Crypto API ベース、client/Node どちらでも動く):
-  - `importPrfKey(prfBytes)`: WebAuthn PRF response の 32 bytes を AES-256-GCM
-    `CryptoKey` に変換。`extractable: false` で raw bytes を JS から取り出せない
-    セキュリティ境界を作る。
-  - `encryptJson(key, payload)`: JSON 化可能オブジェクトを暗号化、base64url 出力。
-    フォーマット: `IV (12 bytes) || ciphertext || auth_tag (16 bytes)`。IV は呼び
-    出しごとに `crypto.getRandomValues` でランダム生成。
-  - `decryptJson(key, ciphertext)`: base64url ciphertext を復号して JSON.parse。
-    auth tag 検証で改竄を検出 → throw。
-  - `toBase64Url` / `fromBase64Url`: ブラウザ互換実装 (`btoa`/`atob` ベース、
-    `Buffer` 非依存)。`lib/webauthn.ts` (Node `Buffer` ベース) とは別実装で
-    出力は一致。
-- **`lib/auth-session.ts`**: 認証セッションの **memory-only** ストア (CryptoKey +
-  sessionToken + userId)。`localStorage` / `sessionStorage` / Cookie を使わない。
-  tab 閉じる / refresh で消える設計 (= 再 Passkey 認証必須)。シングルトン的な
-  module-scoped state で、React Context にしない (非 React コードからも参照可)。
+理由:
+- v0.8.4 の実機検証で連続して問題が発生 (PRF 戻り値の型揺れ、login-first
+  パターンによる新規ユーザーへの cross-device picker 誤表示、CSP の Web
+  Worker block 等)。Passkey + WebAuthn PRF Extension に依存した実装は
+  ブラウザ / 1Password / iCloud Keychain の挙動差が大きく、安定運用までの
+  iteration コストが想定を上回ると判断。
+- 「履歴を残す」機能のニーズと実装方針は再設計から見直す (v1.0 計画の中で
+  暗号化前提を維持するか、別アーキテクチャに切り替えるかを再検討)。
 
-### Refactored
-- `lib/webauthn.ts` の hardcoded PRF salt を `PRF_SALT_BASE64URL` 定数経由に変更
-  (機能変更なし、保守性向上)。
-
-### Tests
-- 272 → **294 pass** / 1 skip / 0 fail (+22 new)
-  - `lib/crypto.test.ts` × 18:
-    - `importPrfKey`: 32-byte 鍵 import / サイズ違いで reject / `extractable: false`
-    - encrypt/decrypt roundtrip × 6: simple object / nested + array /
-      日本語+絵文字 / empty / primitives (string/number/boolean/null) /
-      ciphertext 長さスケール
-    - エラーケース × 4: 違う鍵で復号失敗 / tampered ciphertext (auth tag
-      invalidated) / too-short / garbage base64
-    - base64url helpers × 4: roundtrip / URL-safe chars / lib/webauthn.ts との
-      互換性 / 空 bytes
-  - `lib/auth-session.test.ts` × 4: 初期 unauthenticated / set + get / clear /
-    overwrite
-
-### Background
-[履歴機能 Phase 1 計画](TODOS.md F-017 セクション参照) の通り、サブフェーズ 3。
-v0.8.4 以降で UI と統合される予定:
-- v0.8.4: 「この記録を残す」CTA + 暗号化保存 (UI 初登場)
-- v0.8.5: `/history` page (auth gate + decrypt + lipidPct bar)
-- v0.8.6: 削除 / export + プライバシーポリシー更新
-
-### マイグレーション / 環境変数
-- D1 schema: 変更なし (v0.8.1 で揃済)
-- 新環境変数: なし
-
-## [0.8.2] - 2026-05-09 — Passkey 認証 API + 保護ルート helper
-
-E2E 暗号化履歴機能 Phase 1 のサブフェーズ 2: 認証パス。**まだ UI 露出なし**。
-登録 (v0.8.1) と認証 (v0.8.2) が揃ったので、これ以降のサブフェーズで
-クライアント実装に進める。
+### Removed
+- **`lib/webauthn.ts`, `lib/webauthn-client.ts`** (PR #50, #53 で追加)
+  および `@simplewebauthn/server`, `@simplewebauthn/browser` 依存。
+- **`lib/crypto.ts`, `lib/auth-session.ts`, `lib/prf-salt.ts`** (PR #52 で追加)
+  AES-GCM 暗号化レイヤー + memory session + PRF salt 管理。
+- **`lib/jwt.ts`** (PR #50 で追加) と `jose` 依存。
+- **API ルート**: `/api/auth/register/{start,finish}`, `/api/auth/login/{start,finish}`,
+  `/api/auth/me`, `/api/analyses`。
+- **D1 テーブル**: `users`, `user_credentials`, `analyses` (migration 0007 で
+  DROP)。production D1 では未利用 (row 数 0) のまま削除。
+- **Vercel 環境変数**: `JWT_SECRET` は preview/production の両方で**手動削除**を
+  別途実施する (本 PR では reset せず、merge 後にダッシュボードから削除)。
 
 ### Added
-- **API endpoints**:
-  - `POST /api/auth/login/start` — discoverable credential を使う認証 options
-    生成 + 5min JWT (challenge 保持) 発行。allowCredentials は空のため、
-    browser/OS が登録済の Passkey を一覧から選ばせる UI を出す。
-    PRF Extension の eval salt は `lib/webauthn.ts` 側で固定値設定済。
-  - `POST /api/auth/login/finish` — login token 検証 → response.id で
-    `user_credentials` を引いて public_key + counter 取得 → WebAuthn assertion
-    検証 (signature / challenge / origin / rpID) → counter 更新 (replay 防止) →
-    24h session token 発行。未登録 credential は privacy 配慮で「登録なし」を
-    明示せず汎用 401 で返却。
-  - `GET /api/auth/me` — 認証済ユーザー確認用の軽量エンドポイント。
-    `Authorization: Bearer <session>` で `{ userId }` を返す。v0.8.5 の
-    history 表示前 auth 確認 + 保護ルートの reference 実装。
-- **`requireSession(req)`** in `lib/jwt.ts`: 保護ルート用ヘルパ。Bearer header
-  検証 → success なら `{ session }`、failure なら `{ response: 401 }` を返す
-  discriminated union 型。今後 `/api/history` `/api/analyses` 等の保護ルートで
-  共通利用。
+- **`migrations/0007_drop_passkey_tables.sql`** — 上記 3 テーブルを `DROP TABLE
+  IF EXISTS` で削除。idempotent。merge 後に
+  `bun run scripts/migrate-d1.ts` を production 環境変数付きで実行する必要あり。
 
-### Tests
-- 267 → **272 pass** / 1 skip / 0 fail (+5 new)
-  - `requireSession` × 5: 有効 Bearer / Authorization なし / malformed / 無効 JWT /
-    エラー時の Content-Type=application/json
-  - login/start, login/finish, me 自体は実認証器なしで E2E テスト不可。
-    内部で利用する `verifyLoginToken` `verifyAuthentication` `readBearerSession`
-    は既存テストでカバー済 (lib/jwt.test.ts × 14、lib/webauthn.test.ts × 15)
-
-### Background
-[F-016 Phase 1 サブフェーズ計画](TODOS.md F-017 セクション参照) に従う。
-v0.8.2 単独では UI 露出なし。次フェーズ:
-- v0.8.3: クライアント側 AES-GCM 暗号化 lib + PRF 鍵 in-memory 管理
-- v0.8.4: 「この記録を残す」CTA + 暗号化保存
-- v0.8.5: `/history` page (auth 状態判定 + 復号 + lipidPct bar +
-  DietPatternComparison)
-- v0.8.6: 削除 / export + プライバシーポリシー更新
-
-### マイグレーション / 環境変数
-- D1 schema: 変更なし (v0.8.1 で揃済)
-- 新環境変数: なし (`JWT_SECRET` は v0.8.1 で設定済)
-
-## [0.8.1] - 2026-05-09 — 履歴機能の基盤 (Passkey 登録 API + D1 schema)
-
-E2E 暗号化された履歴機能 (Phase 1) のサブフェーズ 1: 登録パスのみ。UI 露出はまだなし。
-
-### Added
-- **D1 マイグレーション 0005**: `users` / `user_credentials` / `analyses` /
-  `coach_proposals` の 4 テーブル。PII フィールドは無し。
-  `analyses.cipher_blob` `coach_proposals.cipher_blob` は AES-GCM 暗号化済み
-  base64 を保存する想定 (暗号化レイヤは v0.8.4 で実装)。
-  `user_credentials.prf_supported` で PRF Extension 対応 credential か記録。
-- **`lib/jwt.ts`**: `jose` ベースの JWT 発行 / 検証。3 種類:
-  - 24h session token (`Authorization: Bearer ...` 用)
-  - 5min registration token (start → finish の challenge 紐付け)
-  - 5min login token (将来 v0.8.2 で利用)
-- **`lib/webauthn.ts`**: `@simplewebauthn/server` ラッパ。
-  - `deriveRpInfo`: req URL から rpID 動的決定 (preview / local 対応)
-  - `buildRegistrationOptions`: PRF Extension (capability 検出) + 匿名 user
-    labels で options 生成
-  - `buildAuthenticationOptions`: PRF eval (salt = "eaa-scorer/v1/encryption-key"
-    の base64url) を組み込み — クライアント側の対称鍵派生用
-  - `verifyRegistration` / `verifyAuthentication`: 検証 + counter / PRF 状態返却
-  - `toBase64Url` / `fromBase64Url`: D1 TEXT 列向け encode helper
-- **API endpoints (registration only)**:
-  - `POST /api/auth/register/start` — UUID v7 発行 → registration options +
-    5min JWT を返す。D1 にはまだ書き込まない (中断時の孤児行を防ぐ)
-  - `POST /api/auth/register/finish` — JWT 検証 + WebAuthn 検証 → user 行 +
-    credential 行を D1 に作成 + 24h session token 返却
-- **依存追加**: `@simplewebauthn/server@13.3.0`, `@simplewebauthn/browser@13.3.0`,
-  `jose@6.2.3`
-
-### Tests
-- 238 → **267 pass** / 1 skip / 0 fail (+29 new)
-  - `lib/jwt.test.ts` × 14: 各 token roundtrip、issuer 分離、tampering 検出、
-    `readBearerSession` の Bearer prefix 互換性
-  - `lib/webauthn.test.ts` × 15: rpID 導出 (production / preview / localhost)、
-    PRF Extension 注入、anonymous user labels、resident key required、
-    base64url roundtrip と URL-safe 文字確認
-
-### 環境変数 (新規)
-- `JWT_SECRET` (必須、本番): 32+ 文字のランダム値。`openssl rand -hex 32` で生成。
-  Vercel の Production / Preview env に設定する必要あり。dev は fallback あり。
-
-### Background
-[F-016 / 履歴機能の Phase 1 実装計画](TODOS.md) に従う。**v0.8.1 単独では UI に
-露出しない**。後続フェーズ:
-- v0.8.2: 認証 (login) endpoint + JWT middleware
-- v0.8.3: クライアント側 AES-GCM 暗号化ライブラリ + PRF 鍵管理
-- v0.8.4: 「この記録を残す」CTA + 暗号化保存
-- v0.8.5: `/history` page + 復号 + lipidPct bar + DietPatternComparison
-- v0.8.6: 削除 / export + プライバシーポリシー更新
-
-### マイグレーション適用方法
-本 PR をデプロイした後、ローカルから以下を実行 (production 環境変数が必要):
-
-```bash
-bun --env-file=.env.local run scripts/migrate-d1.ts
-```
-
-冪等。既に適用済みなら `SKIP` 表示。
+### Notes
+- 本 release 後の git history は 3 つの `Revert "feat(v0.8.x): ..."` commit を
+  含む。コードの diff は v0.8.0 (`7c6dc53`) と完全一致を確認済。
+- Passkey 機能の再開時は `git log --grep "v0\.8\.[1-4]"` で過去実装を参照可能。
+- package.json `version` は CHANGELOG と揃えるため 0.3.0 → 0.8.5 に更新。
 
 ## [0.8.0] - 2026-05-09 — AI コーチのレイテンシ短縮 (streaming + skeleton + Tokyo region)
 

@@ -50,13 +50,22 @@ export const MIGRATIONS: Migration[] = [
     },
   },
   {
-    // v0.8.1: Anonymous user + Passkey credential + 暗号化履歴の基盤。
-    // 4 つの新規テーブル (users, user_credentials, analyses, coach_proposals)。
-    // users テーブルの存在で適用判定。
-    file: "0005_add_users_credentials_history.sql",
+    // v0.8.5: Passkey 機能ロールバックに伴うテーブル削除。
+    // 0005 (v0.8.1) で作成した users / user_credentials / analyses を DROP。
+    // いずれかが残っていれば未適用とみなして実行。すべて消えていれば skip。
+    // (注: production には 0005 が適用されているはずなので初回は実行される。
+    //  0006 は v0.8.4 のみで main には乗らなかったため、ここには含めない。)
+    file: "0007_drop_passkey_tables.sql",
     isAlreadyApplied: async (api) => {
-      const cols = await api.tableInfo("users");
-      return cols.length > 0;
+      const usersCols = await api.tableInfo("users");
+      const credCols = await api.tableInfo("user_credentials");
+      const analysesCols = await api.tableInfo("analyses");
+      // 全部消えていれば skip
+      return (
+        usersCols.length === 0 &&
+        credCols.length === 0 &&
+        analysesCols.length === 0
+      );
     },
   },
 ];
