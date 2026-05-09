@@ -3,7 +3,7 @@
 // 提供するもの:
 //   - registerPasskey()  : 新規 Passkey 登録 (PRF capability 検出付き)
 //   - loginWithPasskey() : 既存 Passkey で認証
-//   - registerOrLogin()  : ログイン優先、失敗時に登録 (UI 統合用)
+//   - registerOrLogin()  : 端末 flag に基づき登録 / 認証を選択 (UI 統合用)
 //
 // すべて成功時は setSession() で memory に session を保持する。
 //
@@ -31,6 +31,61 @@ export function isPasskeyAvailable(): boolean {
     typeof window !== "undefined" &&
     typeof window.PublicKeyCredential !== "undefined"
   );
+}
+
+/**
+ * 「この端末で過去に Passkey を登録したか?」を localStorage に記録。
+ *
+ * 必要な理由: discoverable credential ベースの login (allowCredentials が空)
+ * は、新規ユーザーに対して graceful に失敗しない。Chrome/Safari は
+ * cross-device picker (QR コード) を表示してしまい、新規ユーザーは選べる
+ * Passkey が無くキャンセルする以外なくなる。キャンセルは USER_CANCELLED で
+ * fallback 対象外なので、登録 UI に到達できない。
+ *
+ * このため「flag が立っていれば login、立っていなければ register」と
+ * 端末側で先に分岐する。flag は registration finish 成功時に立てる。
+ */
+const PASSKEY_REGISTERED_FLAG_KEY = "eaa.passkey.registered";
+
+function safeLocalStorage(): Storage | null {
+  try {
+    return typeof window !== "undefined" && window.localStorage
+      ? window.localStorage
+      : null;
+  } catch {
+    // Safari Private Mode 等で throw する可能性あり
+    return null;
+  }
+}
+
+export function hasRegisteredPasskeyOnThisDevice(): boolean {
+  const ls = safeLocalStorage();
+  if (!ls) return false;
+  try {
+    return ls.getItem(PASSKEY_REGISTERED_FLAG_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markPasskeyRegistered(): void {
+  const ls = safeLocalStorage();
+  if (!ls) return;
+  try {
+    ls.setItem(PASSKEY_REGISTERED_FLAG_KEY, "1");
+  } catch {
+    // 容量超過等は無視 (動作は壊れない、次回 login が失敗 → register fallback)
+  }
+}
+
+function clearPasskeyRegisteredFlag(): void {
+  const ls = safeLocalStorage();
+  if (!ls) return;
+  try {
+    ls.removeItem(PASSKEY_REGISTERED_FLAG_KEY);
+  } catch {
+    // ignore
+  }
 }
 
 export class PasskeyError extends Error {
@@ -109,6 +164,12 @@ export async function registerPasskey(): Promise<{ userId: string }> {
     userId: string;
     sessionToken: string;
   };
+
+  // この端末で登録済 flag を立てる。次回 registerOrLogin() が直接 login に
+  // 入れるようにする (新規ユーザーへの cross-device picker 誤表示を防ぐ)。
+  // 内部 loginWithPasskey が失敗した場合でも flag は残し、retry 時に login
+  // 経由で PRF 鍵を再派生できるようにする (server に credential は既にある)。
+  markPasskeyRegistered();
 
   // 4. すぐ login して PRF eval を取得 (=暗号鍵を派生させる)
   // 注: register/finish が返す sessionToken は破棄。login で取り直す
@@ -233,25 +294,40 @@ export async function loginWithPasskey(opts?: {
 }
 
 /**
- * UI 統合用: ログイン優先、失敗時に新規登録に fallback。
- * - 既存 Passkey 持ちのユーザー → 普通にログイン
- * - 初回ユーザー → 新規登録
+ * UI 統合用: 端末の登録 flag に基づき登録 / 認証を選択。
  *
- * 注: NotAllowedError (ユーザーキャンセル) は fallback せず即座に投げる
- *     (キャンセル後に登録 prompt を出すと UX が壊れる)。
+ *   flag 無し → registerPasskey() を直接呼ぶ。
+ *               理由: discoverable credential 方式の login は
+ *               allowCredentials が空のため、新規ユーザーに対し
+ *               cross-device picker (QR) を出す。失敗もキャンセル扱いで
+ *               fallback できないため、最初から register UI を出す。
+ *   flag 有り → loginWithPasskey() を呼ぶ。
+ *               LOGIN_FAILED / NETWORK で失敗した場合は flag をクリアして
+ *               registerPasskey() に切替 (例: server から credential が
+ *               消えた、別 user data へ移行した等のレアケース)。
+ *
+ * USER_CANCELLED と UNSUPPORTED は常に投げる (キャンセル後に別 prompt を
+ * 出すと UX が壊れる、UNSUPPORTED は環境問題で再試行不能)。
  */
 export async function registerOrLogin(): Promise<{ userId: string; action: "registered" | "logged-in" }> {
-  try {
-    const result = await loginWithPasskey();
-    return { ...result, action: "logged-in" };
-  } catch (err) {
-    if (err instanceof PasskeyError) {
-      if (err.code === "USER_CANCELLED" || err.code === "UNSUPPORTED") {
-        throw err; // fallback しない
+  if (hasRegisteredPasskeyOnThisDevice()) {
+    try {
+      const result = await loginWithPasskey();
+      return { ...result, action: "logged-in" };
+    } catch (err) {
+      if (err instanceof PasskeyError) {
+        if (err.code === "USER_CANCELLED" || err.code === "UNSUPPORTED") {
+          throw err;
+        }
+        // login が server 検証で失敗 = この端末の flag が古い。
+        // flag をクリアして新規登録に切替。
+        clearPasskeyRegisteredFlag();
+      } else {
+        throw err;
       }
     }
-    // login 失敗 → 新規登録を試す
-    const result = await registerPasskey();
-    return { ...result, action: "registered" };
   }
+
+  const result = await registerPasskey();
+  return { ...result, action: "registered" };
 }
