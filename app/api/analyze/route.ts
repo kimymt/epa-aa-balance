@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { analyzePhoto, VisionError } from "@/lib/vision";
+import {
+  analyzePhoto,
+  VisionError,
+  userMessageForCode,
+  type VisionErrorCode,
+} from "@/lib/vision";
 import { analyze } from "@/lib/analyzer";
 import {
   type AnalysisSessionResult,
@@ -22,6 +27,44 @@ const ENDPOINT = "/api/analyze";
 // 10/h なら平均使用の 2〜3 倍バッファ。env で変更可。/api/coach (10/h) と整合。
 const RATE_LIMIT = Number(process.env.ANALYZE_RATE_LIMIT ?? "10");
 const RATE_WINDOW_MS = 60 * 60 * 1000;
+
+/**
+ * v0.8.6 (F-012): per-photo の VisionErrorCode 一覧から代表 code を選ぶ。
+ *
+ * 規則 (優先度順、上から順に判定):
+ *   1. 全部同じ code → その code
+ *   2. CONFIG_ERROR / AUTH_FAILED が 1 件でもあれば → それ (= サーバー設定問題、
+ *      他の原因より先に伝えるべき)
+ *   3. QUOTA_EXHAUSTED が過半 → QUOTA_EXHAUSTED
+ *   4. SERVER_ERROR / RATE_LIMITED / TIMEOUT / NETWORK のいずれかが過半 → それ
+ *   5. NO_FOOD が過半 → NO_FOOD (写真の質問題)
+ *   6. それ以外 (混在) → UNKNOWN (汎用文言で「複数原因で失敗」を示す)
+ *
+ * 「過半」は「半数を超える」(strict majority)。同数の場合は次の規則に進む。
+ */
+export function pickDominantCode(codes: VisionErrorCode[]): VisionErrorCode {
+  if (codes.length === 0) return "UNKNOWN";
+  if (codes.every((c) => c === codes[0])) return codes[0];
+
+  const has = (c: VisionErrorCode) => codes.includes(c);
+  if (has("CONFIG_ERROR")) return "CONFIG_ERROR";
+  if (has("AUTH_FAILED")) return "AUTH_FAILED";
+
+  const count = (c: VisionErrorCode) => codes.filter((x) => x === c).length;
+  const half = codes.length / 2;
+  const candidates: VisionErrorCode[] = [
+    "QUOTA_EXHAUSTED",
+    "SERVER_ERROR",
+    "RATE_LIMITED",
+    "TIMEOUT",
+    "NETWORK",
+    "NO_FOOD",
+  ];
+  for (const c of candidates) {
+    if (count(c) > half) return c;
+  }
+  return "UNKNOWN";
+}
 
 /** D1 が設定されているか（local dev で disable するため、coach と同じ判定） */
 function isD1Configured(): boolean {
@@ -178,17 +221,35 @@ export async function POST(req: Request) {
     analyzePhoto(file.bytes, file.mime, file.mealType)
       .then((foods) => {
         if (foods.length === 0) {
-          throw new Error("食材を認識できませんでした。");
+          // v0.8.6: 「食材を認識できませんでした」を VisionError(NO_FOOD) に格上げ。
+          // 従来は素の Error で投げていたため per-photo の code が取れず、集約も
+          // 「明るい場所で…」の汎用文言に丸められていた (design audit F-012)。
+          throw new VisionError(
+            "No foods detected by Vision API",
+            userMessageForCode("NO_FOOD"),
+            "NO_FOOD",
+          );
         }
         const result = analyze(foods);
         return { index, mealType: file.mealType, result, foods, success: true as const };
       })
       .catch((err) => {
-        const errorMsg =
-          err instanceof VisionError
-            ? err.userMessage
-            : "解析に失敗しました。";
-        return { index, mealType: file.mealType, error: errorMsg, success: false as const };
+        if (err instanceof VisionError) {
+          return {
+            index,
+            mealType: file.mealType,
+            code: err.code,
+            userMessage: err.userMessage,
+            success: false as const,
+          };
+        }
+        return {
+          index,
+          mealType: file.mealType,
+          code: "UNKNOWN" as VisionErrorCode,
+          userMessage: userMessageForCode("UNKNOWN"),
+          success: false as const,
+        };
       })
   );
 
@@ -196,7 +257,12 @@ export async function POST(req: Request) {
 
   // Separate successful and failed analyses
   const meals = [];
-  const failed = [];
+  const failed: Array<{
+    index: number;
+    mealType: MealTypeValue;
+    code: VisionErrorCode;
+    userMessage: string;
+  }> = [];
   const successfulResults = [];
 
   for (const result of settledResults) {
@@ -214,29 +280,38 @@ export async function POST(req: Request) {
         failed.push({
           index: value.index,
           mealType: value.mealType,
-          error: value.error,
-          userMessage: value.error,
+          code: value.code,
+          userMessage: value.userMessage,
         });
       }
     } else {
-      // Promise.allSettled rejection
+      // Promise.allSettled rejection (.catch の外で throw された場合のみ。本来到達しない)
       const index = settledResults.indexOf(result);
       failed.push({
         index,
         mealType: validatedFiles[index].mealType,
-        error: "未知のエラーが発生しました。",
-        userMessage: "解析に失敗しました。",
+        code: "UNKNOWN",
+        userMessage: userMessageForCode("UNKNOWN"),
       });
     }
   }
 
-  // If no successful analyses, return error
+  // If no successful analyses, return error with aggregated code (v0.8.6, F-012)
   if (successfulResults.length === 0) {
+    const aggregateCode = pickDominantCode(failed.map((f) => f.code));
     await logIfEnabled(422);
     return NextResponse.json(
       {
-        error:
-          "どの写真も解析できませんでした。明るい場所で撮影し直してください。",
+        error: userMessageForCode(aggregateCode),
+        code: aggregateCode,
+        // 後方互換のため failed[] も含める。サポート問い合わせ時の DevTools 確認や
+        // 将来のフロントエンド per-photo 表示で参照可能。
+        failed: failed.map((f) => ({
+          index: f.index,
+          mealType: f.mealType,
+          code: f.code,
+          message: f.userMessage,
+        })),
       },
       { status: 422 },
     );

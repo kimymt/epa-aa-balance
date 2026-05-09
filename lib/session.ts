@@ -28,7 +28,9 @@ export interface MealAnalysis {
 export interface FailedMeal {
   index: number;
   mealType: "breakfast" | "lunch" | "dinner";
-  error: string;
+  /** v0.8.6: VisionErrorCode の値 (lib/vision.ts)。サポート対応 / DevTools 用。 */
+  code: string;
+  /** UI に表示するユーザー向け文言 (vision.userMessageForCode の出力)。 */
   userMessage: string;
 }
 
