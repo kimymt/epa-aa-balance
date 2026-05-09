@@ -230,13 +230,16 @@ export async function loginWithPasskey(opts?: {
 
   // 3. PRF result を取り出す。
   //    WebAuthn 仕様: clientExtensionResults.prf.results.first は BufferSource
-  //    (ArrayBuffer または TypedArray)。Safari iOS は ArrayBuffer をそのまま返す。
-  //    @simplewebauthn/browser はこの値を変換せずに通す。
-  //    防御的に複数型 (ArrayBuffer / Uint8Array / 万一の string) を受け付ける。
+  //    (ArrayBuffer | ArrayBufferView)。実装ごとの揺れを吸収する:
+  //      - Chrome (PC): ArrayBuffer
+  //      - Safari iOS: ArrayBuffer (24/26 で確認)
+  //      - DataView や別の TypedArray (Int8Array 等) で返す実装も spec 上 OK
+  //      - 一部の serializer 経由なら base64url string になり得る
+  //    cross-realm の instanceof 失敗対策に Object.prototype.toString も併用。
   const ext = (
     credential as typeof credential & {
       clientExtensionResults?: {
-        prf?: { results?: { first?: ArrayBuffer | Uint8Array | string } };
+        prf?: { results?: { first?: unknown } };
       };
     }
   ).clientExtensionResults;
@@ -248,17 +251,46 @@ export async function loginWithPasskey(opts?: {
     );
   }
   let prfBytes: Uint8Array;
-  if (prfFirstRaw instanceof ArrayBuffer) {
-    prfBytes = new Uint8Array(prfFirstRaw);
-  } else if (prfFirstRaw instanceof Uint8Array) {
-    prfBytes = prfFirstRaw;
+  const tag = Object.prototype.toString.call(prfFirstRaw);
+  if (prfFirstRaw instanceof ArrayBuffer || tag === "[object ArrayBuffer]") {
+    prfBytes = new Uint8Array(prfFirstRaw as ArrayBuffer);
+  } else if (
+    typeof ArrayBuffer.isView === "function" &&
+    ArrayBuffer.isView(prfFirstRaw)
+  ) {
+    // Uint8Array / DataView / 他 TypedArray を共通で吸収
+    const view = prfFirstRaw as ArrayBufferView;
+    prfBytes = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
   } else if (typeof prfFirstRaw === "string") {
-    // 一部実装/将来 base64url string で返る可能性に対応
     prfBytes = fromBase64Url(prfFirstRaw);
+  } else if (
+    typeof prfFirstRaw === "object" &&
+    prfFirstRaw !== null &&
+    "byteLength" in prfFirstRaw &&
+    typeof (prfFirstRaw as { byteLength: number }).byteLength === "number"
+  ) {
+    // 念のため: 何らかの理由で {0:n, 1:n, ..., byteLength:32} のような
+    // 「TypedArray を JSON 化したような」 object が来た場合
+    const obj = prfFirstRaw as { byteLength: number; [k: number]: number };
+    const buf = new Uint8Array(obj.byteLength);
+    for (let i = 0; i < obj.byteLength; i++) {
+      const v = obj[i];
+      if (typeof v !== "number") {
+        throw new PasskeyError(
+          "PRF_UNSUPPORTED",
+          `PRF 応答 object の index ${i} が number ではない: ${typeof v}`
+        );
+      }
+      buf[i] = v & 0xff;
+    }
+    prfBytes = buf;
   } else {
+    const ctor =
+      (prfFirstRaw as { constructor?: { name?: string } } | null)?.constructor
+        ?.name ?? "?";
     throw new PasskeyError(
       "PRF_UNSUPPORTED",
-      `PRF 応答が想定外の型: ${typeof prfFirstRaw}`
+      `PRF 応答が想定外の型: ${typeof prfFirstRaw} (tag=${tag} ctor=${ctor})`
     );
   }
   if (prfBytes.byteLength < 32) {
