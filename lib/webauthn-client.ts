@@ -138,6 +138,22 @@ export async function loginWithPasskey(opts?: {
   }
   const { options, loginToken } = await startRes.json();
 
+  // PATCH: @simplewebauthn/browser v13 は extensions の PRF salt を変換しない
+  // (challenge と allowCredentials.id だけ base64url→ArrayBuffer する)。
+  // navigator.credentials.get() は extensions.prf.eval.first として
+  // ArrayBuffer/ArrayBufferView を要求するため、ここで手動変換する。
+  // 型は最終的に native API に渡される時点で BufferSource に揃えば OK。
+  const optsWithPrf = options as typeof options & {
+    extensions?: { prf?: { eval?: { first?: string | Uint8Array } } };
+  };
+  const prfEvalFirst = optsWithPrf.extensions?.prf?.eval?.first;
+  if (typeof prfEvalFirst === "string") {
+    // base64url string → Uint8Array に in-place 置換 (TS 型は string だが
+    // ライブラリは spread で素通しするので Uint8Array でも到達できる)
+    (optsWithPrf.extensions!.prf!.eval as { first: unknown }).first =
+      fromBase64Url(prfEvalFirst);
+  }
+
   // 2. browser auth (PRF eval extension が options に含まれている、
   //    response.clientExtensionResults.prf.results.first に派生鍵が乗る)
   let credential;
