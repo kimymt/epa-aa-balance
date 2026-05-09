@@ -251,9 +251,10 @@ export function UploadZone({
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => removeFile(index)}
-                  className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 flex-shrink-0"
-                  aria-label="削除"
+                  className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 dark:hover:bg-rose-950/30 dark:hover:text-rose-400"
+                  aria-label={`「${file.name}」を選択から削除`}
                 >
                   ✕
                 </button>
