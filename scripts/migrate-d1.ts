@@ -51,8 +51,9 @@ export const MIGRATIONS: Migration[] = [
   },
   {
     // v0.8.5: Passkey 機能ロールバックに伴うテーブル削除。
-    // 0005 (v0.8.1) で作成した users / user_credentials / analyses を DROP。
-    // いずれかが残っていれば未適用とみなして実行。すべて消えていれば skip。
+    // 0005 (v0.8.1) で作成した 4 テーブル
+    // (users / user_credentials / analyses / coach_proposals) を DROP。
+    // いずれかが残っていれば未適用とみなして実行。全部消えていれば skip。
     // (注: production には 0005 が適用されているはずなので初回は実行される。
     //  0006 は v0.8.4 のみで main には乗らなかったため、ここには含めない。)
     file: "0007_drop_passkey_tables.sql",
@@ -60,11 +61,13 @@ export const MIGRATIONS: Migration[] = [
       const usersCols = await api.tableInfo("users");
       const credCols = await api.tableInfo("user_credentials");
       const analysesCols = await api.tableInfo("analyses");
+      const coachCols = await api.tableInfo("coach_proposals");
       // 全部消えていれば skip
       return (
         usersCols.length === 0 &&
         credCols.length === 0 &&
-        analysesCols.length === 0
+        analysesCols.length === 0 &&
+        coachCols.length === 0
       );
     },
   },
