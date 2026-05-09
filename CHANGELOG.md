@@ -2,6 +2,62 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.3] - 2026-05-09 — クライアント側 AES-GCM 暗号化 + PRF 鍵 in-memory ストア
+
+E2E 暗号化履歴機能 Phase 1 サブフェーズ 3: **暗号化レイヤー**。クライアント側で
+WebAuthn PRF 派生鍵を AES-256-GCM 鍵として import → JSON データを暗号化 →
+サーバーには ciphertext のみ保存できるようにする。**まだ UI 露出なし**。
+
+### Added
+- **`lib/prf-salt.ts`**: PRF Extension の eval salt を 1 箇所に集約 (定数 `PRF_SALT_BASE64URL`)。
+  server (`lib/webauthn.ts`) と client (将来の暗号化呼び出し側) で同一値を共有する
+  必要があるため、ここに集約。バージョン suffix v1 を含めて将来の鍵 rotation 余地を残す。
+- **`lib/crypto.ts`** (Web Crypto API ベース、client/Node どちらでも動く):
+  - `importPrfKey(prfBytes)`: WebAuthn PRF response の 32 bytes を AES-256-GCM
+    `CryptoKey` に変換。`extractable: false` で raw bytes を JS から取り出せない
+    セキュリティ境界を作る。
+  - `encryptJson(key, payload)`: JSON 化可能オブジェクトを暗号化、base64url 出力。
+    フォーマット: `IV (12 bytes) || ciphertext || auth_tag (16 bytes)`。IV は呼び
+    出しごとに `crypto.getRandomValues` でランダム生成。
+  - `decryptJson(key, ciphertext)`: base64url ciphertext を復号して JSON.parse。
+    auth tag 検証で改竄を検出 → throw。
+  - `toBase64Url` / `fromBase64Url`: ブラウザ互換実装 (`btoa`/`atob` ベース、
+    `Buffer` 非依存)。`lib/webauthn.ts` (Node `Buffer` ベース) とは別実装で
+    出力は一致。
+- **`lib/auth-session.ts`**: 認証セッションの **memory-only** ストア (CryptoKey +
+  sessionToken + userId)。`localStorage` / `sessionStorage` / Cookie を使わない。
+  tab 閉じる / refresh で消える設計 (= 再 Passkey 認証必須)。シングルトン的な
+  module-scoped state で、React Context にしない (非 React コードからも参照可)。
+
+### Refactored
+- `lib/webauthn.ts` の hardcoded PRF salt を `PRF_SALT_BASE64URL` 定数経由に変更
+  (機能変更なし、保守性向上)。
+
+### Tests
+- 272 → **294 pass** / 1 skip / 0 fail (+22 new)
+  - `lib/crypto.test.ts` × 18:
+    - `importPrfKey`: 32-byte 鍵 import / サイズ違いで reject / `extractable: false`
+    - encrypt/decrypt roundtrip × 6: simple object / nested + array /
+      日本語+絵文字 / empty / primitives (string/number/boolean/null) /
+      ciphertext 長さスケール
+    - エラーケース × 4: 違う鍵で復号失敗 / tampered ciphertext (auth tag
+      invalidated) / too-short / garbage base64
+    - base64url helpers × 4: roundtrip / URL-safe chars / lib/webauthn.ts との
+      互換性 / 空 bytes
+  - `lib/auth-session.test.ts` × 4: 初期 unauthenticated / set + get / clear /
+    overwrite
+
+### Background
+[履歴機能 Phase 1 計画](TODOS.md F-017 セクション参照) の通り、サブフェーズ 3。
+v0.8.4 以降で UI と統合される予定:
+- v0.8.4: 「この記録を残す」CTA + 暗号化保存 (UI 初登場)
+- v0.8.5: `/history` page (auth gate + decrypt + lipidPct bar)
+- v0.8.6: 削除 / export + プライバシーポリシー更新
+
+### マイグレーション / 環境変数
+- D1 schema: 変更なし (v0.8.1 で揃済)
+- 新環境変数: なし
+
 ## [0.8.2] - 2026-05-09 — Passkey 認証 API + 保護ルート helper
 
 E2E 暗号化履歴機能 Phase 1 のサブフェーズ 2: 認証パス。**まだ UI 露出なし**。
