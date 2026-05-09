@@ -12,6 +12,7 @@ import {
   isGeminiQuotaError,
   getCoachErrorCode,
   detectRequestedCookingMethods,
+  isRecipeComplete,
   CHIP_LABELS,
   type CoachRequest,
   type Recipe,
@@ -568,5 +569,80 @@ describe("CHIP_LABELS", () => {
     expect(CHIP_LABELS.quick).toBe("20分以内");
     expect(CHIP_LABELS.cheap_ingredients).toBe("安い食材で");
     expect(CHIP_LABELS.kid_friendly).toBe("子ども向け");
+  });
+});
+
+// v0.8.0: Recipe 完結判定 (streaming で部分パースされたオブジェクトが Recipe として
+// 揃ったかを判定する predicate)
+describe("isRecipeComplete", () => {
+  function fullRecipe(): Recipe {
+    return {
+      name: "サバ味噌煮",
+      mealType: "dinner",
+      cookTime: "20分",
+      description: "サバを味噌で煮込む和食の定番。",
+      fishType: "fish",
+      cookingMethod: "simmered",
+      servings: 2,
+      ingredients: [{ name: "サバ", amount: "2 切れ" }],
+      steps: ["煮る。"],
+      equipment: [],
+      tips: "",
+      safetyNote: "",
+    };
+  }
+
+  it("returns true for a fully-formed Recipe", () => {
+    expect(isRecipeComplete(fullRecipe())).toBe(true);
+  });
+
+  it("returns false for null / non-object", () => {
+    expect(isRecipeComplete(null)).toBe(false);
+    expect(isRecipeComplete(undefined)).toBe(false);
+    expect(isRecipeComplete("string")).toBe(false);
+    expect(isRecipeComplete(42)).toBe(false);
+  });
+
+  it("returns false when name is missing or empty", () => {
+    const r = fullRecipe();
+    delete (r as Partial<Recipe>).name;
+    expect(isRecipeComplete(r)).toBe(false);
+    expect(isRecipeComplete({ ...fullRecipe(), name: "" })).toBe(false);
+  });
+
+  it("returns false when ingredients array is empty", () => {
+    expect(isRecipeComplete({ ...fullRecipe(), ingredients: [] })).toBe(false);
+  });
+
+  it("returns false when an ingredient lacks name or amount", () => {
+    const r = { ...fullRecipe(), ingredients: [{ name: "サバ" }] }; // missing amount
+    expect(isRecipeComplete(r)).toBe(false);
+  });
+
+  it("returns false when steps array is empty", () => {
+    expect(isRecipeComplete({ ...fullRecipe(), steps: [] })).toBe(false);
+  });
+
+  it("returns false when a step is not a non-empty string", () => {
+    expect(isRecipeComplete({ ...fullRecipe(), steps: [""] })).toBe(false);
+  });
+
+  it("accepts empty equipment array (no_cook recipes don't need tools)", () => {
+    expect(isRecipeComplete({ ...fullRecipe(), equipment: [] })).toBe(true);
+  });
+
+  it("accepts empty tips and safetyNote (optional fields modeled as empty string)", () => {
+    expect(isRecipeComplete({ ...fullRecipe(), tips: "", safetyNote: "" })).toBe(true);
+  });
+
+  it("returns false when servings is non-number", () => {
+    // @ts-expect-error testing wrong type
+    expect(isRecipeComplete({ ...fullRecipe(), servings: "2" })).toBe(false);
+  });
+
+  it("returns false on partial mid-stream object (only name + mealType)", () => {
+    expect(
+      isRecipeComplete({ name: "鯵のなめろう", mealType: "lunch" })
+    ).toBe(false);
   });
 });

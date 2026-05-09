@@ -2,6 +2,62 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0] - 2026-05-09 — AI コーチのレイテンシ短縮 (streaming + skeleton + Tokyo region)
+
+v0.7.0 で出力 token が増えたことによる体感待ち時間 (15-25s) を、4 軸の組合せで
+削減・改善。**最初のレシピが ~6-10 秒で読み始められる** ようになり、固定スピナーで
+全部待つ体験から、進捗が目に見える体験へ。
+
+### Changed
+- **`/api/coach` を NDJSON ストリーミング応答に変更** (v0.4.x → v0.8.0)。
+  Gemini の token streaming を [`partial-json`](https://www.npmjs.com/package/partial-json)
+  で逐次パースし、Recipe が 1 件確定するたびに 1 行 JSON を client へ送る:
+  - `{"type":"recipe","index":0,"recipe":{...}}`
+  - `{"type":"complete","retried":false}`
+  - `{"type":"error","code":"...","message":"..."}` (ストリーム途中エラーは embed)
+  - 早期エラー (rate limit / validation) は従来通り 400/429 JSON
+- **`generateCoachRecipesStream(req)`** (新): async generator として export。
+  既存の `generateCoachRecipes(req)` は内部で本 generator を畳み込む互換 wrapper
+  に refactor (programmatic な「全件揃ってから」用途のため残す)。
+- **`isRecipeComplete(r)`** (新): 部分パース結果が Recipe として完結したかの
+  type predicate。全 12 必須フィールドを検査。
+- **Vercel リージョンを `hnd1` (Tokyo) に変更** (`vercel.json`)。日本ユーザーから
+  Gemini API への往復が ~150-300ms 短縮 (iad1 → hnd1)。
+- **CoachSection の loading state を再設計**:
+  - State shape を `{ kind: "loading" }` → `{ kind: "loading"; partialRecipes: Recipe[]; activeChip }` に拡張
+  - 届いた recipe は実 RecipeCard で表示、未到着スロットは新規 `SkeletonRecipeCard`
+    (animate-pulse、v0.7.0 RecipeCard と同じ寸法) で表示
+  - 進捗カウンタ「N / 3 件 届きました」を chip 名と並べて表示
+  - 進捗メッセージを 5 秒ごとにローテーション (材料を選定中... → 手順を組み立て
+    中... → コツと安全注意を確認中... → もう少しで完成します...)
+- **初期画面の所要時間表示を更新**: 「5〜15 秒ほどかかります」→「1 件目は約 6〜10
+  秒で届きます (3 件揃うまで 15〜25 秒)」
+
+### Tests
+- 227 → **238 pass** / 1 skip / 0 fail (+11 new)
+  - `isRecipeComplete` × 11: 完全形 / null / 各フィールド欠損 / 空配列 /
+    no_cook の equipment 空配列許容 / tips/safetyNote 空文字列許容 / mid-stream
+    部分オブジェクトを reject
+
+### Background
+v0.7.0 で Recipe schema を full-detail に拡張した結果、出力 token が ~2-3x になり
+体感待ち時間が伸びた。本 PR は実時間そのものより **perceived latency** に効く
+施策をまとめて投入。Gemini の実時間は変えていないが、ストリーミングで
+1 件ずつ画面に届くため「最後まで何も見えない 20 秒」が「6 秒で 1 件読み始め
+られる体験」に。
+
+### 体感差 (期待)
+- 1 件目が読み始められるまで: **20s → ~6-10s** (50-70% 短縮)
+- 3 件揃うまで: 15-25s (実時間は概ね同じ、Tokyo region で ~200ms 改善)
+- 進捗表示: 固定スピナー → 「N / 3 件届きました」+ ローテーションメッセージで
+  「進んでる感」が出る
+
+### Out of scope (将来検討)
+- B-1 (3 並列コール、~50% 実時間短縮) — rate limit bucket 設計 + 重複対策が
+  必要なため別 PR
+- streaming 経路では retry は実装せず (ストリーム中断時の UX が複雑)。fish-only
+  filter は wrapper (非streaming) 側に残存。retry 必要性は計測後判断。
+
 ## [0.7.0] - 2026-05-09 — レシピを「実装図面」に格上げ (F-015)
 
 ユーザーから「提案の質が高くない」と指摘されていた 3 軸 (入力解像度 / 出力粒度 /
