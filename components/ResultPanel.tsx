@@ -326,7 +326,7 @@ export function ResultPanel({
           <ul className="mt-2 space-y-1 text-sm text-rose-800 dark:text-rose-300">
             {failedMeals.map((failed, i) => (
               <li key={i}>
-                • {MEAL_TYPES.find((m) => m.value === failed.mealType)?.label || "食事"} (写真{failed.index + 1}): {failed.error}
+                • {MEAL_TYPES.find((m) => m.value === failed.mealType)?.label || "食事"} (写真{failed.index + 1}): {failed.userMessage}
               </li>
             ))}
           </ul>
