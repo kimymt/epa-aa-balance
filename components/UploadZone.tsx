@@ -265,23 +265,30 @@ export function UploadZone({
                 <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
                   食事タイプ
                 </div>
-                <div className="flex gap-2">
-                  {MEAL_TYPES.map((type) => (
-                    <button
-                      key={type.value}
-                      onClick={() => updateMealType(index, type.value)}
-                      className={`
-                        flex-1 py-2 px-3 rounded-lg text-sm font-medium transition
-                        ${
-                          mealTypes[index] === type.value
-                            ? "bg-emerald-600 text-white shadow-sm"
-                            : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                        }
-                      `}
-                    >
-                      {type.label}
-                    </button>
-                  ))}
+                <div role="radiogroup" aria-label={`「${file.name}」の食事タイプ`} className="flex gap-2">
+                  {MEAL_TYPES.map((type) => {
+                    const selected = mealTypes[index] === type.value;
+                    return (
+                      <button
+                        key={type.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() => updateMealType(index, type.value)}
+                        className={`
+                          flex-1 min-h-[44px] py-2.5 px-3 rounded-lg text-sm font-medium transition
+                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2
+                          ${
+                            selected
+                              ? "bg-emerald-600 text-white shadow-sm"
+                              : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                          }
+                        `}
+                      >
+                        {type.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
