@@ -151,21 +151,39 @@ export async function loginWithPasskey(opts?: {
     throw new PasskeyError("LOGIN_FAILED", e.message ?? "認証に失敗しました。");
   }
 
-  // 3. PRF result を取り出す。startAuthentication の戻り値の型には
-  //    clientExtensionResults が含まれるはず。
+  // 3. PRF result を取り出す。
+  //    WebAuthn 仕様: clientExtensionResults.prf.results.first は BufferSource
+  //    (ArrayBuffer または TypedArray)。Safari iOS は ArrayBuffer をそのまま返す。
+  //    @simplewebauthn/browser はこの値を変換せずに通す。
+  //    防御的に複数型 (ArrayBuffer / Uint8Array / 万一の string) を受け付ける。
   const ext = (
     credential as typeof credential & {
-      clientExtensionResults?: { prf?: { results?: { first?: string } } };
+      clientExtensionResults?: {
+        prf?: { results?: { first?: ArrayBuffer | Uint8Array | string } };
+      };
     }
   ).clientExtensionResults;
-  const prfFirstB64 = ext?.prf?.results?.first;
-  if (!prfFirstB64) {
+  const prfFirstRaw = ext?.prf?.results?.first;
+  if (prfFirstRaw == null) {
     throw new PasskeyError(
       "PRF_UNSUPPORTED",
       "PRF Extension の応答が取得できませんでした。"
     );
   }
-  const prfBytes = fromBase64Url(prfFirstB64);
+  let prfBytes: Uint8Array;
+  if (prfFirstRaw instanceof ArrayBuffer) {
+    prfBytes = new Uint8Array(prfFirstRaw);
+  } else if (prfFirstRaw instanceof Uint8Array) {
+    prfBytes = prfFirstRaw;
+  } else if (typeof prfFirstRaw === "string") {
+    // 一部実装/将来 base64url string で返る可能性に対応
+    prfBytes = fromBase64Url(prfFirstRaw);
+  } else {
+    throw new PasskeyError(
+      "PRF_UNSUPPORTED",
+      `PRF 応答が想定外の型: ${typeof prfFirstRaw}`
+    );
+  }
   if (prfBytes.byteLength < 32) {
     throw new PasskeyError(
       "PRF_UNSUPPORTED",
