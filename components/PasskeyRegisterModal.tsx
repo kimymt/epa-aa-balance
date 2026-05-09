@@ -81,16 +81,15 @@ export function PasskeyRegisterModal({ open, onClose, onSuccess }: Props) {
           className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2"
         >
           <span className="text-2xl">📒</span>
-          履歴を残しておきますか?
+          この記録を残しますか?
         </h2>
-        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed mb-2">
-          スマートフォンの顔認証や指紋でロックをかけて履歴を保存します。
-          鍵はこの端末の中にしかないので、開発者でも中身を見ることはできません。
+        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed mb-4">
+          「使う」を選ぶと記録機能が有効になります
         </p>
         <div className="mb-5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 p-3 text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
-          <div className="font-semibold mb-1">⚠️ 注意して欲しいこと</div>
+          <div className="font-semibold mb-1">⚠️ 注意してほしいこと</div>
           端末から認証情報を消したり、機種変更したりすると、
-          保存した履歴は二度と見れなくなります。
+          保存した履歴は二度と見れなくなります。開発者でも復旧できません。
         </div>
 
         {!passkeyAvailable && (

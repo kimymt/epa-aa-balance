@@ -413,17 +413,19 @@ export function ResultPanel({
         </div>
       )}
 
-      {/* v0.8.4: 「この記録を残す」CTA — 未認証時のみ表示 */}
+      {/* v0.8.4: 「この記録を保存しますか?」CTA — 未認証時のみ表示 */}
       {!session && successfulMeals.length > 0 && (
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 p-5 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <div className="text-base sm:text-lg text-slate-700 dark:text-slate-200 mb-1 flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="flex-1">
+              <div className="text-base sm:text-lg text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
                 <span className="text-2xl">📒</span>
-                <span className="font-medium">この記録を残しますか?</span>
+                <span className="font-medium">この記録を保存しますか?</span>
               </div>
               <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                Passkey で暗号化して保存します。運営も中身を読めません。
+                あなたのスマートフォンの顔認証や指紋でロックをかけて保存します。
+                <br />
+                鍵は端末の中にしか存在しないので、開発者も中身を見れません。
               </p>
             </div>
             <button
