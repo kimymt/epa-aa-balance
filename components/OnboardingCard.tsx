@@ -100,7 +100,7 @@ export function OnboardingCard() {
         <button
           type="button"
           onClick={handleDismiss}
-          className="rounded-md bg-sky-100 px-4 py-2 text-sm font-medium text-sky-900 hover:bg-sky-200 active:bg-sky-300 dark:bg-sky-900/60 dark:text-sky-100 dark:hover:bg-sky-900"
+          className="min-h-[44px] rounded-md bg-sky-100 px-4 py-2.5 text-sm font-medium text-sky-900 hover:bg-sky-200 active:bg-sky-300 dark:bg-sky-900/60 dark:text-sky-100 dark:hover:bg-sky-900"
         >
           わかった、写真をアップロード →
         </button>

@@ -103,13 +103,17 @@ export default function Home() {
       )}
 
       {state.kind === "error" && (
-        <div className="mt-6 rounded-lg border border-rose-300 bg-rose-50 p-4 text-sm text-rose-900 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-200">
-          {state.message}
+        <div
+          role="alert"
+          className="mt-6 flex flex-col gap-3 rounded-lg border border-rose-300 bg-rose-50 p-4 text-sm text-rose-900 sm:flex-row sm:items-center sm:justify-between dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-200"
+        >
+          <div className="flex-1">{state.message}</div>
           <button
+            type="button"
             onClick={reset}
-            className="ml-3 underline underline-offset-2 hover:no-underline"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-md border border-rose-400 bg-white px-4 py-2.5 text-sm font-medium text-rose-700 hover:bg-rose-50 active:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 dark:border-rose-700 dark:bg-rose-950/50 dark:text-rose-200 dark:hover:bg-rose-950"
           >
-            やり直す
+            最初からやり直す
           </button>
         </div>
       )}

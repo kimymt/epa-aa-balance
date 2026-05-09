@@ -29,7 +29,7 @@ export function Footer() {
             href={REPO_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+            className="inline-flex min-h-[44px] items-center gap-1.5 px-2 py-3 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
           >
             <GitHubIcon />
             GitHub
@@ -44,8 +44,8 @@ export function Footer() {
             aria-disabled={QA_URL_PLACEHOLDER || undefined}
             className={
               QA_URL_PLACEHOLDER
-                ? "inline-flex items-center gap-1.5 text-slate-400 cursor-not-allowed dark:text-slate-600"
-                : "inline-flex items-center gap-1.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                ? "inline-flex min-h-[44px] items-center gap-1.5 px-2 py-3 text-slate-400 cursor-not-allowed dark:text-slate-600"
+                : "inline-flex min-h-[44px] items-center gap-1.5 px-2 py-3 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
             }
             title={QA_URL_PLACEHOLDER ? "Q&A ページは準備中です" : "Q&A を開く"}
           >
