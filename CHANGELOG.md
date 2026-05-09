@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.5] - 2026-05-09 — Passkey スコープのロールバック (v0.8.0 機能まで巻き戻し)
+
+v0.8.1〜v0.8.3 で実装した Passkey 認証 + クライアント側 E2E 暗号化基盤、
+および v0.8.4 (PR #53、未 merge) の履歴 UI 統合を**全て破棄**する。
+ユーザーから見える機能は v0.8.0 (コーチ提案ストリーミング) と同等。
+
+理由:
+- v0.8.4 の実機検証で連続して問題が発生 (PRF 戻り値の型揺れ、login-first
+  パターンによる新規ユーザーへの cross-device picker 誤表示、CSP の Web
+  Worker block 等)。Passkey + WebAuthn PRF Extension に依存した実装は
+  ブラウザ / 1Password / iCloud Keychain の挙動差が大きく、安定運用までの
+  iteration コストが想定を上回ると判断。
+- 「履歴を残す」機能のニーズと実装方針は再設計から見直す (v1.0 計画の中で
+  暗号化前提を維持するか、別アーキテクチャに切り替えるかを再検討)。
+
+### Removed
+- **`lib/webauthn.ts`, `lib/webauthn-client.ts`** (PR #50, #53 で追加)
+  および `@simplewebauthn/server`, `@simplewebauthn/browser` 依存。
+- **`lib/crypto.ts`, `lib/auth-session.ts`, `lib/prf-salt.ts`** (PR #52 で追加)
+  AES-GCM 暗号化レイヤー + memory session + PRF salt 管理。
+- **`lib/jwt.ts`** (PR #50 で追加) と `jose` 依存。
+- **API ルート**: `/api/auth/register/{start,finish}`, `/api/auth/login/{start,finish}`,
+  `/api/auth/me`, `/api/analyses`。
+- **D1 テーブル**: `users`, `user_credentials`, `analyses` (migration 0007 で
+  DROP)。production D1 では未利用 (row 数 0) のまま削除。
+- **Vercel 環境変数**: `JWT_SECRET` は preview/production の両方で**手動削除**を
+  別途実施する (本 PR では reset せず、merge 後にダッシュボードから削除)。
+
+### Added
+- **`migrations/0007_drop_passkey_tables.sql`** — 上記 3 テーブルを `DROP TABLE
+  IF EXISTS` で削除。idempotent。merge 後に
+  `bun run scripts/migrate-d1.ts` を production 環境変数付きで実行する必要あり。
+
+### Notes
+- 本 release 後の git history は 3 つの `Revert "feat(v0.8.x): ..."` commit を
+  含む。コードの diff は v0.8.0 (`7c6dc53`) と完全一致を確認済。
+- Passkey 機能の再開時は `git log --grep "v0\.8\.[1-4]"` で過去実装を参照可能。
+- package.json `version` は CHANGELOG と揃えるため 0.3.0 → 0.8.5 に更新。
+
 ## [0.8.0] - 2026-05-09 — AI コーチのレイテンシ短縮 (streaming + skeleton + Tokyo region)
 
 v0.7.0 で出力 token が増えたことによる体感待ち時間 (15-25s) を、4 軸の組合せで
