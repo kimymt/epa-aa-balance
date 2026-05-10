@@ -482,8 +482,11 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
                 );
               })}
             </div>
+            {/* F-044 (v0.8.11): 旧「それ以外で：」(全角コロン) は文の途中で
+                切れたような印象で、chip と input の関係性が即座に読めなかった。
+                「自由に書く」のラベル単体に変更。 */}
             <div className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-              それ以外で：
+              自由に書く
             </div>
             <div className="flex gap-2">
               <input
