@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.6] - 2026-05-10 — design-review backlog (F-008 / F-014 / F-015)
+
+v0.8.5 の design-review (Quick mode) で記録された POLISH バックログ 3 件を
+1 PR でまとめて消化。機能変更なし、CSS / トークン整理のみ。
+
+### Changed
+- **F-008**: `app/globals.css` に `@media (prefers-reduced-motion: reduce)`
+  baseline を追加。OS で「視差効果を減らす」を選んでいるユーザーに対して
+  全 animation / transition を ~0 に切り詰める。spinner は視覚的に静止する
+  (意図通り)。
+- **F-014**: `components/UploadZone.tsx` の未選択 meal-type pill を
+  `bg-slate-100` から `bg-white` + `border-slate-300` に変更。さらに
+  hover で `border-emerald-400` + `bg-emerald-50` を出して「選ぶとどうなるか」
+  を pre-view。実機で disabled っぽく見えていた問題を解消。
+- **F-015**: `--color-brand` / `--color-brand-hover` を `globals.css` の
+  `@theme inline` に追加。Tailwind v4 が `bg-brand` / `hover:bg-brand-hover`
+  / `shadow-brand` を自動生成。解析 CTA (`app/page.tsx`) と選択中 meal-type
+  pill (`UploadZone.tsx`) を `bg-emerald-600` から `bg-brand` に統一。
+  ブランド色変更時は `globals.css` 1 ファイルで完結。
+
+### Notes
+- 値自体は emerald-600 (#059669) / emerald-700 (#047857) のまま。今 PR 時点で
+  視覚的なブランドカラー変更はない。後段で hue 調整する際の merge リスクを
+  下げる準備。
+- `package.json` version を 0.8.6 に更新 (CHANGELOG と揃える方針を継続)。
+
 ## [0.8.5] - 2026-05-09 — Passkey スコープのロールバック (v0.8.0 機能まで巻き戻し)
 
 v0.8.1〜v0.8.3 で実装した Passkey 認証 + クライアント側 E2E 暗号化基盤、
