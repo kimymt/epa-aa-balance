@@ -2,6 +2,76 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.11] - 2026-05-10 — coach streaming UX (F-038 / F-040 / F-035 / F-036 / F-037 / F-041 / F-044 / F-045)
+
+`/design-review` で実施した coach streaming UX audit (8 件 = Tier A 2 件 + Tier C
+6 件) を 1 PR でまとめて解消。Tier B (F-034 server-side perf 計測 + copy 更新、
+F-039 文字数 counter、F-042 rate_limited joke 書き換え) はユーザー判断で見送り。
+機能変更なし、`components/CoachSection.tsx` の state-machine 強化 + UI/copy 調整
+のみ。
+
+### Changed
+
+#### Tier A — correctness / data-loss
+- **F-038 (MEDIUM)**: streaming 途中で error / quota が来ても、すでに到着した
+  partial recipe を捨てない。collected を try の外側に lift して catch ブロック
+  からも参照可能にし、recoveredRecipes.length > 0 のとき `{kind: "result",
+  recipes, retried: true}` に降格遷移。既存の "(一部レシピが省略されました)"
+  notice を再利用。0 件のときだけ従来通り full error 画面。
+- **F-040 (MEDIUM)**: chip 連打 / chip → freetext などで複数 stream が race
+  していた問題を AbortController で解消。`fetchRecipes` 開始時に `activeAbortRef`
+  の旧 controller を `abort()` し、新 controller を `fetch(..., {signal})` に
+  渡す。`handleEvent` + 最終遷移 + catch すべてに `ctrl.signal.aborted` ガード
+  を入れ、abort 済 stream の event が新 state を mutate しないように。
+  unmount 時にも abort してメモリリーク防止。
+
+#### Tier C — polish
+- **F-035 (POLISH)**: `LOADING_STAGES` rotation 間隔を 5 秒 → 3 秒に短縮。
+  4 stages = 12 秒で消化、user-facing copy「3 件揃うまで 15-25 秒」の範囲内に
+  収まる。実 perf が sub-second の場合は引き続き stage 0 のみ表示 (harm 無し)。
+- **F-036 (POLISH)**: `SkeletonRecipeCard` 末尾の expand-button placeholder を
+  flat bar から border + 角丸の rectangle に変更。本物 RecipeCard が pop in
+  したとき affordance を予告する形で skeleton 段階で示唆する。
+- **F-037 (POLISH)**: streaming 進捗 caption を「1 / 3 件 届きました」(過去形 +
+  active spinner mismatch) → 「1 / 3 件 完了 — 次を生成中…」に変更。完了分 +
+  進行中を 1 行で表現。
+- **F-041 (POLISH)**: quota_exceeded screen の「※ 無料枠は日次でリセットされ
+  ます（JST 午後 5 時前後）」を「※ 数時間後に再度ご利用いただけます」に変更。
+  GCP billing リセット時刻 (UTC 0:00 = JST 17:00) leak を排除。
+- **F-044 (POLISH)**: chip と freetext input の間のラベルを「それ以外で：」
+  (全角コロン、文の途中で切れた印象) → 「自由に書く」(self-contained label)
+  に変更。input が chips の peer interaction として読めるように。
+- **F-045 (POLISH)**: streaming で partial=3 (MAX) に達した時点で spinner +
+  caption を抑制。state は complete event 待ちで loading のままだが、視覚的
+  には全 recipe が出揃った状態で spinner だけ空回りする mismatch を解消。
+
+### Skipped (ユーザー判断)
+- **F-034** (timing copy 計測 + 更新): 「実際より遅い分には期待値を下回らない
+  ので問題なし」とのオーナー判断。「6-10 秒 / 15-25 秒」copy はそのまま。
+- **F-039** (freetext live character counter): 不要との判断、現状の `maxLength
+  ={200}` + footer hint で十分。
+- **F-042** (rate_limited 「洗脳動画」joke): 現状の YouTube 埋め込み + 言葉
+  遊びを維持。tonal mismatch は意図的との判断。
+
+### Notes
+- regression test は今回見送り。streaming + AbortController + ReadableStream
+  の component-level test を書くにはモック整備が必要で、既存の bun:test +
+  @testing-library/react セットアップに新たな infra を追加することになる。
+  別 PR で扱うべき範囲。手動 visual verify (Vercel preview) で代替する。
+- Vercel preview 検証ポイント:
+  - streaming 途中で error にしても (DevTools network throttle で fetch を
+    abort 等) 既に届いた recipe が消えず result 表示で残ること
+  - chip A → 即 chip B でクリックした時、chip B の応答だけが表示され A の
+    途中 recipe が混ざらないこと
+  - 解析結果ページでページ離脱 (戻る) するとき console error が出ないこと
+    (= unmount 時に in-flight fetch が clean に abort されている)
+  - skeleton カード末尾が button-shape placeholder に変わっていること
+  - "1 / 3 件 完了 — 次を生成中…" caption が出ること (実 perf が遅い run で)
+  - quota_exceeded screen の「※ 数時間後に再度ご利用いただけます」表記
+  - chip の下のラベルが「自由に書く」になっていること
+- audit report: `~/.gstack/projects/kimymt-epa-aa-balance/designs/coach-streaming-audit-20260510/coach-streaming-audit.md`
+- 全 290 tests pass / 1 skip。
+
 ## [0.8.10] - 2026-05-10 — design-review polish bundle (F-021 / F-019 / F-018 / F-030 / F-033 / F-026)
 
 v0.8.6〜0.8.9 で audit 全 18 findings 中 13 件を解消。残り 5 件 (POLISH 中心) を
