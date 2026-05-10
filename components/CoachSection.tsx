@@ -554,8 +554,11 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
             <p className="text-sm text-amber-900 dark:text-amber-200 leading-relaxed mb-2">
               Google Gemini API の本日の無料枠に到達しました。アプリ側の問題ではないため、明日まで待つか、しばらく時間を置いてから再度お試しください。
             </p>
+            {/* F-041 (v0.8.11): 旧文言「JST 午後 5 時前後」は GCP 側の
+                billing リセット時刻 (= UTC 0:00) で、ユーザーには本来不要な
+                実装詳細だった。タイムゾーン非依存の「数時間後」表現に変更。 */}
             <p className="text-xs text-amber-800/80 dark:text-amber-300/80">
-              ※ 無料枠は日次でリセットされます（JST 午後 5 時前後）。
+              ※ 数時間後に再度ご利用いただけます。
             </p>
           </div>
           <button
