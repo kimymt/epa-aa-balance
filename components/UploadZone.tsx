@@ -280,7 +280,7 @@ export function UploadZone({
                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2
                           ${
                             selected
-                              ? "bg-emerald-600 text-white shadow-sm"
+                              ? "bg-brand text-white shadow-sm"
                               : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                           }
                         `}
