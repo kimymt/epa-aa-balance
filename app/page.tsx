@@ -66,10 +66,15 @@ export default function Home() {
       </header>
 
       {/* v0.4.8: オンボーディングカード (初回展開・以降折りたたみ、localStorage 管理)。
-          結果ページでは表示しない (情報過多になるため、idle/loading/error 時のみ)。 */}
+          結果ページでは表示しない (情報過多になるため、idle/loading/error 時のみ)。
+          F-017 (v0.8.9): files が staged されたか idle 以外の state に入った時点で
+          forceCollapsed=true を渡し、card 自身が collapsed mode に切替 + seen を
+          localStorage に記録する (= 次回訪問でも閉じたまま)。 */}
       {state.kind !== "result" && (
         <div className="mb-4">
-          <OnboardingCard />
+          <OnboardingCard
+            forceCollapsed={files.length > 0 || state.kind !== "idle"}
+          />
         </div>
       )}
 
@@ -79,7 +84,11 @@ export default function Home() {
           mealTypes={mealTypes}
           onFilesChange={setFiles}
           onMealTypesChange={setMealTypes}
-          disabled={state.kind === "loading"}
+          /* F-020 (v0.8.9): loading + error 中は drop zone / meal-type pill /
+             X ボタンを全部 disabled に。元は loading だけだったが、error 表示中も
+             pills と削除ボタンが full active のままで「いま何ができるのか」が
+             不明瞭だった (有効なアクションは「最初からやり直す」のみ)。 */
+          disabled={state.kind !== "idle"}
         />
       )}
 

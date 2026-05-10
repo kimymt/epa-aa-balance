@@ -253,7 +253,11 @@ export function UploadZone({
                 <button
                   type="button"
                   onClick={() => removeFile(index)}
-                  className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 dark:hover:bg-rose-950/30 dark:hover:text-rose-400"
+                  /* F-020 (v0.8.9): loading/error 中は X (削除) も無効化。
+                     ファイル一覧を改変できないようにし、有効アクション
+                     (最初からやり直す / 完了待ち) を曖昧にしない。 */
+                  disabled={isDisabled}
+                  className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-400 dark:hover:bg-rose-950/30 dark:hover:text-rose-400"
                   aria-label={`「${file.name}」を選択から削除`}
                 >
                   ✕
@@ -274,14 +278,20 @@ export function UploadZone({
                         type="button"
                         role="radio"
                         aria-checked={selected}
+                        /* F-020 (v0.8.9): loading/error 中は pill 全体を disabled。
+                           selected pill は brand emerald を維持しつつ opacity-60 で
+                           「選択は固定、変更不可」を視覚化。unselected pill は
+                           opacity-50 + cursor-not-allowed で完全に押せない印象に。 */
+                        disabled={isDisabled}
                         onClick={() => updateMealType(index, type.value)}
                         className={`
                           flex-1 min-h-[44px] py-2.5 px-3 rounded-lg text-sm font-medium transition
                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2
+                          disabled:cursor-not-allowed
                           ${
                             selected
-                              ? "bg-brand text-white shadow-sm"
-                              : "border border-slate-300 bg-white text-slate-800 hover:border-emerald-400 hover:bg-emerald-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/30"
+                              ? "bg-brand text-white shadow-sm disabled:opacity-60"
+                              : "border border-slate-300 bg-white text-slate-800 hover:border-emerald-400 hover:bg-emerald-50 disabled:opacity-50 disabled:hover:border-slate-300 disabled:hover:bg-white dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/30 dark:disabled:hover:border-slate-600 dark:disabled:hover:bg-slate-900"
                           }
                         `}
                       >
