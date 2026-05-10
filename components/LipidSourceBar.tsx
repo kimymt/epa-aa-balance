@@ -47,8 +47,14 @@ export function LipidSourceBar({ epaMg, dhaMg, aaMg }: Props) {
         ))}
       </div>
 
-      {/* 凡例と mg 量 */}
-      <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-xs sm:text-sm">
+      {/* 凡例と mg 量
+          F-024 (v0.8.7): grid-cols-3 → flex-col stack。
+          per-meal カードは max-w-3xl + lg:grid-cols-3 の中で ~240px 幅まで
+          縮むため、3-column 凡例は 1 セル ~70px しか取れず
+          「EPA 85mgDHA 142mg...」と label が密着して読めなくなっていた。
+          縦積みで常に full-width 行にすることで container 幅に依存しない
+          可読性を確保する (情報量は同じ、占有高さが +24px 程度増加)。 */}
+      <div className="flex flex-col gap-1.5 text-xs sm:text-sm">
         {segments.map((s) => (
           <div key={s.key} className="flex items-center gap-2">
             <span className={`inline-block h-3 w-3 rounded-sm ${s.color}`} />
