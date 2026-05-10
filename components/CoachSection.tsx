@@ -101,7 +101,7 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
     setLoadingStage(0);
     const id = setInterval(() => {
       setLoadingStage((s) => Math.min(s + 1, LOADING_STAGES.length - 1));
-    }, 5000);
+    }, 3000);
     return () => clearInterval(id);
   }, [state.kind]);
 
