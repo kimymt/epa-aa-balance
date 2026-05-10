@@ -281,7 +281,7 @@ export function UploadZone({
                           ${
                             selected
                               ? "bg-brand text-white shadow-sm"
-                              : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                              : "border border-slate-300 bg-white text-slate-800 hover:border-emerald-400 hover:bg-emerald-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/30"
                           }
                         `}
                       >
