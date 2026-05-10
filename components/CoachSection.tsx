@@ -8,7 +8,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { RecipeCard } from "./RecipeCard";
 import {
   CHIP_LABELS,
@@ -80,8 +80,19 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
   const [freeText, setFreeText] = useState("");
   // v0.8.0: 進捗メッセージのインデックス。loading 中だけ ~5 秒ごとに進む。
   const [loadingStage, setLoadingStage] = useState(0);
+  // F-040 (v0.8.11): 進行中の fetch を持っておき、新規 fetch 開始時に abort。
+  // chip A 連打 / chip → freetext などで複数の stream が重なると、後続の
+  // setState 内で「現在の loading state」をチェックしているはずが、A の
+  // stream events が B の partialRecipes を mutate して recipe が混ざる
+  // race を防ぐ。component unmount 時にも abort して memory leak を防ぐ。
+  const activeAbortRef = useRef<AbortController | null>(null);
 
-  // loading に入ったら 0 にリセット、5 秒ごとに次のメッセージへ (最後で停止)
+  // loading に入ったら 0 にリセット、3 秒ごとに次のメッセージへ (最後で停止)。
+  // F-035 (v0.8.11): 旧 5 秒間隔だと「6〜10 秒」の promise 範囲内で stage 1
+  // までしか見えず、4 段階の rotation が事実上 dead code になっていた。
+  // 3 秒間隔にして 12 秒で全 4 stage を消化、promise 上限の「3 件揃うまで
+  // 15〜25 秒」の範囲内に収まる。実 perf がもっと速い場合 (sub-second) は
+  // どちらにせよ stage 0 しか見えないが、それは harm では無い。
   useEffect(() => {
     if (state.kind !== "loading") {
       setLoadingStage(0);
@@ -111,13 +122,27 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
   async function fetchRecipes(refinement?: CoachRequest["refinement"]) {
     const activeChip =
       refinement?.type === "chip" ? (refinement.value as ChipKey) : null;
+
+    // F-040 (v0.8.11): 進行中の fetch があれば abort し、新しい AbortController
+    // を作って ref に保持。abort された fetch は AbortError を throw し、catch
+    // 経由でこの関数を抜ける (= setState には到達しない)。abort は
+    // ignoreAbort フラグで識別する。
+    activeAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    activeAbortRef.current = ctrl;
+
     setState({ kind: "loading", partialRecipes: [], activeChip });
+
+    // F-038 (v0.8.11): catch ブロックからも recipe 救済できるように
+    // try の外側で宣言。stream の各 event handler はこの配列を mutate する。
+    const collected: Recipe[] = [];
 
     try {
       const res = await fetch("/api/coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ aggregate, recentFoods, refinement, target }),
+        signal: ctrl.signal,
       });
 
       // v0.8.0: ストリーム開始前のエラー (rate limit / validation) は従来通り JSON。
@@ -147,7 +172,6 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-      const collected: Recipe[] = [];
       let retried = false;
       // ストリーム内エラー event の最終遷移先。closure 内代入を TS が
       // narrowing するのを避けるため、object 経由で参照する (ref-style wrapper)。
@@ -158,6 +182,10 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
       const endRef: { current: StreamEnd } = { current: { kind: "ok" } };
 
       const handleEvent = (event: StreamEvent) => {
+        // F-040: abort 済 fetch の event は state を触らない。
+        // (新 fetch 側で別の loading state が立ち上がっているため、ここで
+        //  partialRecipes を mutate すると recipe が混ざる)
+        if (ctrl.signal.aborted) return;
         if (event.type === "recipe") {
           collected[event.index] = event.recipe;
           // partial を sparse array → dense array に変換して setState
@@ -196,32 +224,95 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
       // 最終 buffer も flush (改行で締めてないケース対策)
       if (buffer.trim()) processLine(buffer);
 
+      // F-040: stream 完了後に abort 検知したら setState せず終了。
+      // (新 fetch がすでに次の loading state を立てている)
+      if (ctrl.signal.aborted) return;
+
       // ストリーム完結後の最終遷移
+      // F-038 (v0.8.11): error/quota が来ても部分到着 recipe を捨てない。
+      // 旧: 1〜2 件届いた途中でエラー → 全 recipe を破棄して error 画面へ。
+      //     ユーザーは見ていた recipe を失い、quota も 1 つ無駄になる。
+      // 新: partial が >0 件あれば result に降格遷移し、retried=true を
+      //     立てて「(N 件のうち K 件のみ取得)」表記を出す (header の
+      //     state.retried 分岐を再利用)。0 件のときだけ従来通り error 画面。
       const finalEnd = endRef.current;
+      const recoveredRecipes = collected.filter((r): r is Recipe => Boolean(r));
+
       if (finalEnd.kind === "quota_exceeded") {
+        if (recoveredRecipes.length > 0) {
+          setState({
+            kind: "result",
+            recipes: recoveredRecipes,
+            activeChip,
+            retried: true,
+          });
+          return;
+        }
         setState({ kind: "quota_exceeded" });
         return;
       }
       if (finalEnd.kind === "error") {
+        if (recoveredRecipes.length > 0) {
+          setState({
+            kind: "result",
+            recipes: recoveredRecipes,
+            activeChip,
+            retried: true,
+          });
+          return;
+        }
         setState({ kind: "error", message: finalEnd.message });
         return;
       }
-      const finalRecipes = collected.filter((r): r is Recipe => Boolean(r));
-      if (finalRecipes.length === 0) {
+      if (recoveredRecipes.length === 0) {
         setState({
           kind: "error",
           message: "レシピを生成できませんでした。再度お試しください。",
         });
         return;
       }
-      setState({ kind: "result", recipes: finalRecipes, activeChip, retried });
+      setState({ kind: "result", recipes: recoveredRecipes, activeChip, retried });
     } catch (err) {
+      // F-040: AbortError は「次の fetch に置き換えられた」サインなので
+      // setState は完全に抑制 (新 fetch 側がすでに loading state を立てている)。
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return;
+      }
+      if (ctrl.signal.aborted) {
+        return;
+      }
+      // F-038: catch 経由 (ネットワーク断、parse 失敗等) でも recipe 救済。
+      // collected は closure 内で生きている。
+      const recoveredRecipes = collected.filter((r): r is Recipe => Boolean(r));
+      if (recoveredRecipes.length > 0) {
+        setState({
+          kind: "result",
+          recipes: recoveredRecipes,
+          activeChip,
+          retried: true,
+        });
+        return;
+      }
       setState({
         kind: "error",
         message: err instanceof Error ? err.message : "通信エラー",
       });
+    } finally {
+      // この controller がまだ ref に座っているなら掃除。
+      // (新しい fetch が始まっていれば既に上書きされている)
+      if (activeAbortRef.current === ctrl) {
+        activeAbortRef.current = null;
+      }
     }
   }
+
+  // F-040: unmount で進行中の fetch を abort してメモリリーク防止。
+  useEffect(() => {
+    return () => {
+      activeAbortRef.current?.abort();
+      activeAbortRef.current = null;
+    };
+  }, []);
 
   function handleChipClick(chip: ChipKey) {
     void fetchRecipes({ type: "chip", value: chip });
