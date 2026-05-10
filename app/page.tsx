@@ -86,7 +86,7 @@ export default function Home() {
       {state.kind === "idle" && canAnalyze && (
         <button
           onClick={analyze}
-          className="mt-6 w-full rounded-xl bg-emerald-600 px-6 py-4 text-base font-semibold text-white shadow-lg shadow-emerald-600/30 transition hover:bg-emerald-700 active:scale-[0.99]"
+          className="mt-6 w-full rounded-xl bg-brand px-6 py-4 text-base font-semibold text-white shadow-lg shadow-brand/30 transition hover:bg-brand-hover active:scale-[0.99]"
         >
           {files.length === 1 ? "写真を解析する" : `${files.length}枚を解析する`}
         </button>

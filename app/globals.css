@@ -10,12 +10,31 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* F-015: brand token unifies the analyze CTA and the selected meal-type pill.
+     Equal to Tailwind's emerald-600 / emerald-700 — change in one place from now on. */
+  --color-brand: #059669;
+  --color-brand-hover: #047857;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+  }
+}
+
+/* F-008: respect prefers-reduced-motion. Reduces animation/transition durations
+   to ~instant for users who opt out of motion (vestibular sensitivity, focus, etc.).
+   Spinners visually stop, page transitions snap — both are intended behavior. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
