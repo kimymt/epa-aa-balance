@@ -2,6 +2,48 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.9] - 2026-05-10 — design-review Tier-3 information design (F-029 / F-020 / F-017)
+
+v0.8.8 直後の audit Tier-3: 情報設計 / interaction state の整理。機能の追加なし、
+表示優先順位と無効化ロジックの調整のみ。
+
+### Changed
+- **F-029 (MEDIUM)**: 結果ページの低カバレッジ警告で 信頼度 % を主見出しに昇格。
+  旧: 「⚠ 4 品目の脂肪酸データが不足しているため計算から除外されています
+  （信頼度 38%）」と最後に括弧書きで埋もれていた。新: 「⚠ 信頼度 38% — 低」を
+  太字 lead、除外品目数は小さい caption に降格、< 50% のときは「参考値として
+  お使いください」を追記。段階ラベルは <50%=低 / 50-74%=中 / 75-99%=高。
+- **F-020 (MEDIUM)**: loading / error 中に meal-type pill (朝食/昼食/夕食) と
+  X (ファイル削除) ボタンを disabled に。元は loading のみ無効化、しかも pill /
+  X は常に full active だった。`page.tsx` の `disabled` prop を `state.kind ===
+  "loading"` → `state.kind !== "idle"` に拡張し、`UploadZone` 内で
+  meal-type pill (`disabled` + selected は opacity-60 / unselected は opacity-50
+  + cursor-not-allowed + hover reset) と X ボタン (opacity-40 + cursor-not-allowed)
+  にも反映。error 時の有効アクションが「最初からやり直す」だけと視覚的に明確に。
+- **F-017 (MEDIUM)**: OnboardingCard が「ユーザーが engage 済」を検知して自動
+  collapse + localStorage に seen 記録するように。旧仕様は「わかった、写真を
+  アップロード →」ボタンを明示クリックしたときのみ collapse + 記録だったため、
+  upload zone へ直接 drop した多数のユーザーはセッション中もリピート訪問でも
+  カードが full size のまま (mobile viewport の 40-50% 占有)。`page.tsx` が
+  `forceCollapsed={files.length > 0 || state.kind !== "idle"}` を渡し、card は
+  collapsed mode (1 行ボタン) に切替 + 次回も閉じたまま開く。forceCollapsed 中は
+  再展開ボタンを disabled にし「（後で確認できます）」表記。
+
+### Notes
+- Vercel preview 検証ポイント:
+  - 信頼度の低い写真 (例: 食材の一部がデータ不足) をアップロード → 結果ページで
+    「⚠ 信頼度 N% — 低/中/高」が太字 lead で出ること
+  - 解析中に meal-type pill / X が押せず opacity 落ちで表示されること
+  - error 状態でも同様に pill / X が無効化されること
+  - 初回訪問でカード展開 → ファイルを upload zone に drop した時点でカードが
+    1 行に collapse すること
+  - リロード後もカードが collapsed のまま開くこと
+  - 「わかった、写真をアップロード →」ボタンの従来挙動も維持されていること
+- DietPatternComparison + 全 test (290 pass / 1 skip) 影響なし。
+- react-hooks/set-state-in-effect の anti-pattern を避けるため、F-017 の collapse
+  判定は render 中に derive (`isCollapsed = forceCollapsed || !expanded`)、
+  localStorage 書き込みのみ useEffect に残している。
+
 ## [0.8.8] - 2026-05-10 — design-review Tier-2 brand consistency sweep (F-022 / F-027 / F-028 / F-025)
 
 v0.8.7 直後の audit Tier-2: brand consistency / AI Slop pattern 整理。
