@@ -79,7 +79,11 @@ export default function Home() {
           mealTypes={mealTypes}
           onFilesChange={setFiles}
           onMealTypesChange={setMealTypes}
-          disabled={state.kind === "loading"}
+          /* F-020 (v0.8.9): loading + error 中は drop zone / meal-type pill /
+             X ボタンを全部 disabled に。元は loading だけだったが、error 表示中も
+             pills と削除ボタンが full active のままで「いま何ができるのか」が
+             不明瞭だった (有効なアクションは「最初からやり直す」のみ)。 */
+          disabled={state.kind !== "idle"}
         />
       )}
 
