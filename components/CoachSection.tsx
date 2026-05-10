@@ -53,7 +53,12 @@ type StreamEvent =
   | { type: "error"; code?: string; message: string };
 
 /** v0.8.0: skeleton カード。v0.7.0 RecipeCard の折りたたみ状態とほぼ同じ寸法で
- *  shimmer (animate-pulse) する。recipes が届いていないスロット用。 */
+ *  shimmer (animate-pulse) する。recipes が届いていないスロット用。
+ *
+ *  F-036 (v0.8.11): 末尾の placeholder を「expand button っぽい shape」
+ *  (border + 角丸 + paddings) に変更。以前は flat bar だったので、本物の
+ *  RecipeCard がポップインした瞬間に「あ、これ tappable だったのか」と
+ *  気付くまで一瞬遅れていた。affordance を skeleton 段階で予告する。 */
 function SkeletonRecipeCard() {
   return (
     <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 p-4 animate-pulse">
@@ -63,7 +68,7 @@ function SkeletonRecipeCard() {
       </div>
       <div className="h-3 w-full bg-slate-200 dark:bg-slate-700 rounded mb-1.5" />
       <div className="h-3 w-4/5 bg-slate-200 dark:bg-slate-700 rounded mb-3" />
-      <div className="h-3 w-1/3 bg-slate-200 dark:bg-slate-700 rounded ml-auto" />
+      <div className="ml-auto h-6 w-40 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80" />
     </div>
   );
 }
