@@ -94,7 +94,7 @@ export default function Home() {
 
       {state.kind === "loading" && (
         <div className="mt-8 flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-600" />
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-brand" />
           <div className="text-sm text-slate-600 dark:text-slate-400">解析中...</div>
           <div className="text-xs text-slate-400 dark:text-slate-600">
             {files.length}枚の写真の食材を識別しています（最長45秒）
