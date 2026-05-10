@@ -177,11 +177,27 @@ function MealResultCard({
             <p>
               <strong>AA（アラキドン酸）:</strong> {result.aaMg.toFixed(0)} mg（肉・卵・乳由来）
             </p>
-            {result.lipidRatio !== null && (
-              <p className="pt-1 border-t border-slate-200 dark:border-slate-700 mt-1">
-                <strong>(EPA+DHA) / AA 比:</strong> {result.lipidRatio.toFixed(2)}
-              </p>
-            )}
+            {result.lipidRatio !== null && (() => {
+              // F-030 (v0.8.10): 「比: 2.53」だけ素の数値を出していたが、
+              // omega-3 / omega-6 の比は本アプリの中心指標で、解釈が無いと
+              // 「2.53 が良いのか悪いのか」をユーザーが判断できない。
+              // ratio = (EPA+DHA) / AA。以下の解釈をinline で添える:
+              //   ratio >= 1: 「魚由来が肉由来の約 N 倍」
+              //   ratio <  1: 「肉由来が魚由来の約 1/ratio 倍」
+              const r = result.lipidRatio;
+              const gloss =
+                r >= 1
+                  ? `魚由来が肉由来の約 ${r.toFixed(1)} 倍`
+                  : `肉由来が魚由来の約 ${(1 / r).toFixed(1)} 倍`;
+              return (
+                <p className="pt-1 border-t border-slate-200 dark:border-slate-700 mt-1">
+                  <strong>(EPA+DHA) / AA 比:</strong> {r.toFixed(2)}
+                  <span className="ml-2 text-slate-500 dark:text-slate-400">
+                    — {gloss}
+                  </span>
+                </p>
+              );
+            })()}
           </div>
 
           {/* Feedback Section */}
