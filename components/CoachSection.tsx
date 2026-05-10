@@ -8,7 +8,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { RecipeCard } from "./RecipeCard";
 import {
   CHIP_LABELS,
@@ -53,7 +53,12 @@ type StreamEvent =
   | { type: "error"; code?: string; message: string };
 
 /** v0.8.0: skeleton カード。v0.7.0 RecipeCard の折りたたみ状態とほぼ同じ寸法で
- *  shimmer (animate-pulse) する。recipes が届いていないスロット用。 */
+ *  shimmer (animate-pulse) する。recipes が届いていないスロット用。
+ *
+ *  F-036 (v0.8.11): 末尾の placeholder を「expand button っぽい shape」
+ *  (border + 角丸 + paddings) に変更。以前は flat bar だったので、本物の
+ *  RecipeCard がポップインした瞬間に「あ、これ tappable だったのか」と
+ *  気付くまで一瞬遅れていた。affordance を skeleton 段階で予告する。 */
 function SkeletonRecipeCard() {
   return (
     <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 p-4 animate-pulse">
@@ -63,7 +68,7 @@ function SkeletonRecipeCard() {
       </div>
       <div className="h-3 w-full bg-slate-200 dark:bg-slate-700 rounded mb-1.5" />
       <div className="h-3 w-4/5 bg-slate-200 dark:bg-slate-700 rounded mb-3" />
-      <div className="h-3 w-1/3 bg-slate-200 dark:bg-slate-700 rounded ml-auto" />
+      <div className="ml-auto h-6 w-40 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80" />
     </div>
   );
 }
@@ -80,8 +85,19 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
   const [freeText, setFreeText] = useState("");
   // v0.8.0: 進捗メッセージのインデックス。loading 中だけ ~5 秒ごとに進む。
   const [loadingStage, setLoadingStage] = useState(0);
+  // F-040 (v0.8.11): 進行中の fetch を持っておき、新規 fetch 開始時に abort。
+  // chip A 連打 / chip → freetext などで複数の stream が重なると、後続の
+  // setState 内で「現在の loading state」をチェックしているはずが、A の
+  // stream events が B の partialRecipes を mutate して recipe が混ざる
+  // race を防ぐ。component unmount 時にも abort して memory leak を防ぐ。
+  const activeAbortRef = useRef<AbortController | null>(null);
 
-  // loading に入ったら 0 にリセット、5 秒ごとに次のメッセージへ (最後で停止)
+  // loading に入ったら 0 にリセット、3 秒ごとに次のメッセージへ (最後で停止)。
+  // F-035 (v0.8.11): 旧 5 秒間隔だと「6〜10 秒」の promise 範囲内で stage 1
+  // までしか見えず、4 段階の rotation が事実上 dead code になっていた。
+  // 3 秒間隔にして 12 秒で全 4 stage を消化、promise 上限の「3 件揃うまで
+  // 15〜25 秒」の範囲内に収まる。実 perf がもっと速い場合 (sub-second) は
+  // どちらにせよ stage 0 しか見えないが、それは harm では無い。
   useEffect(() => {
     if (state.kind !== "loading") {
       setLoadingStage(0);
@@ -90,7 +106,7 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
     setLoadingStage(0);
     const id = setInterval(() => {
       setLoadingStage((s) => Math.min(s + 1, LOADING_STAGES.length - 1));
-    }, 5000);
+    }, 3000);
     return () => clearInterval(id);
   }, [state.kind]);
 
@@ -111,13 +127,27 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
   async function fetchRecipes(refinement?: CoachRequest["refinement"]) {
     const activeChip =
       refinement?.type === "chip" ? (refinement.value as ChipKey) : null;
+
+    // F-040 (v0.8.11): 進行中の fetch があれば abort し、新しい AbortController
+    // を作って ref に保持。abort された fetch は AbortError を throw し、catch
+    // 経由でこの関数を抜ける (= setState には到達しない)。abort は
+    // ignoreAbort フラグで識別する。
+    activeAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    activeAbortRef.current = ctrl;
+
     setState({ kind: "loading", partialRecipes: [], activeChip });
+
+    // F-038 (v0.8.11): catch ブロックからも recipe 救済できるように
+    // try の外側で宣言。stream の各 event handler はこの配列を mutate する。
+    const collected: Recipe[] = [];
 
     try {
       const res = await fetch("/api/coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ aggregate, recentFoods, refinement, target }),
+        signal: ctrl.signal,
       });
 
       // v0.8.0: ストリーム開始前のエラー (rate limit / validation) は従来通り JSON。
@@ -147,7 +177,6 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-      const collected: Recipe[] = [];
       let retried = false;
       // ストリーム内エラー event の最終遷移先。closure 内代入を TS が
       // narrowing するのを避けるため、object 経由で参照する (ref-style wrapper)。
@@ -158,6 +187,10 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
       const endRef: { current: StreamEnd } = { current: { kind: "ok" } };
 
       const handleEvent = (event: StreamEvent) => {
+        // F-040: abort 済 fetch の event は state を触らない。
+        // (新 fetch 側で別の loading state が立ち上がっているため、ここで
+        //  partialRecipes を mutate すると recipe が混ざる)
+        if (ctrl.signal.aborted) return;
         if (event.type === "recipe") {
           collected[event.index] = event.recipe;
           // partial を sparse array → dense array に変換して setState
@@ -196,32 +229,95 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
       // 最終 buffer も flush (改行で締めてないケース対策)
       if (buffer.trim()) processLine(buffer);
 
+      // F-040: stream 完了後に abort 検知したら setState せず終了。
+      // (新 fetch がすでに次の loading state を立てている)
+      if (ctrl.signal.aborted) return;
+
       // ストリーム完結後の最終遷移
+      // F-038 (v0.8.11): error/quota が来ても部分到着 recipe を捨てない。
+      // 旧: 1〜2 件届いた途中でエラー → 全 recipe を破棄して error 画面へ。
+      //     ユーザーは見ていた recipe を失い、quota も 1 つ無駄になる。
+      // 新: partial が >0 件あれば result に降格遷移し、retried=true を
+      //     立てて「(N 件のうち K 件のみ取得)」表記を出す (header の
+      //     state.retried 分岐を再利用)。0 件のときだけ従来通り error 画面。
       const finalEnd = endRef.current;
+      const recoveredRecipes = collected.filter((r): r is Recipe => Boolean(r));
+
       if (finalEnd.kind === "quota_exceeded") {
+        if (recoveredRecipes.length > 0) {
+          setState({
+            kind: "result",
+            recipes: recoveredRecipes,
+            activeChip,
+            retried: true,
+          });
+          return;
+        }
         setState({ kind: "quota_exceeded" });
         return;
       }
       if (finalEnd.kind === "error") {
+        if (recoveredRecipes.length > 0) {
+          setState({
+            kind: "result",
+            recipes: recoveredRecipes,
+            activeChip,
+            retried: true,
+          });
+          return;
+        }
         setState({ kind: "error", message: finalEnd.message });
         return;
       }
-      const finalRecipes = collected.filter((r): r is Recipe => Boolean(r));
-      if (finalRecipes.length === 0) {
+      if (recoveredRecipes.length === 0) {
         setState({
           kind: "error",
           message: "レシピを生成できませんでした。再度お試しください。",
         });
         return;
       }
-      setState({ kind: "result", recipes: finalRecipes, activeChip, retried });
+      setState({ kind: "result", recipes: recoveredRecipes, activeChip, retried });
     } catch (err) {
+      // F-040: AbortError は「次の fetch に置き換えられた」サインなので
+      // setState は完全に抑制 (新 fetch 側がすでに loading state を立てている)。
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return;
+      }
+      if (ctrl.signal.aborted) {
+        return;
+      }
+      // F-038: catch 経由 (ネットワーク断、parse 失敗等) でも recipe 救済。
+      // collected は closure 内で生きている。
+      const recoveredRecipes = collected.filter((r): r is Recipe => Boolean(r));
+      if (recoveredRecipes.length > 0) {
+        setState({
+          kind: "result",
+          recipes: recoveredRecipes,
+          activeChip,
+          retried: true,
+        });
+        return;
+      }
       setState({
         kind: "error",
         message: err instanceof Error ? err.message : "通信エラー",
       });
+    } finally {
+      // この controller がまだ ref に座っているなら掃除。
+      // (新しい fetch が始まっていれば既に上書きされている)
+      if (activeAbortRef.current === ctrl) {
+        activeAbortRef.current = null;
+      }
     }
   }
+
+  // F-040: unmount で進行中の fetch を abort してメモリリーク防止。
+  useEffect(() => {
+    return () => {
+      activeAbortRef.current?.abort();
+      activeAbortRef.current = null;
+    };
+  }, []);
 
   function handleChipClick(chip: ChipKey) {
     void fetchRecipes({ type: "chip", value: chip });
@@ -281,37 +377,59 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
         </div>
       )}
 
-      {state.kind === "loading" && (
-        <div>
-          <div className="text-base sm:text-lg text-slate-700 dark:text-slate-200 mb-1 flex items-center gap-2">
-            <span className="text-2xl">🍳</span>
-            <span className="font-medium">AI からの提案</span>
-          </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
-            {state.activeChip && (
-              <span>✓ 「{CHIP_LABELS[state.activeChip]}」で再提案中</span>
+      {state.kind === "loading" && (() => {
+        // F-045 (v0.8.11): partial が満杯 (3 件) になっているのに complete
+        // event 待ちで spinner が回り続ける期間がある。視覚的には全 recipe が
+        // 出揃って見えるのに spinner だけ残っている mismatch。
+        // → partial=MAX なら spinner + caption を抑制し、result-state に近い
+        //   見た目に先行収束させる (実 state は complete を待ってから flip)。
+        const allArrived = state.partialRecipes.length >= 3;
+        // F-037 (v0.8.11): "1 / 3 件 届きました" は「1 件到着」の過去形 +
+        // active spinner で語形 mismatch だった。"完了 — 次を生成中..." に
+        // 揃えて「完了した分 + 進行中」を 1 行で表現。
+        const progressText =
+          state.partialRecipes.length === 0
+            ? LOADING_STAGES[loadingStage]
+            : `${state.partialRecipes.length} / 3 件 完了 — 次を生成中…`;
+        return (
+          <div>
+            <div className="text-base sm:text-lg text-slate-700 dark:text-slate-200 mb-1 flex items-center gap-2">
+              <span className="text-2xl">🍳</span>
+              <span className="font-medium">AI からの提案</span>
+            </div>
+            {!allArrived && (
+              <div className="text-xs text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
+                {state.activeChip && (
+                  <span>✓ 「{CHIP_LABELS[state.activeChip]}」で再提案中</span>
+                )}
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-block w-3 h-3 border-2 border-slate-300 dark:border-slate-600 border-t-slate-600 dark:border-t-slate-300 rounded-full animate-spin" />
+                  {progressText}
+                </span>
+              </div>
             )}
-            <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 border-2 border-slate-300 dark:border-slate-600 border-t-slate-600 dark:border-t-slate-300 rounded-full animate-spin" />
-              {state.partialRecipes.length === 0
-                ? LOADING_STAGES[loadingStage]
-                : `${state.partialRecipes.length} / 3 件 届きました`}
-            </span>
-          </div>
-          {/* v0.8.0: 届いた recipe は実カードで、未到着は skeleton で表示。
-              streaming で先頭から順に届くので [...partial, ...skeletons] の構成。 */}
-          <div className="space-y-3">
-            {state.partialRecipes.map((r, i) => (
-              <RecipeCard key={`partial-${i}`} recipe={r} />
-            ))}
-            {Array.from({ length: Math.max(0, 3 - state.partialRecipes.length) }).map(
-              (_, i) => (
-                <SkeletonRecipeCard key={`skel-${i}`} />
-              )
+            {allArrived && (
+              <div className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                {state.activeChip && (
+                  <span>✓ 「{CHIP_LABELS[state.activeChip]}」で再提案</span>
+                )}
+              </div>
             )}
+            {/* v0.8.0: 届いた recipe は実カードで、未到着は skeleton で表示。
+                streaming で先頭から順に届くので [...partial, ...skeletons] の構成。 */}
+            <div className="space-y-3">
+              {state.partialRecipes.map((r, i) => (
+                <RecipeCard key={`partial-${i}`} recipe={r} />
+              ))}
+              {Array.from({ length: Math.max(0, 3 - state.partialRecipes.length) }).map(
+                (_, i) => (
+                  <SkeletonRecipeCard key={`skel-${i}`} />
+                )
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {state.kind === "result" && (
         <div>
@@ -364,8 +482,11 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
                 );
               })}
             </div>
+            {/* F-044 (v0.8.11): 旧「それ以外で：」(全角コロン) は文の途中で
+                切れたような印象で、chip と input の関係性が即座に読めなかった。
+                「自由に書く」のラベル単体に変更。 */}
             <div className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-              それ以外で：
+              自由に書く
             </div>
             <div className="flex gap-2">
               <input
@@ -433,8 +554,11 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
             <p className="text-sm text-amber-900 dark:text-amber-200 leading-relaxed mb-2">
               Google Gemini API の本日の無料枠に到達しました。アプリ側の問題ではないため、明日まで待つか、しばらく時間を置いてから再度お試しください。
             </p>
+            {/* F-041 (v0.8.11): 旧文言「JST 午後 5 時前後」は GCP 側の
+                billing リセット時刻 (= UTC 0:00) で、ユーザーには本来不要な
+                実装詳細だった。タイムゾーン非依存の「数時間後」表現に変更。 */}
             <p className="text-xs text-amber-800/80 dark:text-amber-300/80">
-              ※ 無料枠は日次でリセットされます（JST 午後 5 時前後）。
+              ※ 数時間後に再度ご利用いただけます。
             </p>
           </div>
           <button
