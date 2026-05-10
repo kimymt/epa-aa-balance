@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.8] - 2026-05-10 — design-review Tier-2 brand consistency sweep (F-022 / F-027 / F-028 / F-025)
+
+v0.8.7 直後の audit Tier-2: brand consistency / AI Slop pattern 整理。
+機能変更なし、CSS と markup の調整のみ。
+
+### Changed
+- **F-022 (POLISH)**: 解析中のスピナー (`app/page.tsx`, `components/UploadZone.tsx`)
+  を `border-t-emerald-600` → `border-t-brand` に変更。F-015 で導入した
+  `--color-brand` トークンに spinner も合流させ、brand 色変更時の drift を予防。
+- **F-027 (MEDIUM)**: `CoachSection` の primary CTA 2 件 (「AI に提案してもらう」
+  / freetext 送信) を `bg-slate-900` (黒ピル) → `bg-brand` に変更。「写真を
+  解析する」と同じ emerald で primary CTA を統一。アプリ唯一の黒ピルが
+  Vercel/Linear copy-paste の印象を残していた問題を解消。フィルタチップは
+  filter 用途のため slate inversion を維持。
+- **F-028 (MEDIUM)**: 集計スコアパネル (N≥2 時に表示) で「全部 text-center」を
+  廃止。hero スタンプ (headline + 72% + 副題 + signal chip) は中央寄せのまま、
+  下部のデータ系を border-t で分離して `<dl>` の 3-column grid (EPA / DHA / AA
+  合計) に再構成。data lines を左寄せ + tabular-nums で scanability を回復。
+  AI Slop blacklist item 4 (centered everything) の解消。
+- **F-025 (MEDIUM)**: `DietPatternComparison` の「あなたはここ」マーカーから
+  👉 emoji と dashed border を削除。emoji as navigational element は AI Slop
+  blacklist item 7。dashed border は周囲の PatternRow (solid border) と list
+  rhythm を壊していた。代わりに solid amber-300 border + 左端の amber-400
+  accent bar + 「あなたはここ」を tag chip 化 (bg-amber-200 uppercase tracking)。
+  視覚的強調は維持したまま list rhythm を回復。
+
+### Notes
+- v0.8.7 と同じく Vercel preview で実機検証推奨:
+  - 解析中スピナーが brand emerald (`#059669`) で回ること
+  - 結果ページで「AI に提案してもらう」が brand emerald になっていること
+  - N≥2 (複数枚アップ) で集計パネルの EPA/DHA/AA 合計が 3-column grid で
+    左寄せに並ぶこと
+  - 食習慣比較リストで「あなたはここ」が dashed → solid に切り替わり、
+    👉 emoji が消え、tag chip スタイルになっていること
+- DietPatternComparison.test.tsx 8 件すべて pass (`screen.getByText(
+  "あなたはここ")` も text 内容変更なしで OK)。
+- F-015 token 統一の続編として、これで brand emerald は 「analyze CTA / 選択中
+  meal-type pill / spinner / coach CTA」の 4 surface に揃った。
+
 ## [0.8.7] - 2026-05-10 — design-review Tier-1 (F-016 / F-024 / F-023)
 
 v0.8.6 直後の `/design-review --quick` audit (production + sample meal photo)

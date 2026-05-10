@@ -265,9 +265,13 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
               </div>
             </div>
           )}
+          {/* F-027 (v0.8.8): bg-slate-900 → bg-brand。アプリの primary CTA は
+              「写真を解析する」(brand emerald) で統一されているのに、ここだけ
+              黒ピル UI で Vercel/Linear から copy-paste したような印象を残して
+              いた。同じ役割の primary CTA は同じ色でいくのが原則。 */}
           <button
             onClick={() => void fetchRecipes()}
-            className="w-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 py-3 sm:py-4 px-6 rounded-lg font-medium hover:bg-slate-800 dark:hover:bg-slate-200 active:bg-slate-950 transition"
+            className="w-full bg-brand text-white py-3 sm:py-4 px-6 rounded-lg font-medium shadow-lg shadow-brand/30 hover:bg-brand-hover active:scale-[0.99] transition"
           >
             AI に提案してもらう
           </button>
@@ -376,7 +380,7 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
               <button
                 onClick={handleFreeTextSubmit}
                 disabled={!freeText.trim()}
-                className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-5 py-3 rounded-lg font-medium hover:bg-slate-800 dark:hover:bg-slate-200 disabled:opacity-50 transition"
+                className="bg-brand text-white px-5 py-3 rounded-lg font-medium hover:bg-brand-hover disabled:opacity-50 transition"
               >
                 送信
               </button>

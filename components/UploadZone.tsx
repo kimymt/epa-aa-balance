@@ -197,7 +197,7 @@ export function UploadZone({
           />
           {processing ? (
             <div className="flex flex-col items-center gap-3 text-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-600" />
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-brand" />
               <div className="text-sm text-slate-600 dark:text-slate-400">
                 画像を処理中...
               </div>

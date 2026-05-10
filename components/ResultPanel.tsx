@@ -265,6 +265,11 @@ export function ResultPanel({
       {/* Aggregate Stats - Primary (hidden when N=1; see F-023) */}
       {showAggregatePanel && (
       <div className="rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/30 p-6 sm:p-8 border border-emerald-200 dark:border-emerald-800">
+        {/* F-028 (v0.8.8): 「全部 text-center」をやめ、hero スタンプ
+            (見出し + 72% + 副題 + signal chip) は中央寄せで残しつつ、
+            データ系の行 (totalMeals メッセージ + EPA/DHA/AA 合計) は
+            左寄せ + 3-column grid に再構成。AI Slop blacklist item 4
+            (centered everything) の解消。 */}
         <div className="text-center">
           <div className="text-sm font-medium text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
             {successfulMeals.length}食事の平均
@@ -286,15 +291,43 @@ export function ResultPanel({
               : aggregate.signal === "red" ? "魚少なめの傾向"
               : "判定不能"}
           </div>
-          <p className="mt-4 text-sm text-emerald-700 dark:text-emerald-300">
+        </div>
+
+        {/* データ行: 左寄せに切り替え。3-column grid で EPA / DHA / AA を
+            tabular-nums で並べる。total の文脈も border-t で区切る。 */}
+        <div className="mt-6 border-t border-emerald-200 dark:border-emerald-800/50 pt-4">
+          <p className="text-sm text-emerald-700 dark:text-emerald-300">
             {aggregate.totalMeals} 食事中 {aggregate.successfulMeals} 食事を正常に解析
             {aggregate.mealsWithData < aggregate.successfulMeals && (
               <span>（{aggregate.mealsWithData} 食事で脂質計算可能）</span>
             )}
           </p>
-          <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
-            EPA合計 {aggregate.totalEpaMg.toFixed(0)}mg ／ DHA合計 {aggregate.totalDhaMg.toFixed(0)}mg ／ AA合計 {aggregate.totalAaMg.toFixed(0)}mg
-          </p>
+          <dl className="mt-3 grid grid-cols-3 gap-4 text-xs sm:text-sm">
+            <div>
+              <dt className="font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                EPA 合計
+              </dt>
+              <dd className="mt-0.5 tabular-nums text-emerald-900 dark:text-emerald-100">
+                {aggregate.totalEpaMg.toFixed(0)} mg
+              </dd>
+            </div>
+            <div>
+              <dt className="font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                DHA 合計
+              </dt>
+              <dd className="mt-0.5 tabular-nums text-emerald-900 dark:text-emerald-100">
+                {aggregate.totalDhaMg.toFixed(0)} mg
+              </dd>
+            </div>
+            <div>
+              <dt className="font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                AA 合計
+              </dt>
+              <dd className="mt-0.5 tabular-nums text-emerald-900 dark:text-emerald-100">
+                {aggregate.totalAaMg.toFixed(0)} mg
+              </dd>
+            </div>
+          </dl>
         </div>
       </div>
       )}

@@ -207,12 +207,21 @@ function PatternRow({
 }
 
 function UserMarker({ dailyAvgMg }: { dailyAvgMg: number }) {
+  // F-025 (v0.8.8): 👉 emoji + dashed border は AI Slop pattern + list rhythm
+  // を壊していた (周囲の PatternRow は solid border)。emoji を削除、border を
+  // solid に揃え、左に bg-amber-400 の太いバーを置いて「ここ」を視覚的に強調する。
+  // tag chip 「あなたはここ」も追加して情報性を担保。row height は他と同じ。
   return (
-    <div className="my-1 flex items-center gap-3 rounded-lg border-2 border-dashed border-amber-400 bg-amber-50 px-3 py-2 dark:border-amber-500/60 dark:bg-amber-950/30">
-      <span className="text-lg" aria-hidden>👉</span>
-      <div className="flex-1">
-        <div className="text-sm font-semibold text-amber-900 dark:text-amber-100">
-          あなたはここ
+    <div className="my-1 flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-700/60 dark:bg-amber-950/30 relative">
+      <span
+        aria-hidden
+        className="absolute left-0 top-2 bottom-2 w-1 rounded-r bg-amber-400 dark:bg-amber-500"
+      />
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="inline-flex items-center rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900 dark:bg-amber-800/60 dark:text-amber-100">
+            あなたはここ
+          </span>
         </div>
       </div>
       <div className="shrink-0 text-right">
