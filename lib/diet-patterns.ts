@@ -26,6 +26,14 @@ export interface DietPattern {
   epaDhaMgPerDay: number;
   /** 1 行 caption (UI 補足説明) */
   caption: string;
+  /**
+   * F-026 (v0.8.10): 「歴史的参考値」フラグ。true のパターンは現代的に
+   * 達成可能な目標ではなく歴史的・人類学的アンカーであることを UI 側で
+   * 視覚的に明示する (PatternRow が薄め + 「歴史的参考値」chip 付き)。
+   * イヌイット 14,000 mg/日 のように他の 4 倍以上に飛び抜けた値が
+   * 「目指すべき目標」と読まれることを防ぐ。
+   */
+  historical?: boolean;
 }
 
 /**
@@ -64,6 +72,7 @@ export const DIET_PATTERNS: readonly DietPattern[] = [
     // この値はあくまで歴史的な極端値。Bang & Dyerberg 研究当時のレベル。
     caption:
       "1970 年代以前の伝統食。アザラシ・クジラの脂で 90% 以上が魚介由来。現代イヌイット食は欧米化が進み、この値は歴史的な極端値",
+    historical: true,
   },
 ] as const;
 

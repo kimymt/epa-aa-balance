@@ -132,10 +132,16 @@ export function OnboardingCard({ forceCollapsed = false }: Props) {
       </div>
 
       <div className="mt-4 flex justify-end">
+        {/* F-018 (v0.8.10): bg-sky-100 / text-sky-900 は sky-50 カードに対して
+            極めて低コントラストで、CTA ではなく派生 chip のように見えていた。
+            sky-600 + 白文字に切り替え、card 内で明確にアクション可能と読める
+            ようにする。 brand emerald は使わない:このボタンは onboarding を
+            畳むための utility で、「写真を解析する」(brand emerald) と階層が
+            違う (primary CTA とは並ばない)。 */}
         <button
           type="button"
           onClick={handleDismiss}
-          className="min-h-[44px] rounded-md bg-sky-100 px-4 py-2.5 text-sm font-medium text-sky-900 hover:bg-sky-200 active:bg-sky-300 dark:bg-sky-900/60 dark:text-sky-100 dark:hover:bg-sky-900"
+          className="min-h-[44px] rounded-md bg-sky-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-sky-700 active:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 dark:bg-sky-500 dark:hover:bg-sky-400 dark:active:bg-sky-300 dark:text-sky-950"
         >
           わかった、写真をアップロード →
         </button>

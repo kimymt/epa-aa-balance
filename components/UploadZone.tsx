@@ -179,7 +179,19 @@ export function UploadZone({
             relative flex w-full min-h-[200px] sm:min-h-[240px] cursor-pointer flex-col items-center justify-center
             rounded-2xl border-2 border-dashed p-4 sm:p-8 transition-all
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2
-            ${dragOver ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" : "border-slate-300 dark:border-slate-700"}
+            ${
+              /* F-019 (v0.8.10): 3 段階に色分け。
+                   dragOver (active drop):  emerald-500 + bg = 強い "今ここに離す"
+                   files-staged (idle):     emerald-300       = 「準備済」の弱い signal
+                   empty:                   slate-300         = 中立
+                 旧仕様は dragOver と empty の 2 値しか無く、files added 後も
+                 slate-300 のままで「ファイル追加した」状態の手応えが薄かった。 */
+              dragOver
+                ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"
+                : files.length > 0
+                  ? "border-emerald-300 dark:border-emerald-800/60"
+                  : "border-slate-300 dark:border-slate-700"
+            }
             ${isDisabled ? "cursor-not-allowed opacity-60" : "hover:border-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-900/50"}
           `}
         >
@@ -243,7 +255,11 @@ export function UploadZone({
                   />
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300 break-all">
+                  {/* F-021 (v0.8.10): break-all → break-words。break-all は
+                      文字単位で折り返すので「...desktop.p\nng」のように拡張子を
+                      割ってしまっていた。break-words はハイフン等の語境界を優先
+                      するので拡張子が保たれる。 */}
+                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300 break-words">
                     {file.name}
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">

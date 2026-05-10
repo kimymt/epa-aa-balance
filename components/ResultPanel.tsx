@@ -177,11 +177,27 @@ function MealResultCard({
             <p>
               <strong>AA（アラキドン酸）:</strong> {result.aaMg.toFixed(0)} mg（肉・卵・乳由来）
             </p>
-            {result.lipidRatio !== null && (
-              <p className="pt-1 border-t border-slate-200 dark:border-slate-700 mt-1">
-                <strong>(EPA+DHA) / AA 比:</strong> {result.lipidRatio.toFixed(2)}
-              </p>
-            )}
+            {result.lipidRatio !== null && (() => {
+              // F-030 (v0.8.10): 「比: 2.53」だけ素の数値を出していたが、
+              // omega-3 / omega-6 の比は本アプリの中心指標で、解釈が無いと
+              // 「2.53 が良いのか悪いのか」をユーザーが判断できない。
+              // ratio = (EPA+DHA) / AA。以下の解釈をinline で添える:
+              //   ratio >= 1: 「魚由来が肉由来の約 N 倍」
+              //   ratio <  1: 「肉由来が魚由来の約 1/ratio 倍」
+              const r = result.lipidRatio;
+              const gloss =
+                r >= 1
+                  ? `魚由来が肉由来の約 ${r.toFixed(1)} 倍`
+                  : `肉由来が魚由来の約 ${(1 / r).toFixed(1)} 倍`;
+              return (
+                <p className="pt-1 border-t border-slate-200 dark:border-slate-700 mt-1">
+                  <strong>(EPA+DHA) / AA 比:</strong> {r.toFixed(2)}
+                  <span className="ml-2 text-slate-500 dark:text-slate-400">
+                    — {gloss}
+                  </span>
+                </p>
+              );
+            })()}
           </div>
 
           {/* Feedback Section */}
@@ -432,25 +448,38 @@ export function ResultPanel({
         </div>
       )}
 
-      {/* EPA/AA Explanation */}
-      {/* v0.4.7: text-xs (12px) text-slate-500 → text-sm (14px) text-slate-600
-          で本文のコントラストと可読性を改善 (F-006 対応)。
-          dark mode は slate-400 → slate-300 で同様の改善。 */}
-      <div className="text-sm text-slate-600 dark:text-slate-300 space-y-2 leading-relaxed">
-        <p>
-          <strong>判定方法:</strong>{" "}
-          食材ごとの脂肪酸成分（MEXT 食品成分表 脂肪酸成分表編 2020 由来）から、
-          (EPA+DHA) / (EPA+DHA+AA) の割合を計算しています。
-        </p>
-        <p>
-          <strong>EPA・DHA:</strong> 魚介類に多い omega-3 脂肪酸（抗炎症性）。
-          <strong className="ml-2">AA（アラキドン酸）:</strong> 肉・卵・乳製品に多い omega-6 脂肪酸。
-        </p>
-        <p>
-          <strong>暫定閾値:</strong> 30%以上 = 緑、15-29% = 黄、15%未満 = 赤。
-          エビデンスベース閾値は今後の改訂で再評価予定。
-        </p>
-      </div>
+      {/* F-033 (v0.8.10): 計算方法の 3 段落は本来 trust-building の重要情報
+          (どこから数値が来ているか、AA とは何か、閾値の根拠は何か) なのに、
+          14px gray の小文字で footer 扱いだったため小印字 disclaimer に見えて
+          いた。<details> でも見出しでも収納できるが、まず「読まれる前提」に
+          戻すために bg-slate-50 のカード化 + 見出し付き promote。
+          read-time は変わらないが視認性とラベル付けで「読み物」として機能する。 */}
+      <section
+        aria-labelledby="methodology-heading"
+        className="rounded-xl border border-slate-200 bg-slate-50 p-5 sm:p-6 dark:border-slate-700 dark:bg-slate-900/40"
+      >
+        <h3
+          id="methodology-heading"
+          className="text-sm font-semibold text-slate-700 dark:text-slate-200"
+        >
+          📊 判定の計算方法
+        </h3>
+        <div className="mt-3 text-sm text-slate-600 dark:text-slate-300 space-y-2 leading-relaxed">
+          <p>
+            <strong>判定方法:</strong>{" "}
+            食材ごとの脂肪酸成分（MEXT 食品成分表 脂肪酸成分表編 2020 由来）から、
+            (EPA+DHA) / (EPA+DHA+AA) の割合を計算しています。
+          </p>
+          <p>
+            <strong>EPA・DHA:</strong> 魚介類に多い omega-3 脂肪酸（抗炎症性）。
+            <strong className="ml-2">AA（アラキドン酸）:</strong> 肉・卵・乳製品に多い omega-6 脂肪酸。
+          </p>
+          <p>
+            <strong>暫定閾値:</strong> 30%以上 = 緑、15-29% = 黄、15%未満 = 赤。
+            エビデンスベース閾値は今後の改訂で再評価予定。
+          </p>
+        </div>
+      </section>
     </div>
   );
 }

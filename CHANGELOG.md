@@ -2,6 +2,61 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.10] - 2026-05-10 — design-review polish bundle (F-021 / F-019 / F-018 / F-030 / F-033 / F-026)
+
+v0.8.6〜0.8.9 で audit 全 18 findings 中 13 件を解消。残り 5 件 (POLISH 中心) を
+1 PR にまとめて消化。機能変更なし、CSS / microcopy / 1 schema フィールド追加のみ。
+
+### Changed
+- **F-021 (POLISH)**: `UploadZone` の staged filename を `break-all` →
+  `break-words`。mobile で `01-first-impression-desktop.png` が `.p\nng`
+  と拡張子の途中で折り返していた問題を解消。
+- **F-019 (POLISH)**: drop zone の border を 3 状態に分離。empty=slate-300、
+  files-staged (idle)=emerald-300、active drag-over=emerald-500+bg。旧仕様は
+  2 状態しか無く files added 後も slate のままだった。
+- **F-018 (POLISH)**: OnboardingCard の dismiss CTA「わかった、写真を
+  アップロード →」を `bg-sky-100/text-sky-900` (sky-50 カードに対して低
+  コントラスト) → `bg-sky-600/text-white` に。明確に button と読める。brand
+  emerald は使わず、primary CTA との階層差は維持。
+- **F-030 (POLISH)**: per-meal カードの「(EPA+DHA) / AA 比: 2.53」に inline
+  解釈を追加。「— 魚由来が肉由来の約 2.5 倍」(ratio ≥ 1) または「— 肉由来が
+  魚由来の約 N 倍」(ratio < 1)。アプリの中心指標が素の数値だけだった問題を
+  解消。医療判断は避け乗数表現で着地。
+- **F-033 (POLISH)**: 結果ページ末尾の「判定方法 / EPA・DHA / 暫定閾値」3 段落
+  (small print 扱い) を `<section>` + `bg-slate-50` + 見出し「📊 判定の計算方法」
+  付きの labelled card に promote。同じ文章量・同じ読了時間、可視性とラベル
+  付けで「読み物」として機能するよう再フレーム。
+- **F-026 (POLISH)**: 食習慣比較リストの「イヌイット伝統食 (1970 年代以前)
+  14,000 mg/日」行を「歴史的参考値」として視覚的 demote。`DietPattern`
+  interface に `historical?: boolean` を追加してイヌイットだけ true。
+  PatternRow が historical のとき opacity-70 + slate 系 bg に切替、「歴史的
+  参考値」chip を name 横に追加、「✓ 超えました」「あと +N mg」progression
+  chip を抑制 (達成目標フレームを排除)、数値も slate-600 に降格。
+
+### Skipped (この PR では見送り)
+- **F-031** (Score panel green-on-green-on-green): F-028 で hero と data 行を
+  分離した時点で hierarchy が改善されたため見送り。gradient bg は「primary
+  panel」signal として依然有用。
+- **F-032** ("1 食事中 1 食事" microcopy): F-023 で N=1 のとき集計パネル自体
+  非表示にしたため、この copy は実際には render されず moot。
+
+### Notes
+- これで design-review audit 18 findings 中 **19 件解消** (F-022 / F-027 のような
+  bundle 内マージカウント含む)。残るは未 audit の AI コーチストリーミング UX
+  のみ。
+- Vercel preview 検証ポイント:
+  - 長いファイル名 (`01-first-impression-desktop.png` 等) を mobile (375px) で
+    アップ → 拡張子が割れずに break-words で折り返ること
+  - drop zone 空 = slate / files added = emerald-300 / drag 中 = emerald-500+bg
+    の 3 状態が視認できること
+  - OnboardingCard 展開時の「わかった」ボタンが sky-600 + 白文字で目立つこと
+  - 結果ページの per-meal カード末尾に「(EPA+DHA) / AA 比: 2.53 — 魚由来が
+    肉由来の約 2.5 倍」と inline 解釈が出ること
+  - 結果ページ末尾の「📊 判定の計算方法」がカード化されていること
+  - 食習慣リストの「イヌイット伝統食」行が薄め + 「歴史的参考値」chip で
+    他のパターンと階層が違うこと
+- DietPatternComparison.test.tsx 8 件 + 全 290 tests pass。
+
 ## [0.8.9] - 2026-05-10 — design-review Tier-3 information design (F-029 / F-020 / F-017)
 
 v0.8.8 直後の audit Tier-3: 情報設計 / interaction state の整理。機能の追加なし、

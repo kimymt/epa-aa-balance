@@ -166,27 +166,39 @@ function PatternRow({
   next: boolean;
   gapToNextMg: number | null;
 }) {
-  const stateClass = surpassed
-    ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800/40"
-    : next
-      ? "bg-sky-50 border-sky-200 dark:bg-sky-950/20 dark:border-sky-800/40"
-      : "bg-slate-50 border-slate-200 dark:bg-slate-900/30 dark:border-slate-700";
+  // F-026 (v0.8.10): historical=true (現状はイヌイット 14,000 mg/日) は
+  // 達成目標ではなく歴史的アンカー。row 全体を opacity-60 + 細い grayscale 系
+  // で他の現代的な比較値と階層を分け、「歴史的参考値」chip を name の脇に出す。
+  const isHistorical = pattern.historical === true;
+
+  const stateClass = isHistorical
+    ? "bg-slate-50/60 border-slate-200 dark:bg-slate-900/20 dark:border-slate-800"
+    : surpassed
+      ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800/40"
+      : next
+        ? "bg-sky-50 border-sky-200 dark:bg-sky-950/20 dark:border-sky-800/40"
+        : "bg-slate-50 border-slate-200 dark:bg-slate-900/30 dark:border-slate-700";
 
   return (
     <div
-      className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${stateClass}`}
+      className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${stateClass} ${isHistorical ? "opacity-70" : ""}`}
     >
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+          <span className={`text-sm font-medium ${isHistorical ? "text-slate-700 dark:text-slate-300" : "text-slate-900 dark:text-slate-100"}`}>
             {pattern.name}
           </span>
-          {surpassed && (
+          {isHistorical && (
+            <span className="inline-flex items-center rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+              歴史的参考値
+            </span>
+          )}
+          {!isHistorical && surpassed && (
             <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
               ✓ 超えました
             </span>
           )}
-          {next && gapToNextMg !== null && (
+          {!isHistorical && next && gapToNextMg !== null && (
             <span className="text-xs font-semibold text-sky-700 dark:text-sky-300">
               あと +{gapToNextMg.toLocaleString("en-US")} mg
             </span>
@@ -197,7 +209,7 @@ function PatternRow({
         </div>
       </div>
       <div className="shrink-0 text-right">
-        <div className="text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">
+        <div className={`text-sm font-semibold tabular-nums ${isHistorical ? "text-slate-600 dark:text-slate-400" : "text-slate-900 dark:text-slate-100"}`}>
           {pattern.epaDhaMgPerDay.toLocaleString("en-US")}
         </div>
         <div className="text-xs text-slate-500 dark:text-slate-400">mg/日</div>
