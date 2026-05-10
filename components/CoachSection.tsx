@@ -377,37 +377,59 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
         </div>
       )}
 
-      {state.kind === "loading" && (
-        <div>
-          <div className="text-base sm:text-lg text-slate-700 dark:text-slate-200 mb-1 flex items-center gap-2">
-            <span className="text-2xl">🍳</span>
-            <span className="font-medium">AI からの提案</span>
-          </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
-            {state.activeChip && (
-              <span>✓ 「{CHIP_LABELS[state.activeChip]}」で再提案中</span>
+      {state.kind === "loading" && (() => {
+        // F-045 (v0.8.11): partial が満杯 (3 件) になっているのに complete
+        // event 待ちで spinner が回り続ける期間がある。視覚的には全 recipe が
+        // 出揃って見えるのに spinner だけ残っている mismatch。
+        // → partial=MAX なら spinner + caption を抑制し、result-state に近い
+        //   見た目に先行収束させる (実 state は complete を待ってから flip)。
+        const allArrived = state.partialRecipes.length >= 3;
+        // F-037 (v0.8.11): "1 / 3 件 届きました" は「1 件到着」の過去形 +
+        // active spinner で語形 mismatch だった。"完了 — 次を生成中..." に
+        // 揃えて「完了した分 + 進行中」を 1 行で表現。
+        const progressText =
+          state.partialRecipes.length === 0
+            ? LOADING_STAGES[loadingStage]
+            : `${state.partialRecipes.length} / 3 件 完了 — 次を生成中…`;
+        return (
+          <div>
+            <div className="text-base sm:text-lg text-slate-700 dark:text-slate-200 mb-1 flex items-center gap-2">
+              <span className="text-2xl">🍳</span>
+              <span className="font-medium">AI からの提案</span>
+            </div>
+            {!allArrived && (
+              <div className="text-xs text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
+                {state.activeChip && (
+                  <span>✓ 「{CHIP_LABELS[state.activeChip]}」で再提案中</span>
+                )}
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-block w-3 h-3 border-2 border-slate-300 dark:border-slate-600 border-t-slate-600 dark:border-t-slate-300 rounded-full animate-spin" />
+                  {progressText}
+                </span>
+              </div>
             )}
-            <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 border-2 border-slate-300 dark:border-slate-600 border-t-slate-600 dark:border-t-slate-300 rounded-full animate-spin" />
-              {state.partialRecipes.length === 0
-                ? LOADING_STAGES[loadingStage]
-                : `${state.partialRecipes.length} / 3 件 届きました`}
-            </span>
-          </div>
-          {/* v0.8.0: 届いた recipe は実カードで、未到着は skeleton で表示。
-              streaming で先頭から順に届くので [...partial, ...skeletons] の構成。 */}
-          <div className="space-y-3">
-            {state.partialRecipes.map((r, i) => (
-              <RecipeCard key={`partial-${i}`} recipe={r} />
-            ))}
-            {Array.from({ length: Math.max(0, 3 - state.partialRecipes.length) }).map(
-              (_, i) => (
-                <SkeletonRecipeCard key={`skel-${i}`} />
-              )
+            {allArrived && (
+              <div className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                {state.activeChip && (
+                  <span>✓ 「{CHIP_LABELS[state.activeChip]}」で再提案</span>
+                )}
+              </div>
             )}
+            {/* v0.8.0: 届いた recipe は実カードで、未到着は skeleton で表示。
+                streaming で先頭から順に届くので [...partial, ...skeletons] の構成。 */}
+            <div className="space-y-3">
+              {state.partialRecipes.map((r, i) => (
+                <RecipeCard key={`partial-${i}`} recipe={r} />
+              ))}
+              {Array.from({ length: Math.max(0, 3 - state.partialRecipes.length) }).map(
+                (_, i) => (
+                  <SkeletonRecipeCard key={`skel-${i}`} />
+                )
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {state.kind === "result" && (
         <div>
