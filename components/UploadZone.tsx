@@ -243,7 +243,11 @@ export function UploadZone({
                   />
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300 break-all">
+                  {/* F-021 (v0.8.10): break-all → break-words。break-all は
+                      文字単位で折り返すので「...desktop.p\nng」のように拡張子を
+                      割ってしまっていた。break-words はハイフン等の語境界を優先
+                      するので拡張子が保たれる。 */}
+                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300 break-words">
                     {file.name}
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
