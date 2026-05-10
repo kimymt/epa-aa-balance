@@ -252,9 +252,18 @@ export function ResultPanel({
   const failedMeals = result.failed;
   const aggregate = result.aggregate;
 
+  // F-023 (v0.8.7): N=1 のとき集計パネルは「個別の食事結果」カードと
+  // 完全に同じ数値を 2 度表示してしまい視覚階層が崩壊する (72% / 魚多めの傾向 /
+  // EPA-DHA-AA がどちらにも出る)。N=1 では集計パネルを隠し、per-card だけを
+  // 主表示にする。N>=2 では aggregate (平均) と個別が異なる情報になるので
+  // 両方残す。失敗だけのケース (successfulMeals=0) では集計を残し
+  // 「成功した食事がない」状態の文脈を保つ。
+  const showAggregatePanel = successfulMeals.length !== 1;
+
   return (
     <div className="flex flex-col gap-8 sm:gap-10">
-      {/* Aggregate Stats - Primary */}
+      {/* Aggregate Stats - Primary (hidden when N=1; see F-023) */}
+      {showAggregatePanel && (
       <div className="rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/30 p-6 sm:p-8 border border-emerald-200 dark:border-emerald-800">
         <div className="text-center">
           <div className="text-sm font-medium text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
@@ -288,6 +297,7 @@ export function ResultPanel({
           </p>
         </div>
       </div>
+      )}
 
       {/* v0.4.9: 食習慣パターン比較 (Aggregate と AI Coach の間)。
           5 パターン (米国 / 地中海 / 日本 / ノルウェー / イヌイット) と並べて

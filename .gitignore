@@ -47,3 +47,4 @@ test-api.js
 .gstack/
 .context/
 .env*.local
+sample photos/

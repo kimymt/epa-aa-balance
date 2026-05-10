@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.7] - 2026-05-10 — design-review Tier-1 (F-016 / F-024 / F-023)
+
+v0.8.6 直後の `/design-review --quick` audit (production + sample meal photo)
+で発見された 5 件の HIGH のうち、最も影響範囲の広い 3 件をまとめて修正。
+機能変更なし、CSS / 条件レンダリング / フォント変数のみ。
+
+### Changed
+- **F-016 (HIGH)**: `app/globals.css` の `body { font-family: Arial, ... }`
+  を `var(--font-geist-sans), -apple-system, ..., "Hiragino Sans",
+  "Noto Sans JP", sans-serif` に変更。`next/font/google` で読み込み済みの
+  Geist webfont が **production で一文字も使われていなかった** create-next-app
+  のボイラープレートを修正。Latin 文字 (EPA/AA/数値) が Geist で描画され、
+  日本語は OS の和文フォントにフォールスルー。サイト全体の typography が
+  ようやく宣言通りになる。
+- **F-024 (HIGH)**: `components/LipidSourceBar.tsx` の凡例を `grid-cols-3`
+  から `flex flex-col` に変更。`ResultPanel` の `lg:grid-cols-3` × `max-w-3xl`
+  により per-meal カードが ~240px まで縮むため、3 列凡例だと 1 セル ~70px
+  しか取れず production で「EPA 85mgDHA 142mgAA 90mg」と密着して読めなく
+  なっていた問題を解消。
+- **F-023 (HIGH)**: `components/ResultPanel.tsx` で `successfulMeals.length === 1`
+  の場合に集計スコアパネルを非表示。N=1 では集計と per-meal カードが
+  「72% / 魚多めの傾向 / EPA-DHA-AA」をまったく同じ値で 2 度表示しており
+  視覚階層が崩壊していた。N≥2 では集計 (平均) と個別が異なる情報になるので
+  両方残す。`DietPatternComparison` と `CoachSection` は引き続き aggregate
+  データを受け取る (パネル UI のみ非表示)。
+
+### Notes
+- Vercel preview で実機検証推奨ポイント:
+  - Latin 文字の見た目が Arial → Geist になっていること
+  - 1 枚の食事写真をアップロードして集計パネルが消えていること
+  - per-meal カード内の脂肪酸の内訳凡例が縦並びで読めること
+  - 9 枚アップロード時に集計パネルが従来通り表示されること
+- F-024 の影響: per-meal カードが ~24px 縦に伸びる。
+
 ## [0.8.6] - 2026-05-10 — design-review backlog (F-008 / F-014 / F-015)
 
 v0.8.5 の design-review (Quick mode) で記録された POLISH バックログ 3 件を
