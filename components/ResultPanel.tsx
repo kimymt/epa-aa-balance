@@ -116,12 +116,29 @@ function MealResultCard({
         </div>
       </div>
 
-      {result.lipidCoverage < 1 && result.lipidPct !== null && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-          ⚠ {result.excludedNoData.length}品目の脂肪酸データが不足しているため計算から除外されています
-          （信頼度 {Math.round(result.lipidCoverage * 100)}%）
-        </div>
-      )}
+      {result.lipidCoverage < 1 && result.lipidPct !== null && (() => {
+        // F-029 (v0.8.9): 信頼度 % を warning の主見出しに昇格させる。
+        // 旧: 「⚠ 4 品目の脂肪酸データが不足しているため… (信頼度 38%)」
+        // と最後に括弧書きで埋もれていた。本来 38% は「上の 72% スコアを
+        // 信用するか」を判断する一番のシグナル。
+        // - lead に 信頼度 % + 段階ラベル (低/中/高) を太字で表示
+        // - 信頼度 < 50% のときは「参考値としてお使いください」を追記して
+        //   弱い数字に過剰な信用を持たせない
+        const conf = Math.round(result.lipidCoverage * 100);
+        const sev = conf < 50 ? "低" : conf < 75 ? "中" : "高";
+        return (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/40">
+            <div className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+              <span aria-hidden className="mr-1">⚠</span>
+              信頼度 {conf}% — {sev}
+            </div>
+            <div className="mt-1 text-xs leading-relaxed text-amber-800 dark:text-amber-300">
+              {result.excludedNoData.length} 品目の脂肪酸データが不足しているため計算から除外されています。
+              {conf < 50 && " 参考値としてお使いください。"}
+            </div>
+          </div>
+        );
+      })()}
       <>
           <div>
             <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">
