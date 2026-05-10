@@ -19,7 +19,23 @@ import { hasSeenOnboarding, markOnboardingSeen } from "@/lib/onboarding";
 // fear-mongering ではなく事実通告のスタンス (Q&A と整合)。
 import { SAFETY_NOTES } from "@/lib/safety-notes";
 
-export function OnboardingCard() {
+interface Props {
+  /**
+   * F-017 (v0.8.9): 親側 (page.tsx) から「すでにユーザーは engage した」と
+   * 通知するためのフラグ。`files.length > 0` か `state.kind !== "idle"`
+   * のとき true。true で渡されると onboarding を collapsed mode に切り替え
+   * (内部 expanded は false)、同時に localStorage に seen を記録する
+   * (= 次回訪問でも collapsed のまま)。
+   *
+   * 旧仕様: 「わかった、写真をアップロード →」ボタンを明示的に押した時のみ
+   * markOnboardingSeen が走っていた。実際のユーザーはボタンを押さずに
+   * upload zone へ直接ファイルを drop することが多く、結果として何度
+   * 訪れてもカードが full size で開いたままだった (audit screenshot 参照)。
+   */
+  forceCollapsed?: boolean;
+}
+
+export function OnboardingCard({ forceCollapsed = false }: Props) {
   // SSR では localStorage が undefined なので、mounted 後に判定する。
   // mounted=false の間は null 返し → hydration mismatch 回避。
   const [mounted, setMounted] = useState(false);
@@ -31,6 +47,15 @@ export function OnboardingCard() {
       setExpanded(false);
     }
   }, []);
+
+  // F-017: forceCollapsed が true のときは localStorage に「seen」を記録
+  // (次回訪問でも閉じたまま開く)。expanded state は触らず、render 側で
+  // forceCollapsed を直接評価する (set-state-in-effect の anti-pattern を避ける)。
+  useEffect(() => {
+    if (forceCollapsed) {
+      markOnboardingSeen();
+    }
+  }, [forceCollapsed]);
 
   function handleDismiss() {
     markOnboardingSeen();
@@ -45,16 +70,26 @@ export function OnboardingCard() {
 
   if (!mounted) return null;
 
-  if (!expanded) {
+  // F-017: forceCollapsed のときは internal expanded を無視して collapsed mode へ。
+  // ユーザーが engage 済 (files 選択 / loading / error) ならカードは小さくしたい。
+  const isCollapsed = forceCollapsed || !expanded;
+
+  if (isCollapsed) {
     return (
       <button
         type="button"
         onClick={handleReExpand}
-        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400 dark:hover:bg-slate-800"
+        disabled={forceCollapsed}
+        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:disabled:hover:bg-slate-900/50"
         aria-expanded="false"
       >
         <span className="mr-2">🐟</span>
-        <span>EPA/AA バランスとは？ <span className="text-slate-400 dark:text-slate-500">（クリックで展開）</span></span>
+        <span>
+          EPA/AA バランスとは？{" "}
+          <span className="text-slate-400 dark:text-slate-500">
+            {forceCollapsed ? "（後で確認できます）" : "（クリックで展開）"}
+          </span>
+        </span>
       </button>
     );
   }
