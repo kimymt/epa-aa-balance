@@ -48,3 +48,4 @@ test-api.js
 .context/
 .env*.local
 sample photos/
+.design-preview/

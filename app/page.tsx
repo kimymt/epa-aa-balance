@@ -1,10 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { UploadZone } from "@/components/UploadZone";
 import { ResultPanel } from "@/components/ResultPanel";
 import { OnboardingCard } from "@/components/OnboardingCard";
 import type { AnalysisSessionResult } from "@/lib/session";
+
+const LNURL = "lnurl1dp68gurn8ghj7ampd3kx2ar0veekzar0wd5xjtnrdakj7tnhv4kxctttdehhwm30d3h82unvwqhkwctjvfkx2erpvd6xjmmwxuenvyj4066";
+const LNURL_HREF = `lnurl:${LNURL}`;
+const FALLBACK_URL = `https://lnurl.dev/${LNURL}`;
+
+function LightningTipLink() {
+  const handleClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
+    // ウォレットが開くのを待つ（1.5秒）
+    const fallbackTimer = setTimeout(() => {
+      // ページがまだフォーカスされていれば（＝ウォレットが開かなかったら）
+      if (document.hasFocus() && !document.hidden) {
+        window.location.href = FALLBACK_URL;
+      }
+    }, 1500);
+
+    // ウォレットが開いてフォーカスが移ったらタイマーをクリア
+    const handleBlur = () => clearTimeout(fallbackTimer);
+    window.addEventListener("blur", handleBlur, { once: true });
+    document.addEventListener("visibilitychange", handleBlur, { once: true });
+  }, []);
+
+  return (
+    <a
+      href={LNURL_HREF}
+      aria-label="ライトニングウォレットで支払う"
+      className="inline-block"
+      onClick={handleClick}
+      rel="noopener noreferrer"
+    >
+      <img
+        src="/WoS.png"
+        alt="ライトニングネットワークで支払うQRコード"
+        className="mx-auto h-32 w-32 sm:h-40 sm:w-40"
+      />
+    </a>
+  );
+}
 
 type State =
   | { kind: "idle" }
@@ -141,6 +178,16 @@ export default function Home() {
           >
             別の写真で試す →
           </button>
+
+          {/* Tip section (C2: independent section after results) */}
+          <section className="mt-10 pt-8 border-t border-slate-200 dark:border-slate-800" aria-labelledby="tip-heading">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 sm:p-8 text-center dark:border-amber-800 dark:bg-amber-950/30">
+              <h3 id="tip-heading" className="text-base font-semibold text-amber-900 dark:text-amber-200 mb-5">
+                開発を支援する
+              </h3>
+              <LightningTipLink />
+            </div>
+          </section>
         </div>
       )}
     </main>
