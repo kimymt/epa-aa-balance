@@ -7,20 +7,23 @@ import { OnboardingCard } from "@/components/OnboardingCard";
 import type { AnalysisSessionResult } from "@/lib/session";
 
 const LNURL = "lnurl1dp68gurn8ghj7ampd3kx2ar0veekzar0wd5xjtnrdakj7tnhv4kxctttdehhwm30d3h82unvwqhkwctjvfkx2erpvd6xjmmwxuenvyj4066";
+// lightning: スキームをメイン（主要ウォレット: Alby, BlueWallet, Phoenix, Zeus, Breez 等対応）
+const LIGHTNING_HREF = `lightning:${LNURL}`;
+// lnurl: スキームをフォールバック（一部ウォレット・ブラウザ拡張対応）
 const LNURL_HREF = `lnurl:${LNURL}`;
-const FALLBACK_URL = `https://lnurl.dev/${LNURL}`;
 
 function LightningTipLink() {
   const handleClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
-    // ウォレットが開くのを待つ（1.5秒）
+    // デフォルトのリンク挙動（lightning: スキーム）を許可
+    // 少し待ってから lnurl: フォールバックを試行
     const fallbackTimer = setTimeout(() => {
-      // ページがまだフォーカスされていれば（＝ウォレットが開かなかったら）
+      // まだ同じページなら lnurl: も試す
       if (document.hasFocus() && !document.hidden) {
-        window.location.href = FALLBACK_URL;
+        window.location.href = LNURL_HREF;
       }
-    }, 1500);
+    }, 2000);
 
-    // ウォレットが開いてフォーカスが移ったらタイマーをクリア
+    // ウォレット起動でフォーカス移動したらクリア
     const handleBlur = () => clearTimeout(fallbackTimer);
     window.addEventListener("blur", handleBlur, { once: true });
     document.addEventListener("visibilitychange", handleBlur, { once: true });
@@ -28,7 +31,7 @@ function LightningTipLink() {
 
   return (
     <a
-      href={LNURL_HREF}
+      href={LIGHTNING_HREF}
       aria-label="ライトニングウォレットで支払う"
       className="inline-block"
       onClick={handleClick}
