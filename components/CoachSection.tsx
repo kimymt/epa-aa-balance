@@ -99,11 +99,7 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
   // 15〜25 秒」の範囲内に収まる。実 perf がもっと速い場合 (sub-second) は
   // どちらにせよ stage 0 しか見えないが、それは harm では無い。
   useEffect(() => {
-    if (state.kind !== "loading") {
-      setLoadingStage(0);
-      return;
-    }
-    setLoadingStage(0);
+    if (state.kind !== "loading") return;
     const id = setInterval(() => {
       setLoadingStage((s) => Math.min(s + 1, LOADING_STAGES.length - 1));
     }, 3000);
@@ -136,6 +132,7 @@ export function CoachSection({ aggregate, mealsWithData, recentFoods }: Props) {
     const ctrl = new AbortController();
     activeAbortRef.current = ctrl;
 
+    setLoadingStage(0);
     setState({ kind: "loading", partialRecipes: [], activeChip });
 
     // F-038 (v0.8.11): catch ブロックからも recipe 救済できるように

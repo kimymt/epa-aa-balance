@@ -5,7 +5,7 @@ import { MEAL_TYPES } from "@/lib/session";
 import type { AnalysisResult } from "@/lib/analyzer";
 import type { AnalysisSessionResult } from "@/lib/session";
 import type { VisionFood } from "@/lib/vision";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 // 信号機色 → CSS class マッピング
 // v0.3.0: unknown=グレー追加
@@ -49,16 +49,11 @@ function MealResultCard({
   const mealLabel =
     MEAL_TYPES.find((m) => m.value === mealType)?.label || "食事";
 
-  // v0.4.12: file が渡されたら object URL を生成し、unmount 時に revoke する。
-  // useEffect の戻り値で確実に cleanup しないとメモリリーク。
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-  useEffect(() => {
-    if (!file) {
-      setThumbnailUrl(null);
-      return;
-    }
+  // React 19 の ref cleanup で、画像の交換・削除・unmount 時に URL を解放する。
+  const thumbnailRef = useCallback((image: HTMLImageElement | null) => {
+    if (!image || !file) return;
     const url = URL.createObjectURL(file);
-    setThumbnailUrl(url);
+    image.src = url;
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
@@ -105,10 +100,12 @@ function MealResultCard({
       {/* v0.4.12: アップロード画像のサムネイル。フィードバック精度向上が主目的:
           「正確 ✓ / 誤り - 修正」を判断するときに、どの食事の判定なのか目視確認できる。
           file が無いケース (古い state や test fixture) は section 自体を省略。 */}
-      {thumbnailUrl && (
+      {file && (
         <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
+          {/* ローカルのBlob URLを直接表示するため、サーバー画像最適化は使わない。 */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={thumbnailUrl}
+            ref={thumbnailRef}
             alt={`${mealLabel}の写真`}
             className="block h-32 w-full object-cover"
             loading="lazy"

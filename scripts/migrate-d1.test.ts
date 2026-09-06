@@ -5,7 +5,7 @@
 //
 // /plan-eng-review TODO 1: PR 2 のスコープ内で migrate-d1.test.ts を作る、と決定。
 
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect } from "bun:test";
 import { D1Api, runMigrations, MIGRATIONS } from "./migrate-d1";
 
 // Tests below scope to a single migration via [MIGRATIONS[0]] etc. so that
@@ -13,7 +13,6 @@ import { D1Api, runMigrations, MIGRATIONS } from "./migrate-d1";
 const MIG_0003 = [MIGRATIONS[0]];
 
 function makeMockFetch(responses: Array<{ matchSql: RegExp; result?: unknown[]; error?: { code: number; message: string } }>) {
-  let callIndex = 0;
   const calls: Array<{ sql: string; params: unknown[] }> = [];
 
   const mockFetch: (...args: Parameters<typeof fetch>) => ReturnType<typeof fetch> = async (_url, init) => {
@@ -23,7 +22,6 @@ function makeMockFetch(responses: Array<{ matchSql: RegExp; result?: unknown[]; 
     if (!matched) {
       throw new Error(`Mock fetch: no matching response for SQL: ${body.sql}`);
     }
-    callIndex++;
     if (matched.error) {
       return new Response(
         JSON.stringify({ success: false, errors: [matched.error], result: [] }),

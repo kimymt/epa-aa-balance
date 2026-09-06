@@ -195,7 +195,8 @@ console.error(`Hand-curated entries preserved: ${handCurated.length}, skipping t
 
 // hand-curated から protein_g を削除 (v0.3.1 schema cleanup)
 const cleanedExisting: Food[] = handCurated.map((f) => {
-  const { protein_g: _protein_g, ...rest } = f;
+  const rest = { ...f };
+  delete rest.protein_g;
   return rest as Food;
 });
 
@@ -264,7 +265,8 @@ const output = {
 // category_fallbacks も protein_g 削除
 if (output.category_fallbacks) {
   output.category_fallbacks = output.category_fallbacks.map((f: Food) => {
-    const { protein_g: _protein_g, ...rest } = f;
+    const rest = { ...f };
+    delete rest.protein_g;
     return rest as Food;
   });
 }

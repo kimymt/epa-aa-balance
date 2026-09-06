@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useCallback } from "react";
 import { UploadZone } from "@/components/UploadZone";
 import { ResultPanel } from "@/components/ResultPanel";
@@ -13,7 +14,7 @@ const LIGHTNING_HREF = `lightning:${LNURL}`;
 const LNURL_HREF = `lnurl:${LNURL}`;
 
 function LightningTipLink() {
-  const handleClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleClick = useCallback(() => {
     // デフォルトのリンク挙動（lightning: スキーム）を許可
     // 少し待ってから lnurl: フォールバックを試行
     const fallbackTimer = setTimeout(() => {
@@ -37,8 +38,11 @@ function LightningTipLink() {
       onClick={handleClick}
       rel="noopener noreferrer"
     >
-      <img
+      <Image
         src="/WoS.png"
+        width={160}
+        height={160}
+        unoptimized
         alt="ライトニングネットワークで支払うQRコード"
         className="mx-auto h-32 w-32 sm:h-40 sm:w-40"
       />
