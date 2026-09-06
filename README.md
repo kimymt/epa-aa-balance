@@ -137,17 +137,19 @@ bun dev
 | 変数 | 必須 | 説明 |
 |---|---|---|
 | `GEMINI_API_KEY` | ✅ | Google AI Studio で無料取得 |
-| `CLOUDFLARE_ACCOUNT_ID` | ⚠ | フィードバック・rate limit 機能を使う場合 |
-| `CLOUDFLARE_D1_DATABASE_ID` | ⚠ | 同上 |
-| `CLOUDFLARE_API_TOKEN` | ⚠ | 同上 (D1 Edit 権限) |
-| `FEEDBACK_ADMIN_TOKEN` | ⚠ | `/admin` GET エンドポイント認証 (32 文字以上推奨) |
-| `ADMIN_BASIC_AUTH` | ⚠ | `/admin` ページ Basic Auth (`user:pass` 形式) |
+| `CLOUDFLARE_ACCOUNT_ID` | 必須 | 全 API の利用枠とフィードバック保存 |
+| `CLOUDFLARE_D1_DATABASE_ID` | 必須 | 同上 |
+| `CLOUDFLARE_API_TOKEN` | 必須 | 同上 (D1 Edit 権限) |
+| `FEEDBACK_ADMIN_TOKEN` | 管理機能 | `GET /api/feedback` の Bearer 認証 (32文字以上推奨) |
+| `ADMIN_BASIC_AUTH` | 管理機能 | `/admin` ページ Basic Auth (`user:pass` 形式) |
+| `FEEDBACK_SIGNING_SECRET` | 必須 | フィードバック署名用の独立した秘密値 (32文字以上) |
+| `CRON_SECRET` | 本番必須 | 日次ログ削除の認証 |
 | `IP_HASH_SECRET` | 推奨 | rate limit IP ハッシュの secret (`openssl rand -hex 32`) |
 | `COACH_RATE_LIMIT` | 任意 | `/api/coach` 上限 (デフォルト 5 req/h/IP、v0.5.5 で 10 → 5 引き下げ) |
 | `ANALYZE_RATE_LIMIT` | 任意 | `/api/analyze` 上限 (デフォルト 10 req/h/IP) |
 | `FEEDBACK_ADMIN_RATE_LIMIT` | 任意 | `GET /api/feedback` 上限 (デフォルト 30 req/h/IP) |
 
-⚠ = D1 連携機能（フィードバック保存、rate limit、admin）を使う場合のみ。`GEMINI_API_KEY` だけでもコア機能（写真解析）は動きます。
+D1 はすべての API で必須です。未設定・障害・マイグレーション未適用の場合は 503 で停止します。写真解析には `FEEDBACK_SIGNING_SECRET`（32文字以上）も必要です。
 
 ---
 
@@ -340,3 +342,15 @@ Copyright 2026 eaa-scorer contributors. See [`NOTICE`](./NOTICE) for details.
 - `/cso` でセキュリティ監査
 - `/design-review` でデザイン QA
 - `/ship` で PR 化・デプロイ
+
+## セキュリティ更新の反映手順
+
+1. デプロイ前に `bun --env-file=.env.local run scripts/migrate-d1.ts` を対象 D1 に実行する。`0008_security_admission.sql` はテーブル・索引の追加のみで、既存フィードバックは保持する。
+2. Vercel に `FEEDBACK_SIGNING_SECRET`（32文字以上の独立したランダム値）と `CRON_SECRET` を設定する。D1 の3変数も必須。未設定のまま新コードをデプロイしない。
+3. Next.js 16.3.4 を含む変更をデプロイし、通常の解析・投稿・管理画面を確認する。旧画面の解析結果は署名がないため、更新後に再解析する。
+4. 管理トークンは `Authorization: Bearer` のみで送信する。URL の `token` は無効。管理画面は旧 localStorage のトークンを削除し、入力値を画面のメモリ内だけに保持する。既存トークンはローテーションし、URL を記録していたログの取扱いも確認する。
+5. 日次 `/api/maintenance`（18:00 UTC）の成功を監視する。利用枠は2日、旧リクエストログは30日保持する。Cron の失敗時は修復後に同じ認証ヘッダーで再実行できる。
+
+利用枠は単一 SQL で IP 別・全利用者の直近1時間・直近60秒を同時確認して確保する。失敗や不正入力でも確保済み枠は消費する。拒否したリクエストは保存しない。解析は最大9枚分を予約するため、全体上限900は最大100リクエスト/時に相当する。コーチは全体100リクエスト/時。短時間上限は解析90呼び出し分/分、コーチ20リクエスト/分。Vercel の45秒実行期限を前提として同時実行の増大も抑える。
+
+本文は実際に受信したバイト数で制限する（解析10MiB合計、コーチ64KiB、投稿16KiB）。配信基盤の上限がこれより小さい場合はそちらが優先する。食材名は100文字、解析1食の食材数は20、コーチ入力は180件まで。フィードバックは1時間有効の署名付き解析IDにつき1回で、予測食材の改変も拒否する。

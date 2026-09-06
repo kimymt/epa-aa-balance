@@ -23,6 +23,7 @@ export interface MealAnalysis {
   mealType: "breakfast" | "lunch" | "dinner";
   result: AnalysisResult;
   foods?: VisionFood[];
+  feedbackToken?: string;
 }
 
 export interface FailedMeal {

@@ -1,23 +1,6 @@
-// API レート制限 + リクエスト telemetry (v0.4.2)
-//
-// 設計方針:
-//   - "telemetry first": 全リクエストを request_log に記録（429 含む）。
-//     後で集計クエリで abuse パターンを見られるように。
-//   - 実装は D1 ベース（KV/Upstash 不要、既存依存だけで完結）。
-//   - IP は SHA-256 でハッシュ化して保存（生 IP は保存しない）。
-//   - Sliding window: 直近 windowMs ミリ秒内の同 IP リクエスト数を COUNT。
-//
-// パフォーマンス想定:
-//   - D1 round-trip ~50-100ms × 2 (check + log) = 100-200ms 追加。
-//   - /api/coach は元々 5-15 秒なので体感影響なし。
-//   - /api/feedback は薄い endpoint だが今回は適用しない（abuse 価値が低い）。
-//
-// 将来:
-//   - v0.4.x の cron で 30 日以上前の log を TRUNCATE。
-//   - admin 画面で「直近 1h の 429 件数」を可視化（v0.4.3 候補）。
-
-import { createHash } from "node:crypto";
-import { d1Query, firstRow } from "./d1";
+// Atomic admission reservations. Rejected requests never create log rows.
+import { createHash, randomUUID } from "node:crypto";
+import { d1Query } from "./d1";
 
 const DEFAULT_HASH_SECRET = "eaa-scorer-default-no-secret-set";
 
@@ -45,70 +28,48 @@ export function hashIp(ip: string, secret?: string): string {
   return createHash("sha256").update(`${s}:${ip}`).digest("hex").slice(0, 16);
 }
 
-export interface RateLimitResult {
-  /** 直近 window 内の同 IP リクエスト数（今回のリクエストを含まない事前カウント） */
-  count: number;
-  /** limit 未満なら true (= 通してよい) */
-  allowed: boolean;
-  /** あと何件まで送れるか（最低 0） */
-  remaining: number;
-  /** Retry-After ヘッダに入れる秒数（最も古い該当 row が window 外に出るまで） */
-  retryAfterSec: number;
-}
+export const RESERVE_SQL = `INSERT INTO rate_reservations (id, endpoint, ip_hash, units, created_at)
+SELECT ?, ?, ?, ?, ?
+WHERE (SELECT COUNT(*) FROM rate_reservations WHERE endpoint = ? AND ip_hash = ? AND created_at > ?) < ?
+  AND (SELECT COALESCE(SUM(units), 0) FROM rate_reservations WHERE endpoint = ? AND created_at > ?) + ? <= ?
+  AND (SELECT COALESCE(SUM(units), 0) FROM rate_reservations WHERE endpoint = ? AND created_at > ?) + ? <= ?
+RETURNING id`;
 
-/**
- * 直近 windowMs 内の同 (endpoint, ipHash) リクエスト数を D1 から取得し、
- * limit と比較して結果を返す。**まだログには書き込まない**（呼び出し側が
- * 最終 status を渡して logRequest する）。
- */
-export async function checkRateLimit(params: {
+export interface AdmissionPolicy {
   endpoint: string;
-  ipHash: string;
   limit: number;
-  windowMs: number;
-  now?: number;
-}): Promise<RateLimitResult> {
-  const now = params.now ?? Date.now();
-  const since = now - params.windowMs;
-
-  const resp = await d1Query<{ cnt: number; oldest: number | null }>(
-    `SELECT COUNT(*) AS cnt, MIN(created_at) AS oldest
-     FROM request_log
-     WHERE endpoint = ? AND ip_hash = ? AND created_at > ?`,
-    [params.endpoint, params.ipHash, since]
-  );
-  const row = firstRow(resp) ?? { cnt: 0, oldest: null };
-  const count = Number(row.cnt) || 0;
-  const allowed = count < params.limit;
-  const remaining = Math.max(0, params.limit - count - (allowed ? 1 : 0));
-  // 最古 row が window から抜けるまでの秒数。limit 未到達なら 0。
-  const retryAfterSec = allowed
-    ? 0
-    : row.oldest
-      ? Math.max(1, Math.ceil((Number(row.oldest) + params.windowMs - now) / 1000))
-      : 60;
-
-  return { count, allowed, remaining, retryAfterSec };
+  globalLimit: number;
+  burstLimit: number;
+  units?: number;
 }
 
-/**
- * リクエスト 1 件を request_log に記録。429 含めて全件入れる。
- * 失敗しても呼び出し側に throw せず console.warn のみ（telemetry のために
- * 本番ロジックを止めたくない）。
- */
-export async function logRequest(params: {
-  endpoint: string;
-  ipHash: string;
-  status: number;
-  now?: number;
-}): Promise<void> {
+export async function reserveRateLimit(policy: AdmissionPolicy, ipHash: string, now = Date.now()): Promise<boolean> {
+  const units = policy.units ?? 1;
+  if (![policy.limit, policy.globalLimit, policy.burstLimit, units].every((n) => Number.isSafeInteger(n) && n > 0)) {
+    throw new Error("Invalid rate limit configuration");
+  }
+  // D1 serializes writes; all three conditions and the insert are one statement.
+  // The global 60s budget also bounds overlap for the 45s AI handlers.
+  const resp = await d1Query<{ id: string }>(RESERVE_SQL, [
+    randomUUID(), policy.endpoint, ipHash, units, now,
+    policy.endpoint, ipHash, now - 3600000, policy.limit,
+    policy.endpoint, now - 3600000, units, policy.globalLimit,
+    policy.endpoint, now - 60000, units, policy.burstLimit,
+  ]);
+  return resp.result![0].results.length === 1;
+}
+
+export async function enforceRateLimit(req: Request, policy: AdmissionPolicy): Promise<Response | null> {
   try {
-    await d1Query(
-      `INSERT INTO request_log (endpoint, ip_hash, status, created_at)
-       VALUES (?, ?, ?, ?)`,
-      [params.endpoint, params.ipHash, params.status, params.now ?? Date.now()]
-    );
-  } catch (e) {
-    console.warn("rate-limit: logRequest failed:", e instanceof Error ? e.message : e);
+    if (await reserveRateLimit(policy, hashIp(getClientIp(req)))) return null;
+    return Response.json({ error: "利用上限に達しました。時間をおいて再度お試しください。", code: "RATE_LIMITED" }, {
+      status: 429, headers: { "Retry-After": "3600", "Cache-Control": "no-store" },
+    });
+  } catch {
+    // Missing credentials, missing migration, transport and SQL errors all fail closed.
+    console.warn("Rate limit admission unavailable");
+    return Response.json({ error: "現在サービスを利用できません。時間をおいて再度お試しください。", code: "SERVICE_UNAVAILABLE" }, {
+      status: 503, headers: { "Retry-After": "60", "Cache-Control": "no-store" },
+    });
   }
 }

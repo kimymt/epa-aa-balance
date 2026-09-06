@@ -1,33 +1,10 @@
 // lib/onboarding.ts のユニットテスト
 //
-// localStorage を polyfill して状態遷移を検証する。
-// Bun テストランナーはデフォルトで window/localStorage を持たないので、
-// 簡易な in-memory 実装をモジュールレベルで注入する。
+// test/setup.ts の happy-dom localStorage で状態遷移を検証する。
 
 import { describe, it, expect, beforeEach } from "bun:test";
 
-// --- localStorage polyfill (Bun は jsdom 持たないので) ---
-class MemoryStorage {
-  private store = new Map<string, string>();
-  getItem(k: string): string | null {
-    return this.store.has(k) ? this.store.get(k)! : null;
-  }
-  setItem(k: string, v: string): void {
-    this.store.set(k, v);
-  }
-  removeItem(k: string): void {
-    this.store.delete(k);
-  }
-  clear(): void {
-    this.store.clear();
-  }
-}
-// グローバルに window + localStorage を捏造
-(globalThis as unknown as { window: { localStorage: MemoryStorage } }).window = {
-  localStorage: new MemoryStorage(),
-};
-
-// import は polyfill 注入後に行う（onboarding.ts が `typeof window !== "undefined"` をチェックする）
+// happy-dom is installed by test/setup.ts; keep its real window for other tests.
 import {
   hasSeenOnboarding,
   markOnboardingSeen,
@@ -36,7 +13,7 @@ import {
 } from "./onboarding";
 
 beforeEach(() => {
-  (globalThis as unknown as { window: { localStorage: MemoryStorage } }).window.localStorage.clear();
+  window.localStorage.clear();
 });
 
 describe("hasSeenOnboarding", () => {

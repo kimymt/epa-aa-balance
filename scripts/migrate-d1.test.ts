@@ -16,7 +16,7 @@ function makeMockFetch(responses: Array<{ matchSql: RegExp; result?: unknown[]; 
   let callIndex = 0;
   const calls: Array<{ sql: string; params: unknown[] }> = [];
 
-  const mockFetch: typeof fetch = async (_url, init) => {
+  const mockFetch: (...args: Parameters<typeof fetch>) => ReturnType<typeof fetch> = async (_url, init) => {
     const body = JSON.parse(init!.body as string);
     calls.push(body);
     const matched = responses.find((r) => r.matchSql.test(body.sql));

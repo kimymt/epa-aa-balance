@@ -34,6 +34,7 @@ function MealResultCard({
   index,
   total,
   foods,
+  feedbackToken,
   file,
 }: {
   result: AnalysisResult;
@@ -41,6 +42,7 @@ function MealResultCard({
   index: number;
   total: number;
   foods?: VisionFood[];
+  feedbackToken?: string;
   /** v0.4.12: アップロードされた元画像。サムネイル表示 + フィードバック精度向上のため。 */
   file?: File;
 }) {
@@ -64,10 +66,12 @@ function MealResultCard({
     "none" | "accurate" | "correcting" | "submitted"
   >("none");
   const [selectedCorrection, setSelectedCorrection] = useState<string>("");
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const handleFeedbackSubmit = async (accurate: boolean, correction?: string) => {
     setSubmitting(true);
+    setFeedbackError(null);
     try {
       const response = await fetch("/api/feedback", {
         method: "POST",
@@ -75,6 +79,7 @@ function MealResultCard({
         body: JSON.stringify({
           mealType,
           predictedFoods: foods || [],
+          feedbackToken,
           accurate,
           correctedFoods: correction ? correction.split(",").map(f => f.trim()) : undefined,
           timestamp: new Date().toISOString(),
@@ -83,7 +88,12 @@ function MealResultCard({
       if (response.ok) {
         setFeedbackState("submitted");
         setSelectedCorrection("");
+      } else {
+        const data = await response.json();
+        setFeedbackError(data.error ?? "送信に失敗しました。");
       }
+    } catch {
+      setFeedbackError("送信に失敗しました。時間をおいて再度お試しください。");
     } finally {
       setSubmitting(false);
     }
@@ -91,6 +101,7 @@ function MealResultCard({
 
   return (
     <div className="flex flex-col gap-4">
+      {feedbackError && <p role="alert" className="text-sm text-rose-700">{feedbackError}</p>}
       {/* v0.4.12: アップロード画像のサムネイル。フィードバック精度向上が主目的:
           「正確 ✓ / 誤り - 修正」を判断するときに、どの食事の判定なのか目視確認できる。
           file が無いケース (古い state や test fixture) は section 自体を省略。 */}
@@ -440,6 +451,7 @@ export function ResultPanel({
                   index={meal.index}
                   total={result.aggregate.totalMeals}
                   foods={meal.foods}
+                  feedbackToken={meal.feedbackToken}
                   file={files?.[meal.index]}
                 />
               </div>
