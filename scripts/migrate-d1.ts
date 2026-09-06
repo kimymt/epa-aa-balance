@@ -18,7 +18,7 @@
 // または環境変数を .env.local に設定して:
 //   bun --env-file=.env.local run scripts/migrate-d1.ts
 
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const MIGRATIONS_DIR = path.join(process.cwd(), "migrations");

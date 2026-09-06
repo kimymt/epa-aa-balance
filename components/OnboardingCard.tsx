@@ -8,12 +8,11 @@
 //   - リピート訪問: 折りたたみ (summary 1 行 + 再展開ボタン)
 //   - localStorage で状態管理 (lib/onboarding.ts)
 //
-// SSR 対策: localStorage は client only。mounted フラグで hydration mismatch
-// を回避する (mounted=false の間は何も描画しない)。
+// SSR 中は null snapshot を使い、hydration 後に localStorage の状態を読む。
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { hasSeenOnboarding, markOnboardingSeen } from "@/lib/onboarding";
 // v0.4.16: 抗凝固薬服用者・手術予定者向けの相談推奨を inline 表示。
 // fear-mongering ではなく事実通告のスタンス (Q&A と整合)。
@@ -35,18 +34,15 @@ interface Props {
   forceCollapsed?: boolean;
 }
 
-export function OnboardingCard({ forceCollapsed = false }: Props) {
-  // SSR では localStorage が undefined なので、mounted 後に判定する。
-  // mounted=false の間は null 返し → hydration mismatch 回避。
-  const [mounted, setMounted] = useState(false);
-  const [expanded, setExpanded] = useState(true);
+function subscribeToStorage(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  return () => window.removeEventListener("storage", onChange);
+}
+const serverSnapshot = () => null;
 
-  useEffect(() => {
-    setMounted(true);
-    if (hasSeenOnboarding()) {
-      setExpanded(false);
-    }
-  }, []);
+export function OnboardingCard({ forceCollapsed = false }: Props) {
+  const seen = useSyncExternalStore(subscribeToStorage, hasSeenOnboarding, serverSnapshot);
+  const [expanded, setExpanded] = useState<boolean | null>(null);
 
   // F-017: forceCollapsed が true のときは localStorage に「seen」を記録
   // (次回訪問でも閉じたまま開く)。expanded state は触らず、render 側で
@@ -68,11 +64,11 @@ export function OnboardingCard({ forceCollapsed = false }: Props) {
     // ケースで、再閉じるまで dismiss を発火しない設計
   }
 
-  if (!mounted) return null;
+  if (seen === null) return null;
 
   // F-017: forceCollapsed のときは internal expanded を無視して collapsed mode へ。
   // ユーザーが engage 済 (files 選択 / loading / error) ならカードは小さくしたい。
-  const isCollapsed = forceCollapsed || !expanded;
+  const isCollapsed = forceCollapsed || !(expanded ?? !seen);
 
   if (isCollapsed) {
     return (
@@ -97,7 +93,6 @@ export function OnboardingCard({ forceCollapsed = false }: Props) {
   return (
     <section
       className="rounded-xl border border-sky-200 bg-sky-50 p-5 sm:p-6 dark:border-sky-800/40 dark:bg-sky-950/30"
-      aria-expanded="true"
     >
       <div className="mb-3 flex items-center gap-2">
         <span className="text-2xl">🐟</span>

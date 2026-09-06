@@ -8,7 +8,7 @@
 // 大幅更新したいとき STORAGE_KEY を `-v2` に上げれば全ユーザーに再表示される。
 //
 // SSR 対応: localStorage は server で undefined。`typeof window === "undefined"`
-// ガードを必ず通す。コンポーネント側は mounted flag で hydration mismatch を回避。
+// ガードを必ず通す。コンポーネント側は useSyncExternalStore の server snapshot で hydration mismatch を回避。
 
 export const ONBOARDING_STORAGE_KEY = "eaa-onboarding-seen-v1";
 
