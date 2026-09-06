@@ -9,10 +9,6 @@
 //
 // REST API ベース (Workers binding ではない)。Vercel から fetch で叩く。
 
-const CF_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
-const CF_D1_DATABASE_ID = process.env.CLOUDFLARE_D1_DATABASE_ID;
-const CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
-
 export interface D1Response<T = unknown> {
   result?: Array<{
     results: T[];
@@ -28,6 +24,9 @@ export async function d1Query<T = unknown>(
   sql: string,
   params: (string | number | null)[] = []
 ): Promise<D1Response<T>> {
+  const CF_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const CF_D1_DATABASE_ID = process.env.CLOUDFLARE_D1_DATABASE_ID;
+  const CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
   if (!CF_ACCOUNT_ID || !CF_D1_DATABASE_ID || !CF_API_TOKEN) {
     throw new Error("Cloudflare D1 environment variables are not configured.");
   }
@@ -36,6 +35,8 @@ export async function d1Query<T = unknown>(
 
   const response = await fetch(url, {
     method: "POST",
+    signal: AbortSignal.timeout(5000),
+    cache: "no-store",
     headers: {
       Authorization: `Bearer ${CF_API_TOKEN}`,
       "Content-Type": "application/json",
@@ -44,11 +45,15 @@ export async function d1Query<T = unknown>(
   });
 
   if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`D1 query failed (${response.status}): ${text}`);
+    throw new Error(`D1 query failed (${response.status})`);
   }
 
-  return response.json();
+  const data = await response.json() as D1Response<T>;
+  if (!data.success || !Array.isArray(data.result) || data.result.length === 0 ||
+      data.result.some((r) => !r.success || !Array.isArray(r.results))) {
+    throw new Error("D1 returned an unsuccessful query result");
+  }
+  return data;
 }
 
 /** D1 結果の最初の row を取り出すヘルパ。なければ undefined。 */

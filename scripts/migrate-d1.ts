@@ -71,6 +71,10 @@ export const MIGRATIONS: Migration[] = [
       );
     },
   },
+  {
+    file: "0008_security_admission.sql",
+    isAlreadyApplied: async () => false, // Idempotent CREATEs also repair partial application.
+  },
 ];
 
 // ---------- D1 REST API client (app/api/feedback/route.ts と同じ pattern) ----------
@@ -94,7 +98,7 @@ export class D1Api {
     private accountId: string,
     private databaseId: string,
     private apiToken: string,
-    private fetchImpl: typeof fetch = fetch
+    private fetchImpl: (...args: Parameters<typeof fetch>) => ReturnType<typeof fetch> = fetch
   ) {}
 
   async query<T = unknown>(sql: string, params: unknown[] = []): Promise<T[]> {

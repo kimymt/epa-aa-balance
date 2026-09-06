@@ -16,7 +16,7 @@ describe("Gemini Vision Concurrency (Free Tier)", () => {
     ]);
 
     const imagePromises = Array.from({ length: 9 }, (_, i) =>
-      analyzePhoto(dummyJpeg, "image/jpeg").catch((err) => ({
+      analyzePhoto(dummyJpeg.buffer, "image/jpeg").catch((err) => ({
         error: err.message,
         index: i,
       }))

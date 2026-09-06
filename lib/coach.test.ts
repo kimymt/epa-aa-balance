@@ -636,7 +636,6 @@ describe("isRecipeComplete", () => {
   });
 
   it("returns false when servings is non-number", () => {
-    // @ts-expect-error testing wrong type
     expect(isRecipeComplete({ ...fullRecipe(), servings: "2" })).toBe(false);
   });
 

@@ -269,11 +269,16 @@ export function validateCoachBody(input: unknown): { ok: true; body: CoachReques
   if (agg.lipidPct !== null && typeof agg.lipidPct !== "number") {
     return { ok: false, reason: "lipidPct-wrong-type" };
   }
+  if (![agg.epaMg, agg.dhaMg, agg.aaMg].every((n) => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1000000) ||
+      (agg.lipidPct !== null && (!Number.isFinite(agg.lipidPct) || (agg.lipidPct as number) < 0 || (agg.lipidPct as number) > 100))) {
+    return { ok: false, reason: "aggregate-out-of-range" };
+  }
   if (!Array.isArray(b.recentFoods)) return { ok: false, reason: "recentFoods-not-array" };
+  if (b.recentFoods.length > 180) return { ok: false, reason: "too-many-foods" };
   for (const f of b.recentFoods) {
     if (!f || typeof f !== "object") return { ok: false, reason: "food-not-object" };
     const ff = f as Record<string, unknown>;
-    if (typeof ff.name !== "string" || typeof ff.grams !== "number") {
+    if (typeof ff.name !== "string" || !ff.name.trim() || ff.name.length > 100 || typeof ff.grams !== "number" || !Number.isFinite(ff.grams) || ff.grams <= 0 || ff.grams > 10000) {
       return { ok: false, reason: "food-fields-invalid" };
     }
   }
@@ -580,7 +585,8 @@ export function isRecipeComplete(r: unknown): r is Recipe {
  * v0.4.x の同期版 `generateCoachRecipes` も内部で本 generator を畳み込む実装に変更。
  */
 export async function* generateCoachRecipesStream(
-  req: CoachRequest
+  req: CoachRequest,
+  signal?: AbortSignal,
 ): AsyncGenerator<RecipeStreamEvent, void, void> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -654,7 +660,8 @@ export async function* generateCoachRecipesStream(
         temperature: 0.7,
         responseMimeType: "application/json",
         responseSchema: RECIPE_SCHEMA,
-        abortSignal: controller.signal,
+        abortSignal: signal ? AbortSignal.any([signal, controller.signal]) : controller.signal,
+        maxOutputTokens: 4096,
       },
     });
 
@@ -662,6 +669,7 @@ export async function* generateCoachRecipesStream(
       const t = chunk.text ?? "";
       if (!t) continue;
       accumulated += t;
+      if (accumulated.length > 65536) { controller.abort(); throw new Error("Coach output limit exceeded"); }
       for (const ev of tryEmit()) yield ev;
     }
 
@@ -763,7 +771,7 @@ export function isGeminiQuotaError(message: string): boolean {
  */
 export function aggregateFromAnalysis(results: AnalysisResult[]): CoachRequest["aggregate"] {
   let epaMg = 0, dhaMg = 0, aaMg = 0;
-  let validLipidPct: number[] = [];
+  const validLipidPct: number[] = [];
   for (const r of results) {
     epaMg += r.epaMg;
     dhaMg += r.dhaMg;

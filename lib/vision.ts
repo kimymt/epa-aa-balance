@@ -225,6 +225,7 @@ export async function analyzePhoto(
         responseMimeType: "application/json",
         responseSchema: RESPONSE_SCHEMA,
         abortSignal: controller.signal,
+        maxOutputTokens: 2048,
       },
     });
     text = response.text ?? "";
@@ -267,13 +268,17 @@ export async function analyzePhoto(
   }
 
   const foods: VisionFood[] = [];
-  for (const item of parsed) {
+  for (const item of parsed.slice(0, 20)) {
     if (
       typeof item === "object" &&
       item !== null &&
       typeof (item as { name?: unknown }).name === "string" &&
       typeof (item as { grams?: unknown }).grams === "number" &&
-      (item as { grams: number }).grams > 0
+      (item as { name: string }).name.trim().length > 0 &&
+      (item as { name: string }).name.length <= 100 &&
+      Number.isFinite((item as { grams: number }).grams) &&
+      (item as { grams: number }).grams <= 10000 &&
+      (item as { grams: number }).grams >= 0.5
     ) {
       foods.push({
         name: (item as { name: string }).name.trim(),

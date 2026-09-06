@@ -1,31 +1,22 @@
 import { NextResponse } from "next/server";
-import { validateFeedbackBody } from "@/lib/feedback-validation";
+import { validateFeedbackBody, safeStoredFoods } from "@/lib/feedback-validation";
 // v0.4.2: D1 client を lib/d1.ts に抽出（rate-limit と共有）。
 import { d1Query } from "@/lib/d1";
 // v0.4.6: GET admin endpoint の token 比較を constant-time 化、
 // brute-force 抑止のため rate limit も追加。
 import { constantTimeStringEqual } from "@/lib/timing-safe";
-import { checkRateLimit, getClientIp, hashIp, logRequest } from "@/lib/rate-limit";
+import { enforceRateLimit } from "@/lib/rate-limit";
+import { readLimitedJson, bodyErrorResponse } from "@/lib/request-body";
+import { verifyFeedbackReceipt } from "@/lib/feedback-receipt";
 
 export const runtime = "nodejs";
 
-const ADMIN_GET_ENDPOINT = "/api/feedback-admin"; // request_log で POST と区別
-// admin がダッシュボードを開く頻度には十分。token 32 文字ランダムなら brute-force 不可、
-// 弱い token でも 30/h = 720/day に制限すれば計算的に総当たり困難。
-const ADMIN_GET_RATE_LIMIT = Number(process.env.FEEDBACK_ADMIN_RATE_LIMIT ?? "30");
-const ADMIN_GET_WINDOW_MS = 60 * 60 * 1000;
-
-function isD1Configured(): boolean {
-  return Boolean(
-    process.env.CLOUDFLARE_ACCOUNT_ID &&
-      process.env.CLOUDFLARE_D1_DATABASE_ID &&
-      process.env.CLOUDFLARE_API_TOKEN
-  );
-}
-
 export async function POST(req: Request) {
+  const denied = await enforceRateLimit(req, { endpoint: "/api/feedback", limit: 30, globalLimit: 200, burstLimit: 30 });
+  if (denied) return denied;
+  let body: unknown;
+  try { body = await readLimitedJson(req, 16384); } catch (error) { return bodyErrorResponse(error); }
   try {
-    const body = await req.json();
     const validation = validateFeedbackBody(body);
     if (!validation.ok) {
       return NextResponse.json(
@@ -36,11 +27,10 @@ export async function POST(req: Request) {
     const { mealType, predictedFoods, accurate, correctedFoods, timestamp } =
       validation.body;
 
-    const feedbackId = `feedback-${Date.now()}-${Math.random()
-      .toString(36)
-      .substring(2, 9)}`;
+    const feedbackId = verifyFeedbackReceipt((body as Record<string, unknown>).feedbackToken, mealType, predictedFoods);
+    if (!feedbackId) return NextResponse.json({ error: "解析結果の有効期限が切れているか、不正です。再度解析してください。" }, { status: 403 });
 
-    await d1Query(
+    const inserted = await d1Query<{ id: string }>(
       // v0.3.0-beta: calculation_version=2 (lipid-based) を明示的にセット。
       // 過去 v0.2.0 レコードはマイグレーションで version=1 に backfill 済み。
       // 本コードがデプロイされた時点から、新規 feedback はすべて version=2。
@@ -48,7 +38,7 @@ export async function POST(req: Request) {
       //  「コードバージョン」を表すため、計算ロジックの flag とは独立。
       //  PR 3 で flag が ON になっても本ロジックは無変更で済む。)
       `INSERT INTO feedback (id, meal_type, predicted_foods, accurate, corrected_foods, timestamp, calculation_version)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING RETURNING id`,
       [
         feedbackId,
         mealType,
@@ -60,6 +50,7 @@ export async function POST(req: Request) {
       ]
     );
 
+    if (!inserted.result![0].results.length) return NextResponse.json({ error: "この解析結果には既に回答済みです。" }, { status: 409 });
     return NextResponse.json({ ok: true, id: feedbackId });
   } catch (error) {
     console.error("Feedback error:", error);
@@ -91,46 +82,15 @@ interface FeedbackRow {
  * track v0.2.0 → v0.3.0 transition data quality.
  */
 export async function GET(req: Request) {
-  // v0.4.6: GET 全体に rate limit を適用（401 含む）。
-  // 401 をログするので brute-force 試行が request_log で可視化できる。
-  const ip = getClientIp(req);
-  const ipHash = hashIp(ip);
-  const rateLimitEnabled = isD1Configured();
-  const logIfEnabled = (status: number): Promise<void> =>
-    rateLimitEnabled
-      ? logRequest({ endpoint: ADMIN_GET_ENDPOINT, ipHash, status })
-      : Promise.resolve();
-
-  if (rateLimitEnabled) {
-    try {
-      const rl = await checkRateLimit({
-        endpoint: ADMIN_GET_ENDPOINT,
-        ipHash,
-        limit: ADMIN_GET_RATE_LIMIT,
-        windowMs: ADMIN_GET_WINDOW_MS,
-      });
-      if (!rl.allowed) {
-        await logIfEnabled(429);
-        return NextResponse.json(
-          { error: `リクエスト過多です。${rl.retryAfterSec} 秒後に再試行してください。` },
-          {
-            status: 429,
-            headers: {
-              "Retry-After": String(rl.retryAfterSec),
-              "X-RateLimit-Limit": String(ADMIN_GET_RATE_LIMIT),
-              "X-RateLimit-Remaining": "0",
-            },
-          }
-        );
-      }
-    } catch (e) {
-      console.warn("rate-limit check failed:", e instanceof Error ? e.message : e);
-    }
-  }
-
+  const denied = await enforceRateLimit(req, {
+    endpoint: "/api/feedback-admin", limit: Number(process.env.FEEDBACK_ADMIN_RATE_LIMIT ?? "30"), globalLimit: 100, burstLimit: 20,
+  });
+  if (denied) return denied;
   try {
     const url = new URL(req.url);
-    const token = url.searchParams.get("token");
+    // URL credentials are deliberately unsupported.
+    const authorization = req.headers.get("authorization");
+    const token = authorization?.startsWith("Bearer ") ? authorization.slice(7) : null;
     const versionFilter = url.searchParams.get("version") ?? "all"; // "1"|"2"|"all"
 
     // v0.4.6: タイミング攻撃対策で constant-time 比較。token 未設定 / env 未設定の
@@ -138,7 +98,7 @@ export async function GET(req: Request) {
     // タイミング差で漏れる情報がない）。
     const expected = process.env.FEEDBACK_ADMIN_TOKEN;
     if (!token || !expected || !constantTimeStringEqual(token, expected)) {
-      await logIfEnabled(401);
+
       return NextResponse.json(
         { error: "認証に失敗しました。" },
         { status: 401 }
@@ -212,9 +172,9 @@ export async function GET(req: Request) {
     const recent = (recentResp.result?.[0]?.results ?? []).map((r) => ({
       id: r.id,
       mealType: r.meal_type,
-      predictedFoods: JSON.parse(r.predicted_foods),
+      predictedFoods: safeStoredFoods(r.predicted_foods),
       accurate: r.accurate === 1,
-      correctedFoods: r.corrected_foods ? JSON.parse(r.corrected_foods) : null,
+      correctedFoods: safeStoredFoods(r.corrected_foods, true),
       timestamp: r.timestamp,
       createdAt: r.created_at,
       calculationVersion: r.calculation_version,
@@ -225,7 +185,6 @@ export async function GET(req: Request) {
     const accuracyPercentage =
       total > 0 ? ((accurateCount / total) * 100).toFixed(1) : "N/A";
 
-    await logIfEnabled(200);
     return NextResponse.json({
       filter: { version: versionFilter },
       stats: {
@@ -237,10 +196,10 @@ export async function GET(req: Request) {
         byCalculationVersion,
       },
       recentFeedback: recent,
-    });
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Feedback fetch error:", error);
-    await logIfEnabled(500);
+
     return NextResponse.json(
       { error: "フィードバックの取得に失敗しました。" },
       { status: 500 }

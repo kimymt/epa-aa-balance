@@ -11,9 +11,11 @@ import {
   type MealTypeValue,
   computeAggregate,
 } from "@/lib/session";
-// v0.4.5: D1 ベースのレート制限（/api/coach と同パターン、同 D1 テーブル `request_log` 共有）。
+// D1 の単一 SQL で処理前に利用枠を確保する。
 // 1 リクエスト最大 9 並列 Vision 呼び出しなので、エンドポイントとしては coach より重い。
-import { checkRateLimit, getClientIp, hashIp, logRequest } from "@/lib/rate-limit";
+import { enforceRateLimit } from "@/lib/rate-limit";
+import { readLimitedBody, bodyErrorResponse } from "@/lib/request-body";
+import { createFeedbackReceipt, feedbackSigningSecret } from "@/lib/feedback-receipt";
 
 export const runtime = "nodejs";
 export const maxDuration = 45;
@@ -26,7 +28,6 @@ const ENDPOINT = "/api/analyze";
 // 正当ユーザーの実需要 ≒ 3〜5 req/h (1 ヶ月分まとめ入れの outlier でも 10 req)。
 // 10/h なら平均使用の 2〜3 倍バッファ。env で変更可。/api/coach (10/h) と整合。
 const RATE_LIMIT = Number(process.env.ANALYZE_RATE_LIMIT ?? "10");
-const RATE_WINDOW_MS = 60 * 60 * 1000;
 
 /**
  * v0.8.6 (F-012): per-photo の VisionErrorCode 一覧から代表 code を選ぶ。
@@ -66,66 +67,22 @@ export function pickDominantCode(codes: VisionErrorCode[]): VisionErrorCode {
   return "UNKNOWN";
 }
 
-/** D1 が設定されているか（local dev で disable するため、coach と同じ判定） */
-function isD1Configured(): boolean {
-  return Boolean(
-    process.env.CLOUDFLARE_ACCOUNT_ID &&
-      process.env.CLOUDFLARE_D1_DATABASE_ID &&
-      process.env.CLOUDFLARE_API_TOKEN
-  );
-}
-
 export async function POST(req: Request) {
-  const ip = getClientIp(req);
-  const ipHash = hashIp(ip);
-  const rateLimitEnabled = isD1Configured();
-
-  // 各 return path で呼ぶ telemetry helper。disabled なら no-op。
-  const logIfEnabled = (status: number): Promise<void> =>
-    rateLimitEnabled
-      ? logRequest({ endpoint: ENDPOINT, ipHash, status })
-      : Promise.resolve();
-
-  // ---------- Rate limit (D1 設定時のみ) ----------
-  if (rateLimitEnabled) {
-    try {
-      const rl = await checkRateLimit({
-        endpoint: ENDPOINT,
-        ipHash,
-        limit: RATE_LIMIT,
-        windowMs: RATE_WINDOW_MS,
-      });
-      if (!rl.allowed) {
-        await logRequest({ endpoint: ENDPOINT, ipHash, status: 429 });
-        return NextResponse.json(
-          {
-            error: `画像解析の上限に達しました。${rl.retryAfterSec} 秒後に再試行してください。`,
-          },
-          {
-            status: 429,
-            headers: {
-              "Retry-After": String(rl.retryAfterSec),
-              "X-RateLimit-Limit": String(RATE_LIMIT),
-              "X-RateLimit-Remaining": "0",
-            },
-          }
-        );
-      }
-    } catch (e) {
-      // rate-limit DB 不調でも本番ロジックは止めない (telemetry 失敗で UX を壊さない)
-      console.warn("rate-limit check failed:", e instanceof Error ? e.message : e);
-    }
+  const denied = await enforceRateLimit(req, {
+    endpoint: ENDPOINT, limit: RATE_LIMIT, units: MAX_IMAGES,
+    globalLimit: Number(process.env.ANALYZE_GLOBAL_LIMIT ?? "900"), burstLimit: 90,
+  });
+  if (denied) return denied;
+  try { feedbackSigningSecret(); } catch {
+    return NextResponse.json({ error: "解析サービスの設定が完了していません。" }, { status: 503 });
   }
 
   let formData: FormData;
   try {
-    formData = await req.formData();
-  } catch {
-    await logIfEnabled(400);
-    return NextResponse.json(
-      { error: "リクエストの形式が不正です。" },
-      { status: 400 },
-    );
+    const bytes = await readLimitedBody(req, 10 * 1024 * 1024);
+    formData = await new Response(bytes, { headers: { "Content-Type": req.headers.get("content-type") ?? "" } }).formData();
+  } catch (error) {
+    return bodyErrorResponse(error);
   }
 
   // Get all photos and meal types
@@ -134,7 +91,6 @@ export async function POST(req: Request) {
 
   // Validate file count
   if (files.length === 0) {
-    await logIfEnabled(400);
     return NextResponse.json(
       { error: "写真がアップロードされていません。" },
       { status: 400 },
@@ -142,7 +98,6 @@ export async function POST(req: Request) {
   }
 
   if (files.length > MAX_IMAGES) {
-    await logIfEnabled(400);
     return NextResponse.json(
       { error: `最大${MAX_IMAGES}枚までアップロードできます。` },
       { status: 400 },
@@ -151,7 +106,6 @@ export async function POST(req: Request) {
 
   // Validate meal types array length matches files
   if (mealTypes.length !== files.length) {
-    await logIfEnabled(400);
     return NextResponse.json(
       { error: "すべての写真に食事タイプを指定してください。" },
       { status: 400 },
@@ -166,7 +120,6 @@ export async function POST(req: Request) {
     const mealType = mealTypes[i];
 
     if (!(file instanceof Blob)) {
-      await logIfEnabled(400);
       return NextResponse.json(
         { error: `写真${i + 1}: ファイルが不正です。` },
         { status: 400 },
@@ -174,7 +127,6 @@ export async function POST(req: Request) {
     }
 
     if (file.size > MAX_BYTES) {
-      await logIfEnabled(400);
       return NextResponse.json(
         { error: `写真${i + 1}: ファイルサイズが10MBを超えています。` },
         { status: 400 },
@@ -183,7 +135,7 @@ export async function POST(req: Request) {
 
     const mime = file.type;
     if (!ALLOWED_MIMES.includes(mime)) {
-      await logIfEnabled(400);
+
       if (mime === "image/heic" || mime === "image/heif") {
         return NextResponse.json(
           {
@@ -201,7 +153,6 @@ export async function POST(req: Request) {
     }
 
     if (!["breakfast", "lunch", "dinner"].includes(mealType)) {
-      await logIfEnabled(400);
       return NextResponse.json(
         { error: `写真${i + 1}: 食事タイプが不正です。` },
         { status: 400 },
@@ -274,6 +225,7 @@ export async function POST(req: Request) {
           mealType: value.mealType,
           result: value.result,
           foods: value.foods,
+          feedbackToken: createFeedbackReceipt(value.mealType, value.foods),
         });
         successfulResults.push(value.result);
       } else {
@@ -299,7 +251,7 @@ export async function POST(req: Request) {
   // If no successful analyses, return error with aggregated code (v0.8.6, F-012)
   if (successfulResults.length === 0) {
     const aggregateCode = pickDominantCode(failed.map((f) => f.code));
-    await logIfEnabled(422);
+
     return NextResponse.json(
       {
         error: userMessageForCode(aggregateCode),
@@ -329,6 +281,5 @@ export async function POST(req: Request) {
     },
   };
 
-  await logIfEnabled(200);
   return NextResponse.json({ ok: true, result: sessionResult });
 }
